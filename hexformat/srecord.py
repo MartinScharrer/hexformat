@@ -1,13 +1,6 @@
+from multipartbuffer import MultiPartBuffer
 
-class IntelHex(MultiPartBuffer):
-    def tofile(self, fh, format='hex'):
-        import intelhex
-        ih = intelhex.IntelHex()
-        for start,buffer in self._parts:
-            ih.fromdict(dict([ (start+n), byte ] for n,byte in enumerate1(buffer) ))
-        ih.tofile(fh, format)
-        
-class SRecord(object):
+class SRecord(MultiPartBuffer):
     _addresslength = (2,2,3,4,None,2,None,4,3,2)
         
     @classmethod
@@ -26,7 +19,7 @@ class SRecord(object):
             raise ValueError
         crccorrect = ( (sum(bytes) & 0xFF) == 0xFF)
         al = cls._addresslength[recordtype]
-        adresse = hexstr2int(line[4:4+2*al])      
+        adresse = int(line[4:4+2*al], 16)
         datasize = bytecount - al - 1
         data = bytes[1+al:-1]
         return (recordtype, adresse, data, datasize, crccorrect)
@@ -47,7 +40,9 @@ class SRecord(object):
         
         line = frep.readline()
         while line != '':
-            (recordtype, bytecount, adresse, data, datasize, crccorrect) = cls._parseline(line)
+            (recordtype, adresse, data, datasize, crccorrect) = cls._parseline(line)
             if recordtype >= 1 and recordtype <= 3:
-                self.add(adresse, data, datasize)
+                self.set(adresse, data, datasize)
             line = frep.readline()
+            
+        return self
