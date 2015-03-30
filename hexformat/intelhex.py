@@ -3,61 +3,61 @@ import random
 
 def hexstr2int(hexstr):
     return int(hexstr, 16)
-    
+
 class HexfileCrcError(Exception):
     pass
-    
+
 class Buffer(bytearray):
     pass
-    
+
 class RandomContent(object):
     def __init__(self, length=1):
         self._length = int(length)
-        
+
     def __len__(self):
         return self._length
-        
+
     def __mul__(self, m):
         return self.__class__( self._length * int(m) )
-        
+
     def __imul__(self, m):
         self._length *= int(m)
-       
+
     def __iter__(self):
         return self._produce( 1 )
 
     def __str__(self):
         return str(Buffer(self._produce( 1 )))
-        
+
     def __getslice__(self, i, j):
         return self.__class__( j - i )
 
     def __getitem__(self, i):
         return random.randint(0, 255)
-        
+
     def _produce(self, length):
         length = int(length) * self._length
         n = 0
         while n < length:
             n += 1
             yield random.randint(0, 255)
-            
-    
-    
+
+
+
 class SplitFile(object):
 
     def __init__(self):
         self._parts = list()
-        
+
     def parts(self):
         return [ (start, len(data)) for start,data in self._parts ]
-        
+
     def __str__(self):
         return "\n".join([ "%d+%d: %s" % (start, len(data), str(data)) for start,data in self._parts ])
-        
+
     def __repr__(self):
         return str(self)
-        
+
     def _create(self, beforeindex, address, data=list()):
         """Create new buffer before index or at end if index is None"""
         buffer = Buffer(data)
@@ -65,7 +65,7 @@ class SplitFile(object):
             self._parts.append( [ address, buffer ] )
         else:
             self._parts.insert(beforeindex, [ address, buffer ])
-        
+
     def _find(self, address, size, create=True):
         """Returns buffer index for given address and size"""
         dataend = address + size
@@ -91,7 +91,7 @@ class SplitFile(object):
             return (len(self._parts) - 1)
         else:
             return "after"
-        
+
     def _insert(self, index, newdata, datasize, dataoffset):
         self._parts[index][0] -= datasize
         data = None
@@ -100,17 +100,17 @@ class SplitFile(object):
         else:
             data = newdata[dataoffset:dataoffset+datasize]
         self._parts[index][1].insert( data )
-        
+
     def _set(self, index, address, newdata, datasize, dataoffset):
         bufferstart = self._parts[index][0]
-        bufferoffset = address - bufferstart 
+        bufferoffset = address - bufferstart
         data = None
         if dataoffset == 0 and datasize == len(newdata):
             data = newdata
         else:
             data = newdata[dataoffset:dataoffset+datasize]
         self._parts[index][1] [bufferoffset:bufferoffset+datasize] = data
-        
+
     def _extend(self, index, newdata, datasize, dataoffset):
         data = None
         if dataoffset == 0 and datasize == len(newdata):
@@ -118,21 +118,21 @@ class SplitFile(object):
         else:
             data = newdata[dataoffset:dataoffset+datasize]
         self._parts[index][1].extend( data )
-    
+
     def _merge(self, index):
         """Merge the given buffer with the next one"""
         nextpart = self._parts.pop(index+1)
         self._parts[index][1].extend( nextpart[1] )
-        
+
     def set(self, address, newdata, datasize=None, dataoffset=0):
         if datasize is None:
             datasize = len(newdata) - dataoffset
         index = self._find(address, datasize, create=True)
         endaddress = address + datasize
-        
+
         bufferstart, buffer = self._parts[index]
         bufferend = bufferstart + len(buffer)
-        
+
         # Insert left overlapping data
         if address < bufferstart:
             before = bufferstart - address
@@ -141,7 +141,7 @@ class SplitFile(object):
             datasize -= before
             dataoffset += before
             address += before
-            
+
         # Overwrite existing data
         if datasize > 0:
             size = min(datasize, bufferend-address)
@@ -149,11 +149,11 @@ class SplitFile(object):
             datasize -= size
             dataoffset += size
             address += size
-               
+
         # Insert right overlapping data
         if endaddress > bufferend:
             nextindex = index + 1
-            
+
             nextbufferstart = None
             if nextindex < len(self._parts):
                 nextbufferstart = self._parts[nextindex][0]
@@ -171,7 +171,7 @@ class SplitFile(object):
                 address += gap
                 self._merge( index )
                 self.set( address, newdata, datasize, dataoffset )
-                
+
     def _filler(self, size, fillpattern):
         size = int(size)
         if isinstance(fillpattern, BaseException) or ( type(fillpattern) == type and issubclass(fillpattern, BaseException) ):
@@ -193,11 +193,11 @@ class SplitFile(object):
         if rest > 0:
             buffer.extend(fillpattern[0:rest])
         return buffer
-        
+
     def fill(self, address, size, fillpattern=0xFF):
         """Fill with <fillpattern> from <address> for <size> bytes"""
         self.set(address, self._filler(size, fillpattern), size, 0)
-    
+
     def get(self, address, size, fillpattern=0xFF):
         """Get <size> bytes from <address>. Fill missing bytes with <fillpattern>.
            Where <fillpattern> can be:
@@ -213,37 +213,37 @@ class SplitFile(object):
         """
         index = self._find(address, size, create=False)
         endaddress = address + size
-        
+
         retbuffer = Buffer()
-            
+
         if not isinstance(index, int):
             return self._filler(size, fillpattern)
         else:
             bufferstart, buffer = self._parts[index]
             bufferend = bufferstart + len(buffer)
-            
+
             if address < bufferstart:
                 before = bufferstart - address
                 retbuffer = self._filler(before, fillpattern)
                 size -= before
                 address += before
-                
+
             pos = address - bufferstart
             insize = min(size, bufferend-pos)
             if insize > 0:
                 if len(retbuffer) > 0:
                     retbuffer.extend( buffer[ pos : pos+insize ] )
                 else:
-                    retbuffer = buffer[ pos : pos+insize ]  
+                    retbuffer = buffer[ pos : pos+insize ]
                 size -= insize
                 address += insize
-            
+
             if endaddress > bufferend:
                 nextindex = index + 1
-                
+
                 nextbufferstart = None
                 if nextindex < len(self._parts):
-                    nextbufferstart = self._parts[nextindex][0]            
+                    nextbufferstart = self._parts[nextindex][0]
                 # Check if data does not reach into next buffer
                 if nextbufferstart is None or nextbufferstart > endaddress:
                     after = endaddress - bufferend
@@ -253,7 +253,7 @@ class SplitFile(object):
                     retbuffer.extend( self._filler(gap , fillpattern) )
                     size -= gap
                     address += gap
-                    retbuffer.extend( self.get( address, size, fillpattern) )                
+                    retbuffer.extend( self.get( address, size, fillpattern) )
         return retbuffer
 
 class IntelHex(SplitFile):
@@ -263,10 +263,10 @@ class IntelHex(SplitFile):
         for start,buffer in self._parts:
             ih.fromdict(dict([ (start+n), byte ] for n,byte in enumerate1(buffer) ))
         ih.tofile(fh, format)
-        
+
 class SRecord(object):
     _addresslength = (2,2,3,4,None,2,None,4,3,2)
-        
+
     @classmethod
     def _parseline(cls, line):
         try:
@@ -277,17 +277,17 @@ class SRecord(object):
             recordtype = int(line[1])
             bytes = bytearray.fromhex(line[2:])
         except:
-            raise ValueError            
+            raise ValueError
         bytecount = bytes[0]
         if bytecount != len(bytes)-1:
             raise ValueError
         crccorrect = ( (sum(bytes) & 0xFF) == 0xFF)
         al = cls._addresslength[recordtype]
-        adresse = hexstr2int(line[4:4+2*al])      
+        adresse = hexstr2int(line[4:4+2*al])
         datasize = bytecount - al - 1
         data = bytes[1+al:-1]
         return (recordtype, adresse, data, datasize, crccorrect)
-        
+
     @classmethod
     def fromfile(cls, frep, format='auto'):
         format = format.lower()
@@ -295,13 +295,13 @@ class SRecord(object):
             return cls.fromsrecfile(frep)
         elif format == 'bin':
             return cls.frombinfile(frep)
-    
+
     @classmethod
     def fromsrecfile(cls, frep):
         self = cls()
         if not hasattr(frep, "readline"):
             frep = open(frep, "r")
-        
+
         line = frep.readline()
         while line != '':
             (recordtype, bytecount, adresse, data, datasize, crccorrect) = cls._parseline(line)

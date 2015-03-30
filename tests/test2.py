@@ -8,7 +8,7 @@ def test(num, str1, str2):
         print "%s: Failure: %s != %s" % (str(num), str1, str2)
     else:
         print "%s: OK: %s" % (str(num), str1)
- 
+
 teststr = "01234567"
 teststr1 = "abc"
 

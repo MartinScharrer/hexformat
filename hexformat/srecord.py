@@ -2,7 +2,7 @@ from multipartbuffer import MultiPartBuffer
 
 class SRecord(MultiPartBuffer):
     _addresslength = (2,2,3,4,None,2,None,4,3,2)
-        
+
     @classmethod
     def _parseline(cls, line):
         try:
@@ -13,7 +13,7 @@ class SRecord(MultiPartBuffer):
             recordtype = int(line[1])
             bytes = bytearray.fromhex(line[2:])
         except:
-            raise ValueError            
+            raise ValueError
         bytecount = bytes[0]
         if bytecount != len(bytes)-1:
             raise ValueError
@@ -23,7 +23,7 @@ class SRecord(MultiPartBuffer):
         datasize = bytecount - al - 1
         data = bytes[1+al:-1]
         return (recordtype, adresse, data, datasize, crccorrect)
-        
+
     @classmethod
     def fromfile(cls, frep, format='auto'):
         format = format.lower()
@@ -31,18 +31,18 @@ class SRecord(MultiPartBuffer):
             return cls.fromsrecfile(frep)
         elif format == 'bin':
             return cls.frombinfile(frep)
-    
+
     @classmethod
     def fromsrecfile(cls, frep):
         self = cls()
         if not hasattr(frep, "readline"):
             frep = open(frep, "r")
-        
+
         line = frep.readline()
         while line != '':
             (recordtype, adresse, data, datasize, crccorrect) = cls._parseline(line)
             if recordtype >= 1 and recordtype <= 3:
                 self.set(adresse, data, datasize)
             line = frep.readline()
-            
+
         return self
