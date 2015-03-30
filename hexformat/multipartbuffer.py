@@ -8,11 +8,8 @@ class MultiPartBuffer(object):
     def __init__(self):
         self._parts = list()
         
-    def parts(self):
-        return [ (start, len(data)) for start,data in self._parts ]
-        
     def __str__(self):
-        return "\n".join([ "%d+%d: %s" % (start, len(data), str(data)) for start,data in self._parts ])
+        return str(self.parts())
         
     def __repr__(self):
         return str(self)
@@ -52,13 +49,13 @@ class MultiPartBuffer(object):
             return "after"
         
     def _insert(self, index, newdata, datasize, dataoffset):
-        self._parts[index][0] -= datasize
         data = None
         if dataoffset == 0 and datasize == len(newdata):
             data = newdata
         else:
             data = newdata[dataoffset:dataoffset+datasize]
-        self._parts[index][1].insert( data )
+        self._parts[index][1] = Buffer(data) + self._parts[index][1]
+        self._parts[index][0] -= datasize
         
     def _set(self, index, address, newdata, datasize, dataoffset):
         bufferstart = self._parts[index][0]
@@ -214,3 +211,54 @@ class MultiPartBuffer(object):
                     address += gap
                     retbuffer.extend( self.get( address, size, fillpattern) )                
         return retbuffer
+
+    def range(self):
+        """Get range of content as (address, size) tuple. The range may contain unfilled gaps."""
+        if len(self._parts) == 0:
+            return (0,0)
+        else:
+            start = self._parts[0][0]
+            lastaddress, buffer = self._parts[-1]
+            totalsize = lastaddress + len(buffer) - start
+            return (start, totalsize)
+            
+    def parts(self):
+        return [ (start, len(data)) for start,data in self._parts ]
+        
+    def gaps(self):
+        gaplist = list()
+        for n in range(0,len(self._parts)-1):
+            address,buffer = self._parts[n]
+            nextaddress = self._parts[n+1][0]
+            endaddress = address + len(buffer)
+            gap = nextaddress - endaddress
+            gaplist.append( [endaddress, gap] )
+        return gaplist
+            
+    def fillgaps(self, fillpattern=0xFF):
+        for address,size in self.gaps():
+            self.fill(address, size, fillpattern)
+            
+    def fillbegin(self, fillpattern=0xFF):
+        if len(self._parts) > 0:
+            address = self._parts[0][0]
+            self.fill(0, address, fillpattern)
+
+    def tobinfile(self, filename, address=None, size=None, fillpattern=0xFF, options="w"):
+        with open(filename, options) as fh:
+            self.tobinfh(fh, address, size, fillpattern)
+    
+    def tobinfh(self, fh, address=None, size=None, fillpattern=0xFF):
+        start, esize = self.range()
+        if address is not None:
+            if address < 0:
+                address = 0
+            endaddress = start + esize
+            esize = endaddress - address 
+            start = address
+            if esize < 0:
+                esize = 0
+        if size is None:
+            size = esize
+        fh.write( self.get(start, size, fillpattern) )
+            
