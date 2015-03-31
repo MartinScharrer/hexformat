@@ -301,3 +301,11 @@ class MultiPartBuffer(object):
         if size is None:
             size = esize
         fh.write( self.get(start, size, fillpattern) )
+
+    def todict(self):
+        d = { addr:byte for addr,byte in enumerate(buffer, address) for address, buffer in self._parts }
+        return d
+        
+    def fromdict(self, d):
+        for addr,byte in d.iteritems():
+            self.set(addr, (byte,), 1)
