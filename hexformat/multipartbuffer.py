@@ -128,6 +128,46 @@ class MultiPartBuffer(object):
                 self._merge( index )
                 self.set( address, newdata, datasize, dataoffset )
 
+    def delete(self, address, size):
+        while size > 0:
+            index = self._find(address, size, create=True)
+            bufferstart, buffer = self._parts[index]
+            buffersize = len(buffer)
+            if address < bufferstart:
+                size -= bufferstart - address
+                address = bufferstart
+            leading  = address - bufferstart
+            trailing = bufferstart + buffersize - address - size
+            trailaddress = address + size
+            if trailing > 0:
+                if leading > 0:
+                    self._parts[index][1] = buffer[0:leading]
+                    self._create(index+1, trailaddress, buffer[buffersize-trailing:buffersize])
+                else:
+                    self._parts[index][1] = buffer[buffersize-trailing:buffersize]
+                    self._parts[index][0] = trailaddress
+                break
+            else:
+                nextbufferstart = None
+                if index < len(self._parts)-1:
+                    nextbufferstart = self._parts[index+1][0]
+
+                if leading > 0:
+                    self._parts[index][1] = buffer[0:leading]
+                else:
+                    self._parts.pop(index) # index now points to NEXT part
+
+                if nextbufferstart is None:
+                    break
+                size = -trailing
+                address = bufferstart + buffersize
+                gap = nextbufferstart - address
+                if gap < size:
+                    address += gap
+                    size -= gap
+                else:
+                    break
+
     def _filler(self, size, fillpattern):
         size = int(size)
         if isinstance(fillpattern, BaseException) or ( type(fillpattern) == type and issubclass(fillpattern, BaseException) ):
