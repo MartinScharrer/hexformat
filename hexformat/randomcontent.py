@@ -1,4 +1,4 @@
-import random
+from random import randint
 
 
 class RandomContent(object):
@@ -24,12 +24,12 @@ class RandomContent(object):
         return self.__class__( j - i )
 
     def __getitem__(self, i):
-        return random.randint(0, 255)
+        return randint(0, 255)
 
     def _produce(self, length):
         length = int(length) * self._length
         n = 0
         while n < length:
             n += 1
-            yield random.randint(0, 255)
+            yield randint(0, 255)
 
