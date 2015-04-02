@@ -22,8 +22,13 @@ class MultiPartBuffer(object):
         else:
             self._parts.insert(beforeindex, [ address, buffer ])
 
-    def _find(self, address, size, create=True, last=False):
-        """Returns buffer index for given address and size"""
+    def _find(self, address, size, create=True):
+        """Returns (buffer index, mod) for given address and size.
+           The meaning of <mod> is:
+              0  Buffer of given index contains at least part of the given range. Always returned if create=True.
+              1  No buffer containing the given range found. Index states next buffer with an higher address.
+             -1  Address lies after all buffers. Index states last buffer before address.
+        """
         dataend = address + size
         for index,part in enumerate(self._parts):
             bufstart, buffer = part
@@ -32,23 +37,23 @@ class MultiPartBuffer(object):
                 if (dataend < bufstart):
                     if create:
                         self._create(index, address)
-                        return index
-                    elif last:
-                        return index
+                        return (index, 0)
                     else:
-                        return "before"
+                        return (index, 1)
                 if (dataend >= bufstart):
-                    return index
+                    return (index, 0)
             elif (address <= bufend):
-                return index
+                return (index, 0)
             else:
                 pass
         # If this line is reached no matching buffer was found and address lies after all buffers
+        index = (len(self._parts) - 1)
         if create:
             self._create(None, address)
-            return (len(self._parts) - 1)
+            index += 1
+            return (index, 0)
         else:
-            return "after"
+            return (index, -1)
 
     def _insert(self, index, newdata, datasize, dataoffset):
         data = None
@@ -89,7 +94,7 @@ class MultiPartBuffer(object):
         """
         if datasize is None:
             datasize = len(newdata) - dataoffset
-        index = self._find(address, datasize, create=True)
+        (index, mod) = self._find(address, datasize, create=True)
         endaddress = address + datasize
 
         bufferstart, buffer = self._parts[index]
@@ -148,7 +153,7 @@ class MultiPartBuffer(object):
         """Deletes <size> bytes starting from <address>. Does nothing if <size> is non-positive."""
         address,size = self._checkaddrnsize(address,size)
         while size > 0:
-            index = self._find(address, size, create=True)
+            (index, mod) = self._find(address, size, create=True)
             bufferstart, buffer = self._parts[index]
             buffersize = len(buffer)
             if address < bufferstart:
@@ -238,12 +243,12 @@ class MultiPartBuffer(object):
         unfillpattern = Buffer(unfillpattern)
         ufvlen = len(unfillpattern)
         address,size = self._checkaddrnsize(address,size)
-        index = self._find(address, size, create=False)
-        if index == "after":
+        (index, mod) = self._find(address, size, create=False)
+        if mod == -1:
             return self
-        elif index == "before":
-            start = self._parts[0][0]
-            dist = start-address
+        elif mod == 1:
+            start = self._parts[index][0]
+            dist = start - address
             size -= dist
             index = 0
         uflist = list()
@@ -284,12 +289,13 @@ class MultiPartBuffer(object):
              4) An exception class or instance.
                 If given then no filling is performed but the exception is raised if filling would be required.
         """
-        index = self._find(address, size, create=False)
+        address,size = self._checkaddrnsize(address,size)        
+        (index, mod) = self._find(address, size, create=False)
         endaddress = address + size
 
         retbuffer = Buffer()
 
-        if not isinstance(index, int):
+        if mod != 0:
             return self._filler(size, fillpattern)
         else:
             bufferstart, buffer = self._parts[index]
@@ -419,21 +425,26 @@ class MultiPartBuffer(object):
         return copy.deepcopy(self)
         
     def filter(self, filterfunc, address=None, size=None, fillpattern=0xFF):
-        """Call filterfunc(bufferaddress, buffer) on all parts matching <address> and <size>.
-           The filterfunc is called as filterfunc(bufferaddress, buffer) first, then as filterfunc(buffer) if a TypeError was raised.
+        """Call filterfunc(bufferaddr, buffer, bufferstartindex, buffersize) on all parts matching <address> and <size>.
            If <address> is None the first existing address is used.
            If <size> is None the remaining size is used.
            If fillpattern is NOT None the given range is filled and the filter function will be called with the resulting single part.
         """
-        if fillpattern is None:
-            if address is not None or size is not None:
-                raise NotImplementedError
+        address,size = self._checkaddrnsize(address,size)     
+        if size <= 0: # don't filter over a non-positive range
+            return self
         if fillpattern is not None:
             self.fill(address, size, fillpattern)
-        for bufferaddr,buffer in self._parts:
-            try:
-                filterfunc(bufferaddr, buffer)
-            except TypeError:
-                filterfunc(buffer)
+        (startindex, mod) = self._find(address, size, create=False)
+        if mod == -1: # range not included (was not filled)
+            return self
+        endaddress = address + size
+        (lastindex, mod) = self._find(endaddress-1, 0, create=False)
+        if mod == 1:
+            lastindex -= 1
+        for bufferaddr,buffer in self._parts[startindex:lastindex+1]:
+            bufferstartindex = max(address - bufferaddr, 0)
+            buffersize = min( len(buffer) - bufferstartindex, endaddress - bufferaddr)
+            filterfunc(bufferaddr, buffer, bufferstartindex, buffersize)
             
         
