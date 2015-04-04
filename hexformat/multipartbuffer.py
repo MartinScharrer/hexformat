@@ -284,7 +284,7 @@ class MultiPartBuffer(object):
             address = self._parts[0][0]
             self.fill(0, address, fillpattern)
 
-    def tobinfile(self, filename, address=None, size=None, fillpattern=0xFF, options="w"):
+    def tobinfile(self, filename, address=None, size=None, fillpattern=0xFF, options="wb"):
         with open(filename, options) as fh:
             self.tobinfh(fh, address, size, fillpattern)
 
@@ -301,3 +301,15 @@ class MultiPartBuffer(object):
         if size is None:
             size = esize
         fh.write( self.get(start, size, fillpattern) )
+
+    @classmethod
+    def frombinfile(cls, filename, address=0, size=-1, offset=0):
+        self = cls()
+        fh = open(filename, "rb")
+        if offset >= 0:
+            fh.seek(offset, 0)
+        else:
+            fh.seek(offset, 2)
+        buffer = bytearray( fh.read(size) )
+        self.set(address, buffer)
+        return self
