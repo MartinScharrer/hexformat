@@ -27,13 +27,13 @@ class IntelHex(MultiPartBuffer):
     _cs_ip = None
     _eip = None
     _variant = None
-    
+
     def __init__(self, **settings):
         super(IntelHex, self).__init__()
         self.settings(**settings)
 
     @classmethod
-    def _parseline(cls, line):
+    def _parsehexline(cls, line):
         try:
             line = line.rstrip("\r\n")
             startcode = line[0]
@@ -128,7 +128,7 @@ class IntelHex(MultiPartBuffer):
         highaddr = 0
         line = frep.readline()
         while line != '':
-            (recordtype, lowaddress, data, datasize, checksumcorrect) = self.__class__._parseline(line)
+            (recordtype, lowaddress, data, datasize, checksumcorrect) = self.__class__._parsehexline(line)
             if not checksumcorrect and not ignore_checksum_errors:
                 raise DecodeError("Checksum mismatch.")
             if recordtype == 0:

@@ -1,5 +1,6 @@
 import sys
 from intelhex import IntelHex
+from srecord import SRecord
 from difflib import context_diff
 
 ih = IntelHex.fromhexfile("test2.hex")
@@ -19,3 +20,9 @@ ih2.tohexfile("testzip2.hex")
 
 IntelHex.fromhexfile("testzip.hex").tobinfile("testout.zip")
 IntelHex.fromhexfile("testzip2.hex").tobinfile("testout2.zip")
+
+class Converter(IntelHex,SRecord):
+    pass
+    
+c = Converter().fromsrecfile("test3.srec")
+c.tohexfile("test3.hex")

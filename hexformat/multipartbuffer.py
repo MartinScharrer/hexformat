@@ -4,6 +4,7 @@ class Buffer(bytearray):
 
 
 class MultiPartBuffer(object):
+    _STANDARD_FORMAT = 'bin'
 
     def __init__(self):
         self._parts = list()
@@ -284,8 +285,8 @@ class MultiPartBuffer(object):
             address = self._parts[0][0]
             self.fill(0, address, fillpattern)
 
-    def tobinfile(self, filename, address=None, size=None, fillpattern=0xFF, options="wb"):
-        with open(filename, options) as fh:
+    def tobinfile(self, filename, address=None, size=None, fillpattern=0xFF):
+        with open(filename, "wb") as fh:
             self.tobinfh(fh, address, size, fillpattern)
 
     def tobinfh(self, fh, address=None, size=None, fillpattern=0xFF):
@@ -303,13 +304,38 @@ class MultiPartBuffer(object):
         fh.write( self.get(start, size, fillpattern) )
 
     @classmethod
-    def frombinfile(cls, filename, address=0, size=-1, offset=0):
-        self = cls()
-        fh = open(filename, "rb")
-        if offset >= 0:
-            fh.seek(offset, 0)
+    def fromfile(cls, filename, format=None, *args, **kvargs):
+        with open(filename, "rb") as fh:
+            return cls.fromfh(fh, *args, format=format, **kvargs)
+
+    @classmethod
+    def fromfh(cls, fh, format=None, *args, **kvargs):
+        if format is None:
+            format = cls._STANDARD_FORMAT
+        methodname = "from" + format.lower() + "fh"
+        if hasattr(cls, methodname):
+            return getattr(cls, methodname)(fh, *args, **kvargs)
         else:
-            fh.seek(offset, 2)
+            raise ValueError
+
+    @classmethod
+    def frombinfile(cls, filename, address=0, size=-1, offset=0):
+        with open(filename, "rb") as fh:
+            return cls.frombinfh(fh, address, size, offset)
+
+    @classmethod
+    def frombinfh(cls, fh, address=0, size=-1, offset=0):
+        self = cls()
+        self.loadbinfh(fh, address, size, offset)
+        return self
+
+    def loadbinfh(self, fh, address=0, size=-1, offset=0):
+        if offset != 0:
+            fh.seek(offset, (offset < 0) and 2 or 0)
         buffer = bytearray( fh.read(size) )
         self.set(address, buffer)
         return self
+
+    def loadbinfile(cls, filename, address=0, size=-1, offset=0):
+        with open(filename, "rb") as fh:
+            return cls.loadbinfh(fh, address, size, offset)

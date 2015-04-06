@@ -4,7 +4,7 @@ class SRecord(MultiPartBuffer):
     _addresslength = (2,2,3,4,None,2,None,4,3,2)
 
     @classmethod
-    def _parseline(cls, line):
+    def _parsesrecline(cls, line):
         try:
             line = line.rstrip("\r\n")
             startcode = line[0]
@@ -40,7 +40,7 @@ class SRecord(MultiPartBuffer):
 
         line = frep.readline()
         while line != '':
-            (recordtype, adresse, data, datasize, crccorrect) = cls._parseline(line)
+            (recordtype, adresse, data, datasize, crccorrect) = cls._parsesrecline(line)
             if recordtype >= 1 and recordtype <= 3:
                 self.set(adresse, data, datasize)
             line = frep.readline()
