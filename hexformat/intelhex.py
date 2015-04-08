@@ -1,7 +1,7 @@
 
 from multipartbuffer import MultiPartBuffer
 
-
+# Intel-Hex Record Types
 RT_DATA = 0
 RT_END_OF_FILE  = 1
 RT_EXTENDED_SEGMENT_ADDRESS = 2
@@ -10,15 +10,22 @@ RT_EXTENDED_LINEAR_ADDRESS = 4
 RT_START_LINEAR_ADDRESS = 5
 
 class HexformatError(Exception):
+    """General hexformat exception. Base class for all other exceptions of this module."""
     pass
 
 class DecodeError(HexformatError):
+    """Exception is raised if errors during the decoding of a hex file occur."""
     pass
 
 class EncodeError(HexformatError):
+    """Exception is raised if errors during the encoding of a hex file occur."""
     pass
 
 class IntelHex(MultiPartBuffer):
+    """Intel-Hex file representation class.
+
+       The IntelHex class is able to parse and generate binary data in the Intel-Hex representation.
+    """
     _DATALENGTH = (None, 0, 2, 4, 2, 4)
     _VARIANTS = { 'I08HEX':8, 'I8HEX':8, 'I16HEX':16, 'I32HEX':32, 8:8, 16:16, 32:32 }
     _DEFAULT_BYTES_PER_LINE = 16
@@ -32,8 +39,7 @@ class IntelHex(MultiPartBuffer):
         super(IntelHex, self).__init__()
         self.settings(**settings)
 
-    @classmethod
-    def _parsehexline(cls, line):
+    def _parseihexline(self, line):
         try:
             line = line.rstrip("\r\n")
             startcode = line[0]
@@ -49,7 +55,7 @@ class IntelHex(MultiPartBuffer):
         address = (bytes[1] << 8) | bytes[2]
         recordtype = bytes[3]
         try:
-            supposed_datalength = cls._DATALENGTH[recordtype]
+            supposed_datalength = self._DATALENGTH[recordtype]
         except IndexError:
             raise DecodeError("Unknown record type.")
         if supposed_datalength is not None and supposed_datalength != bytecount:
@@ -57,13 +63,12 @@ class IntelHex(MultiPartBuffer):
         data = bytes[4:-1]
         return (recordtype, address, data, bytecount, checksumcorrect)
 
-    @classmethod
-    def _genline(cls, recordtype, address16bit=0, data=bytearray()):
+    def _encodeihexline(self, recordtype, address16bit=0, data=bytearray()):
         linelen = 2*len(data) + 11
         linetempl = ":{:02X}{:04X}{:02X}{:s}{:02X}\n"
         bytecount = len(data)
         try:
-            supposed_datalength = cls._DATALENGTH[recordtype]
+            supposed_datalength = self._DATALENGTH[recordtype]
         except IndexError:
             raise DecodeError("Unknown record type.")
         if supposed_datalength is not None and supposed_datalength != bytecount:
@@ -74,17 +79,8 @@ class IntelHex(MultiPartBuffer):
         checksum = (~checksum + 1) & 0xFF
         return linetempl.format(bytecount, address16bit, recordtype, datastr, checksum)
 
-
     @classmethod
-    def fromfile(cls, frep, format='hex'):
-        format = format.lower()
-        if format == 'hex':
-            return cls.fromsrecfile(frep)
-        elif format == 'bin':
-            return cls.frombinfile(frep)
-
-    @classmethod
-    def fromhexfile(cls, frep, ignore_checksum_errors=False):
+    def fromihexfile(cls, frep, ignore_checksum_errors=False):
         self = cls()
         self.loadhexfile(frep, ignore_checksum_errors)
         return self
@@ -122,13 +118,13 @@ class IntelHex(MultiPartBuffer):
                 bytesperline = self._DEFAULT_BYTES_PER_LINE
         return (bytesperline, variant, cs_ip, eip)
 
-    def loadhexfile(self, frep, ignore_checksum_errors=False):
+    def loadihexfile(self, frep, ignore_checksum_errors=False):
         if not hasattr(frep, "readline"):
             frep = open(frep, "r")
         highaddr = 0
         line = frep.readline()
         while line != '':
-            (recordtype, lowaddress, data, datasize, checksumcorrect) = self.__class__._parsehexline(line)
+            (recordtype, lowaddress, data, datasize, checksumcorrect) = self._parseihexline(line)
             if not checksumcorrect and not ignore_checksum_errors:
                 raise DecodeError("Checksum mismatch.")
             if recordtype == 0:
@@ -158,7 +154,7 @@ class IntelHex(MultiPartBuffer):
             line = frep.readline()
         return self
 
-    def tohexfile(self, frep, **settings):
+    def toihexfile(self, frep, **settings):
         (bytesperline, variant, cs_ip, eip) = self._parsesettings(False, **settings)
         opened = False
         if not hasattr(frep, "write"):
@@ -189,18 +185,18 @@ class IntelHex(MultiPartBuffer):
                 if addresshigh != highaddr:
                     highaddr = addresshigh
                     if variant == 32:
-                        frep.write(self._genline(4, 0, [addresshigh>>24, (addresshigh>>16) & 0xFF]))
+                        frep.write(self._encodeihexline(4, 0, [addresshigh>>24, (addresshigh>>16) & 0xFF]))
                     else:
-                        frep.write(self._genline(2, 0, [addresshigh>>12, (addresshigh>>4) & 0xFF]))
+                        frep.write(self._encodeihexline(2, 0, [addresshigh>>12, (addresshigh>>4) & 0xFF]))
                 endpos = min( pos + bytesperline, datalength )
-                frep.write(self._genline(0, addresslow, buffer[pos:endpos]))
+                frep.write(self._encodeihexline(0, addresslow, buffer[pos:endpos]))
                 address += bytesperline
                 pos = endpos
         if variant == 32 and eip is not None:
-            frep.write(self._genline(5, 0, eip))
+            frep.write(self._encodeihexline(5, 0, eip))
         elif variant == 16 and cs_ip is not None:
-            frep.write(self._genline(3, 0, cs_ip))
-        frep.write(self._genline(1))
+            frep.write(self._encodeihexline(3, 0, cs_ip))
+        frep.write(self._encodeihexline(1))
         if opened:
             frep.close()
 

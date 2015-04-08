@@ -1,8 +1,9 @@
-"""
-"""
-
 
 class MultiPartBuffer(object):
+    """Class to handle disconnected binary data.
+
+       Each segment (simply called "part") is identified by its starting address and its content (a Buffer instance).
+    """
     _STANDARD_FORMAT = 'bin'
 
     def __init__(self):
@@ -152,7 +153,7 @@ class MultiPartBuffer(object):
         self.delete(start, address-start)
         self.delete(address+size, end-address)
         return self
-        
+
     def delete(self, address, size=None):
         """Deletes <size> bytes starting from <address>. Does nothing if <size> is non-positive."""
         address,size = self._checkaddrnsize(address,size)
@@ -219,7 +220,12 @@ class MultiPartBuffer(object):
             buffer.extend(fillpattern[0:rest])
         return buffer
 
-    def _checkaddrnsize(self,address, size):
+    def _checkaddrnsize(self, address, size):
+        """Helper method: Ensure proper address and size values.
+
+        If address is None the starting address of the instance is substituted.
+        Also if size is None the remaining size to the end of the last buffer is substituted.
+        """
         if address is None or size is None:
             start,totalsize = self.range()
             if address is None:
@@ -227,7 +233,7 @@ class MultiPartBuffer(object):
             if size is None:
                 size = start + totalsize - address
         return (address,size)
-    
+
     def fill(self, address=None, size=None, fillpattern=0xFF, overwrite=False):
         """Fill with <fillpattern> from <address> for <size> bytes.
            Filling pattern can be a single byte (0..255) or list-like object.
@@ -244,7 +250,7 @@ class MultiPartBuffer(object):
         if len(self._parts) == 0:
             return self
         if isinstance(unfillpattern, int):
-            unfillpattern = [ unfillpattern, ]          
+            unfillpattern = [ unfillpattern, ]
         unfillpattern = Buffer(unfillpattern)
         ufvlen = len(unfillpattern)
         address,size = self._checkaddrnsize(address,size)
@@ -294,7 +300,7 @@ class MultiPartBuffer(object):
              4) An exception class or instance.
                 If given then no filling is performed but the exception is raised if filling would be required.
         """
-        address,size = self._checkaddrnsize(address,size)        
+        address,size = self._checkaddrnsize(address,size)
         (index, mod) = self._find(address, size, create=False)
         endaddress = address + size
 
@@ -354,7 +360,7 @@ class MultiPartBuffer(object):
         """Returns used data size, i.e. without the size of any gaps"""
         return sum([ len(buffer) for addr,buffer in self._parts ])
 
-            
+
     def parts(self):
         """Return a list with (address,length) tuples for all parts."""
         return [ (start, len(data)) for start,data in self._parts ]
@@ -403,21 +409,23 @@ class MultiPartBuffer(object):
             size = esize
         fh.write( self.get(start, size, fillpattern) )
 
-
     def todict(self):
+        """Return a dictionary with a numeric key for all used bytes like intelhex.IntelHex does it."""
         d = { addr:byte for addr,byte in enumerate(buffer, address) for address, buffer in self._parts }
         return d
-        
-    def fromdict(self, d, overwrite=True):
+
+    def loaddict(self, d, overwrite=True):
+        """Load data from dictionary where each key must be numeric and represent an address and the corresponding value the byte value."""
         for addr,byte in d.iteritems():
             self.set(addr, (byte,), 1, overwrite=overwrite)
+        return self
 
     def __iadd__(self, other):
         self._iadd(other, True)
-        
+
     def __ior__(self, other):
         self._iadd(other, False)
-        
+
     def _iadd(self, other, overwrite):
         source = None
         if isinstance(other, MultiPartBuffer):
@@ -433,23 +441,24 @@ class MultiPartBuffer(object):
         except Exception as e:
             raise TypeError(e)
         return self
-        
+
     def __add__(self, other):
         sum = self.copy()
         sum.__iadd__(other)
         return sum
-        
+
     def copy(self):
+        """Return a deep copy of the instance."""
         import copy
         return copy.deepcopy(self)
-        
+
     def filter(self, filterfunc, address=None, size=None, fillpattern=0xFF):
         """Call filterfunc(bufferaddr, buffer, bufferstartindex, buffersize) on all parts matching <address> and <size>.
            If <address> is None the first existing address is used.
            If <size> is None the remaining size is used.
            If fillpattern is NOT None the given range is filled and the filter function will be called with the resulting single part.
         """
-        address,size = self._checkaddrnsize(address,size)     
+        address,size = self._checkaddrnsize(address,size)
         if size <= 0: # don't filter over a non-positive range
             return self
         if fillpattern is not None:
@@ -465,10 +474,7 @@ class MultiPartBuffer(object):
             bufferstartindex = max(address - bufferaddr, 0)
             buffersize = min( len(buffer) - bufferstartindex, endaddress - bufferaddr)
             filterfunc(bufferaddr, buffer, bufferstartindex, buffersize)
-            
-        
-        
-        
+
     @classmethod
     def fromfile(cls, filename, format=None, *args, **kvargs):
         """ """
@@ -483,6 +489,37 @@ class MultiPartBuffer(object):
         methodname = "from" + format.lower() + "fh"
         if hasattr(cls, methodname):
             return getattr(cls, methodname)(fh, *args, **kvargs)
+        else:
+            raise ValueError
+
+    def tofile(cls, filename, format=None, *args, **kvargs):
+        """ """
+        opt = "w"
+        if format == "bin" or (format is None and cls._STANDARD_FORMAT == "bin"):
+            opt = "wb"
+        with open(filename, opt) as fh:
+            return cls.fromfh(fh, *args, format=format, **kvargs)
+
+    def tofh(cls, fh, format=None, *args, **kvargs):
+        """ """
+        if format is None:
+            format = cls._STANDARD_FORMAT
+        methodname = "to" + format.lower() + "fh"
+        if hasattr(cls, methodname):
+            return getattr(cls, methodname)(fh, *args, **kvargs)
+        else:
+            raise ValueError
+
+    @classmethod
+    def fromfh(cls, fh, format=None, *args, **kvargs):
+        """ """
+        if format is None:
+            format = cls._STANDARD_FORMAT
+        methodname = "load" + format.lower() + "fh"
+        self = cls()
+        if hasattr(self, methodname):
+            getattr(self, methodname)(fh, *args, **kvargs)
+            return self
         else:
             raise ValueError
 
@@ -512,7 +549,7 @@ class MultiPartBuffer(object):
         with open(filename, "rb") as fh:
             return cls.loadbinfh(fh, address, size, offset)
 
-            
+
 class Buffer(bytearray):
     """Buffer class to abstract real buffer class."""
     pass
