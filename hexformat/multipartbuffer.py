@@ -6,6 +6,7 @@ class MultiPartBuffer(object):
        Each segment (simply called "part") is identified by its starting address and its content (a Buffer instance).
     """
     _STANDARD_FORMAT = 'bin'
+    _padding = 0xFF
 
     def __init__(self):
         """Init parts list."""
@@ -203,6 +204,8 @@ class MultiPartBuffer(object):
         size = int(size)
         if isinstance(fillpattern, BaseException) or ( type(fillpattern) == type and issubclass(fillpattern, BaseException) ):
             raise fillpattern
+        if fillpattern is None:
+            fillpattern = self._padding
         fillpattern = FillPattern.frompattern(fillpattern)
         return Buffer(fillpattern[0:size])
 
@@ -220,7 +223,7 @@ class MultiPartBuffer(object):
                 size = start + totalsize - address
         return (address,size)
 
-    def fill(self, address=None, size=None, fillpattern=0xFF, overwrite=False):
+    def fill(self, address=None, size=None, fillpattern=None, overwrite=False):
         """Fill with <fillpattern> from <address> for <size> bytes.
            Filling pattern can be a single byte (0..255) or list-like object.
            If <overwrite> is False (default) then only gaps are filled.
@@ -231,10 +234,12 @@ class MultiPartBuffer(object):
         self.set(address, self._filler(size, fillpattern), size, 0, overwrite)
         return self
 
-    def unfill(self, address=None, size=None, unfillpattern=0xFF, mingapsize=16):
+    def unfill(self, address=None, size=None, unfillpattern=None, mingapsize=16):
         """Removes <unfillpattern> and leaves a gap, as long a resulting new gap would be least <mingapsize> large."""
         if len(self._parts) == 0:
             return self
+        if unfillpattern is None:
+            unfillpattern = self._padding
         if isinstance(unfillpattern, int):
             unfillpattern = [ unfillpattern, ]
         unfillpattern = Buffer(unfillpattern)
@@ -273,7 +278,7 @@ class MultiPartBuffer(object):
             self.delete(deladdr,delsize)
         return self
 
-    def get(self, address, size, fillpattern=0xFF):
+    def get(self, address, size, fillpattern=None):
         """Get <size> bytes from <address>. Fill missing bytes with <fillpattern>.
            Where <fillpattern> can be:
              1) A byte-sized integer, i.e. in range 0..255.
@@ -362,25 +367,25 @@ class MultiPartBuffer(object):
             gaplist.append( [endaddress, gap] )
         return gaplist
 
-    def fillgaps(self, fillpattern=0xFF):
+    def fillgaps(self, fillpattern=None):
         """Fill all gaps with given fillpattern."""
         for address,size in self.gaps():
             self.fill(address, size, fillpattern)
         return self
 
-    def fillbegin(self, fillpattern=0xFF):
+    def fillbegin(self, fillpattern=None):
         """ """
         if len(self._parts) > 0:
             address = self._parts[0][0]
             self.fill(0, address, fillpattern)
         return self
 
-    def tobinfile(self, filename, address=None, size=None, fillpattern=0xFF):
+    def tobinfile(self, filename, address=None, size=None, fillpattern=None):
         """ """
         with open(filename, "wb") as fh:
             self.tobinfh(fh, address, size, fillpattern)
 
-    def tobinfh(self, fh, address=None, size=None, fillpattern=0xFF):
+    def tobinfh(self, fh, address=None, size=None, fillpattern=None):
         """ """
         start, esize = self.range()
         if address is not None:
@@ -438,7 +443,7 @@ class MultiPartBuffer(object):
         import copy
         return copy.deepcopy(self)
 
-    def filter(self, filterfunc, address=None, size=None, fillpattern=0xFF):
+    def filter(self, filterfunc, address=None, size=None, fillpattern=None):
         """Call filterfunc(bufferaddr, buffer, bufferstartindex, buffersize) on all parts matching <address> and <size>.
            If <address> is None the first existing address is used.
            If <size> is None the remaining size is used.
