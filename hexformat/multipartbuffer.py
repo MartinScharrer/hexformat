@@ -1,3 +1,4 @@
+from fillpattern import FillPattern
 
 class MultiPartBuffer(object):
     """Class to handle disconnected binary data.
@@ -202,23 +203,8 @@ class MultiPartBuffer(object):
         size = int(size)
         if isinstance(fillpattern, BaseException) or ( type(fillpattern) == type and issubclass(fillpattern, BaseException) ):
             raise fillpattern
-        if isinstance(fillpattern, int):
-            fillpattern = [ fillpattern, ]
-        elif type(fillpattern) == type:
-            try:
-                fillpattern = fillpattern( size )
-            except TypeError:
-                fillpattern = fillpattern()
-        num = int( size / len(fillpattern) )
-        buffer = None
-        try:
-            buffer = Buffer(fillpattern * num)
-        except:
-            buffer = Buffer(fillpattern) * num
-        rest = size - len(buffer)
-        if rest > 0:
-            buffer.extend(fillpattern[0:rest])
-        return buffer
+        fillpattern = FillPattern.frompattern(fillpattern)
+        return Buffer(fillpattern[0:size])
 
     def _checkaddrnsize(self, address, size):
         """Helper method: Ensure proper address and size values.
@@ -337,10 +323,10 @@ class MultiPartBuffer(object):
                 # Check if data does not reach into next buffer
                 if nextbufferstart is None or nextbufferstart > endaddress:
                     after = endaddress - bufferend
-                    retbuffer.extend( self._filler(after , fillpattern) )
+                    retbuffer.extend( self._filler(after, fillpattern) )
                 else:
                     gap = nextbufferstart - bufferend
-                    retbuffer.extend( self._filler(gap , fillpattern) )
+                    retbuffer.extend( self._filler(gap, fillpattern) )
                     size -= gap
                     address += gap
                     retbuffer.extend( self.get( address, size, fillpattern) )

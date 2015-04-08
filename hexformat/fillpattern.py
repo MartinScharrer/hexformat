@@ -10,10 +10,8 @@ class FillPattern(object):
             if length is None or length == len(pattern):
                 return pattern
             else:
-                return pattern[0:int(length)]
+                return pattern[0:length]
         else:
-            if length is None:
-                length = len(pattern)
             return cls(pattern, length)
 
     @classmethod
