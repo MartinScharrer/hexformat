@@ -42,7 +42,7 @@ class FillPattern(object):
 
     def __len__(self):
         return self._length
-        
+
     def setlength(self, length):
         self._length = length
 
@@ -65,7 +65,7 @@ class FillPattern(object):
 
     def __str__(self):
         scale = int(math.ceil( float(self._length + self._offset) / len(self._pattern) ))
-        s = str(self._pattern) * scale
+        s = str(self._pattern * scale)
         if self._offset > 0:
             s = s[self._offset:self._offset+self._length]
         elif len(s) > self._length:
@@ -86,39 +86,31 @@ class FillPattern(object):
         n = (self._offset + i) % len(self._pattern)
         return self._pattern[n]
 
+
         
 class RandomContent(FillPattern):
-    def __init__(self, pattern=None, length=1):
-        try:
-            self._length = int(length)
-        except TypeError:
-            self._length = len(length)
+    def __init__(self, pattern=None, length=None):
+        if length is None:
+            if pattern is None:
+                length = 1
+            else:
+                length = len(pattern)
+        pattern = [0,]
+        super(RandomContent, self).__init__(pattern, length)
 
+        
+    def __mul__(self, m):
+        return self.__class__(self._length * int(m))
+        
+    def __str__(self):
+        return "".join([chr(n) for n in self])
+        
     def __len__(self):
         return self._length
-
-    def __mul__(self, m):
-        return self.__class__( self._length * int(m) )
-
-    def __imul__(self, m):
-        self._length *= int(m)
-
+        
     def __iter__(self):
-        return self._produce( 1 )
-
-    def __str__(self):
-        return str(Buffer(self._produce( 1 )))
-
-    def __getslice__(self, i, j):
-        return self.__class__( j - i )
-
+        for n in xrange(0,self._length):
+            yield randint(0, 255)
+        
     def __getitem__(self, i):
         return randint(0, 255)
-
-    def _produce(self, length):
-        length = int(length) * self._length
-        n = 0
-        while n < length:
-            n += 1
-            yield randint(0, 255)
-
