@@ -337,12 +337,26 @@ class IntelHex(MultiPartBuffer):
 
 class HexDump(MultiPartBuffer):
 
-    def _encodehexdumpline(self, address, data, ascii=True):
-        datastr = " ".join(["{:02X}".format(byte) for byte in data])
+    def _encodehexdumpline(self, address, data, bytesperline, groupsize, bigendian, ascii):
+        dataformat = "{:0" + str(groupsize) +"X}"
+        groups = list()
+        cgroup = list()
+        for n,byte in enumerate(data, 1):
+            cgroup.append("{:02X}".format(byte))
+            if n % groupsize == 0:
+                groups.append(cgroup)
+                cgroup = list()
+        if cgroup:
+            while len(cgroup) < groupsize:
+                cgroup.append("  ")
+            groups.append(cgroup)
+        datastr = " ".join(["".join(bigendian and group or reversed(group)) for group in groups])
         asciistr = ""
         if ascii:
-            asciistr = " |{:16s}|".format("".join([char in string.printable and char or "." for char in str(data)]))
-        return "{:08X}: {:47s}{:s}\n".format(address, datastr, asciistr)
+            asciistr = " |{{:{:d}s}}|".format(bytesperline).format("".join([char in string.printable and char or "." for char in str(data)]))
+        numgroups = bytesperline/groupsize 
+        hwidth = bytesperline * 2 + numgroups - 1
+        return "{{:08X}}: {{:{:d}s}}{{:s}}\n".format(hwidth).format(address, datastr, asciistr)
 
     def _parsehexdumpline(self, line):
         try:
@@ -355,17 +369,20 @@ class HexDump(MultiPartBuffer):
         except Exception as e:
             raise DecodeError("Invalid formatted input line: " + str(e))
 
-    def tohexdumpfile(self, filename, bytesperline=16, ascii=True):
+    def tohexdumpfile(self, filename, bytesperline=16, groupsize=1, bigendian=True, ascii=True):
         with open(filename, "w") as fh:
-            self.tohexdumpfh(fh, bytesperline, ascii)
+            self.tohexdumpfh(fh, bytesperline, groupsize, ascii)
 
-    def tohexdumpfh(self, fh, bytesperline=16, ascii=True):
+    def tohexdumpfh(self, fh, bytesperline=16, groupsize=1, bigendian=True, ascii=True):
+        groupsize = int(groupsize)
+        if (bytesperline % groupsize) != 0:
+            bytesperline = int(round( float(bytesperline) / groupsize )) * groupsize
         for address,buffer in self._parts:
             pos = 0
             datalength = len(buffer)
             while pos < datalength:
                 endpos = min( pos + bytesperline, datalength )
-                fh.write(self._encodehexdumpline(address, buffer[pos:endpos], ascii))
+                fh.write(self._encodehexdumpline(address, buffer[pos:endpos], bytesperline, groupsize, bigendian, ascii))
                 address += bytesperline
                 pos = endpos
 
@@ -377,7 +394,7 @@ class HexDump(MultiPartBuffer):
     @classmethod
     def fromhexdumpfh(cls, fh):
         self = cls()
-        self.readhexdumpfh(fh)
+        self.loadhexdumpfh(fh)
         return self
         
     def loadhexdumpfile(self, filename):
