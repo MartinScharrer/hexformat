@@ -1,5 +1,7 @@
-from multipartbuffer import MultiPartBuffer
+from multipartbuffer import MultiPartBuffer, Buffer
 import binascii
+import string
+
 
 # Intel-Hex Record Types
 RT_DATA = 0
@@ -332,3 +334,60 @@ class IntelHex(MultiPartBuffer):
         if opened:
             frep.close()
 
+
+class HexDump(MultiPartBuffer):
+
+    def _encodehexdumpline(self, address, data, ascii=True):
+        datastr = " ".join(["{:02X}".format(byte) for byte in data])
+        asciistr = ""
+        if ascii:
+            asciistr = " |{:16s}|".format("".join([char in string.printable and char or "." for char in str(data)]))
+        return "{:08X}: {:47s}{:s}\n".format(address, datastr, asciistr)
+
+    def _parsehexdumpline(self, line):
+        try:
+            line = line.rstrip("\r\n")
+            cidx = line.index(":")
+            aidx = line.index("|")
+            address = int(line[0:cidx], 16)
+            data = Buffer.fromhex(line[cidx+1:aidx])
+            return (address, data)
+        except Exception as e:
+            raise DecodeError("Invalid formatted input line: " + str(e))
+
+    def tohexdumpfile(self, filename, bytesperline=16, ascii=True):
+        with open(filename, "w") as fh:
+            self.tohexdumpfh(fh, bytesperline, ascii)
+
+    def tohexdumpfh(self, fh, bytesperline=16, ascii=True):
+        for address,buffer in self._parts:
+            pos = 0
+            datalength = len(buffer)
+            while pos < datalength:
+                endpos = min( pos + bytesperline, datalength )
+                fh.write(self._encodehexdumpline(address, buffer[pos:endpos], ascii))
+                address += bytesperline
+                pos = endpos
+
+    @classmethod
+    def fromhexdumpfile(cls, filename):
+        with open(filename, "r") as fh:
+            return cls.fromhexdumpfh(fh)
+
+    @classmethod
+    def fromhexdumpfh(cls, fh):
+        self = cls()
+        self.readhexdumpfh(fh)
+        return self
+        
+    def loadhexdumpfile(self, filename):
+        with open(filename, "r") as fh:
+            return cls.loadhexdumpfh(fh)
+        
+    def loadhexdumpfh(self, fh):
+        line = fh.readline()
+        while line != '':
+            (address, data) = self._parsehexdumpline(line)
+            self.set(address, data)
+            line = fh.readline()
+        return self
