@@ -144,12 +144,12 @@ class SRecord(MultiPartBuffer):
 
     def loadsrecfh(self, fh):
         """Loads data from S-Record file over file handle."""
-        line = frep.readline()
+        line = fh.readline()
         while line != '':
             (recordtype, address, data, datasize, crccorrect) = cls._parsesrecline(line)
             if recordtype >= 1 and recordtype <= 3:
                 self.set(address, data, datasize)
-            line = frep.readline()
+            line = fh.readline()
         return self
 
 
@@ -218,9 +218,14 @@ class IntelHex(MultiPartBuffer):
         return linetempl.format(bytecount, address16bit, recordtype, datastr, checksum)
 
     @classmethod
-    def fromihexfile(cls, frep, ignore_checksum_errors=False):
+    def fromihexfile(cls, filename, ignore_checksum_errors=False):
+        with open(filename, "r") as fh:
+            return cls.fromihexfh(fh, ignore_checksum_errors)    
+
+    @classmethod
+    def fromihexfh(cls, fh, ignore_checksum_errors=False):
         self = cls()
-        self.loadhexfile(frep, ignore_checksum_errors)
+        self.loadihexfh(fh, ignore_checksum_errors)
         return self
 
     def settings(self, **kvargs):
@@ -256,11 +261,13 @@ class IntelHex(MultiPartBuffer):
                 bytesperline = self._DEFAULT_BYTES_PER_LINE
         return (bytesperline, variant, cs_ip, eip)
 
-    def loadihexfile(self, frep, ignore_checksum_errors=False):
-        if not hasattr(frep, "readline"):
-            frep = open(frep, "r")
+    def loadihexfile(self, filename, ignore_checksum_errors=False):
+        with open(filename, "r") as fh:
+            return self.loadihexfh(fh, ignore_checksum_errors)    
+        
+    def loadihexfh(self, fh, ignore_checksum_errors=False):
         highaddr = 0
-        line = frep.readline()
+        line = fh.readline()
         while line != '':
             (recordtype, lowaddress, data, datasize, checksumcorrect) = self._parseihexline(line)
             if not checksumcorrect and not ignore_checksum_errors:
@@ -289,15 +296,15 @@ class IntelHex(MultiPartBuffer):
                     self._variant = 32
             else:
                 raise DecodeError("Unsupported record type.")
-            line = frep.readline()
+            line = fh.readline()
         return self
 
-    def toihexfile(self, frep, **settings):
+    def toihexfile(self, filename, **settings):
+        with open(filename, "w") as fh:
+            return self.toihexfh(filename, **settings)
+    
+    def toihexfh(self, fh, **settings):
         (bytesperline, variant, cs_ip, eip) = self._parsesettings(False, **settings)
-        opened = False
-        if not hasattr(frep, "write"):
-            opened = True
-            frep = open(frep, "w")
         highaddr = 0
         addresshigh = 0
         addresslow = 0
@@ -323,20 +330,18 @@ class IntelHex(MultiPartBuffer):
                 if addresshigh != highaddr:
                     highaddr = addresshigh
                     if variant == 32:
-                        frep.write(self._encodeihexline(4, 0, [addresshigh>>24, (addresshigh>>16) & 0xFF]))
+                        fh.write(self._encodeihexline(4, 0, [addresshigh>>24, (addresshigh>>16) & 0xFF]))
                     else:
-                        frep.write(self._encodeihexline(2, 0, [addresshigh>>12, (addresshigh>>4) & 0xFF]))
+                        fh.write(self._encodeihexline(2, 0, [addresshigh>>12, (addresshigh>>4) & 0xFF]))
                 endpos = min( pos + bytesperline, datalength )
-                frep.write(self._encodeihexline(0, addresslow, buffer[pos:endpos]))
+                fh.write(self._encodeihexline(0, addresslow, buffer[pos:endpos]))
                 address += bytesperline
                 pos = endpos
         if variant == 32 and eip is not None:
-            frep.write(self._encodeihexline(5, 0, eip))
+            fh.write(self._encodeihexline(5, 0, eip))
         elif variant == 16 and cs_ip is not None:
-            frep.write(self._encodeihexline(3, 0, cs_ip))
-        frep.write(self._encodeihexline(1))
-        if opened:
-            frep.close()
+            fh.write(self._encodeihexline(3, 0, cs_ip))
+        fh.write(self._encodeihexline(1))
 
 
 class HexDump(MultiPartBuffer):
