@@ -16,6 +16,10 @@ class MultiPartBuffer(object):
         """Print representation including class name, id, number of parts, range and used size."""
         start, totalsize = self.range()
         return "<{:s} at 0x{:X}: {:d} parts in range 0x{:X} + 0x{:X}; used 0x{:X}>".format(self.__class__.__name__, id(self), len(self._parts), start, totalsize, self.usedsize())
+        
+    def __eq__(self, other):
+        """Compare with other instance for equality."""
+        return self._parts == other._parts
 
     def _create(self, beforeindex, address, data=list()):
         """Create new buffer before index or at end if index is None."""

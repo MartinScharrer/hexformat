@@ -172,6 +172,10 @@ class IntelHex(MultiPartBuffer):
     def __init__(self, **settings):
         super(IntelHex, self).__init__()
         self.settings(**settings)
+        
+    def __eq__(self, other):
+        """Compare with other instance for equality."""
+        return super(IntelHex, self).__cmp__(other) and self._eip == other._eip and self._cs_ip == other._cs_ip
 
     def _parseihexline(self, line):
         try:
