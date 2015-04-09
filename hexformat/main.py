@@ -338,7 +338,6 @@ class IntelHex(MultiPartBuffer):
 class HexDump(MultiPartBuffer):
 
     def _encodehexdumpline(self, address, data, bytesperline, groupsize, bigendian, ascii):
-        dataformat = "{:0" + str(groupsize) +"X}"
         groups = list()
         cgroup = list()
         for n,byte in enumerate(data, 1):
@@ -358,20 +357,28 @@ class HexDump(MultiPartBuffer):
         hwidth = bytesperline * 2 + numgroups - 1
         return "{{:08X}}: {{:{:d}s}}{{:s}}\n".format(hwidth).format(address, datastr, asciistr)
 
-    def _parsehexdumpline(self, line):
+    def _parsehexdumpline(self, line, bigendian):
         try:
             line = line.rstrip("\r\n")
             cidx = line.index(":")
-            aidx = line.index("|")
+            aidx = line.find("|")
+            if aidx == -1:
+                aidx = None
             address = int(line[0:cidx], 16)
-            data = Buffer.fromhex(line[cidx+1:aidx])
+            groups = line[cidx+1:aidx].split()
+            data = Buffer()
+            for group in groups:
+                groupdata = Buffer.fromhex(group)
+                if not bigendian:
+                    groupdata = reversed(groupdata)
+                data.extend(groupdata)
             return (address, data)
         except Exception as e:
             raise DecodeError("Invalid formatted input line: " + str(e))
 
     def tohexdumpfile(self, filename, bytesperline=16, groupsize=1, bigendian=True, ascii=True):
         with open(filename, "w") as fh:
-            self.tohexdumpfh(fh, bytesperline, groupsize, ascii)
+            self.tohexdumpfh(fh, bytesperline, groupsize, bigendian, ascii)
 
     def tohexdumpfh(self, fh, bytesperline=16, groupsize=1, bigendian=True, ascii=True):
         groupsize = int(groupsize)
@@ -387,24 +394,24 @@ class HexDump(MultiPartBuffer):
                 pos = endpos
 
     @classmethod
-    def fromhexdumpfile(cls, filename):
+    def fromhexdumpfile(cls, filename, bigendian=True):
         with open(filename, "r") as fh:
-            return cls.fromhexdumpfh(fh)
+            return cls.fromhexdumpfh(fh, bigendian)
 
     @classmethod
-    def fromhexdumpfh(cls, fh):
+    def fromhexdumpfh(cls, fh, bigendian=True):
         self = cls()
-        self.loadhexdumpfh(fh)
+        self.loadhexdumpfh(fh, bigendian)
         return self
         
-    def loadhexdumpfile(self, filename):
+    def loadhexdumpfile(self, filename, bigendian=True):
         with open(filename, "r") as fh:
-            return cls.loadhexdumpfh(fh)
+            return cls.loadhexdumpfh(fh, bigendian)
         
-    def loadhexdumpfh(self, fh):
+    def loadhexdumpfh(self, fh, bigendian=True):
         line = fh.readline()
         while line != '':
-            (address, data) = self._parsehexdumpline(line)
+            (address, data) = self._parsehexdumpline(line, bigendian)
             self.set(address, data)
             line = fh.readline()
         return self
