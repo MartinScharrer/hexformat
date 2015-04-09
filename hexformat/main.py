@@ -32,6 +32,8 @@ class SRecord(MultiPartBuffer):
 
     _SRECORD_ADDRESSLENGTH = (2,2,3,4,None,2,None,4,3,2)
     _STANDARD_FORMAT = 'srec'
+    _start_address = 0
+    _header = None
 
     @classmethod
     def _parsesrecline(cls, line):
@@ -93,9 +95,9 @@ class SRecord(MultiPartBuffer):
 
         bytesperline = max(addresslength+2, min(bytesperline, 254-addresslength))
         bytecount = bytesperline + addresslength + 1
-        numrecords = 0
-        while address < lastaddress or numrecords == 0:
-            numrecords += 1
+        numdatarecords = 0
+        while address < lastaddress or numdatarecords == 0:
+            numdatarecords += 1
             if address + bytesperline > lastaddress:
                 bytesperline = lastaddress - address + 1
                 bytecount = bytesperline + addresslength + 1
@@ -108,32 +110,38 @@ class SRecord(MultiPartBuffer):
             fh.write(line)
             offset += bytesperline
             address += bytesperline
-        return numrecords
+        return numdatarecords
 
-    def tosrecfile(cls, filename, bytesperline=32, addresslength=None):
+    def tosrecfile(cls, filename, bytesperline=32, addresslength=None, write_number_of_records=True):
         """Writes content as S-Record file to given file name."""
         with open(filename, "w") as fh:
-            cls.tosrecfh(fh, bytesperline, addresslength)
+            cls.tosrecfh(fh, bytesperline, addresslength, write_number_of_records, variant)
 
-    def tosrecfh(self, fh, bytesperline=32, addresslength=None):
+    def tosrecfh(self, fh, bytesperline=32, addresslength=None, write_number_of_records=True):
         """Writes content as S-Record file to given file handle."""
-        numrecords = 0
+        numdatarecords = 0
         start, size = self.range()
         if addresslength is None:
             lastaddress = start + size - 1
             addresslength = self._addresslength(lastaddress)
         recordtype = addresslength - 1
-        recordtype_end = 11 - addresslength
+        recordtype_end = 10 - recordtype
+        if self._header is not None:
+            self._encodesrecline(fh, 0, self._header, recordtype=0, bytesperline=32)
         for address, buffer in self._parts:
-            numrecords += self._encodesrecline(fh, address, buffer, recordtype=recordtype, bytesperline=bytesperline)
-        self._encodesrecline(fh, 0, self._s123addr(2, numrecords), recordtype=5, bytesperline=bytesperline)
-        self._encodesrecline(fh, start, [], recordtype=recordtype_end, bytesperline=bytesperline)
+            numdatarecords += self._encodesrecline(fh, address, buffer, recordtype=recordtype, bytesperline=bytesperline)
+        if write_number_of_records:
+            if numdatarecords <= 0xFFFF:
+                self._encodesrecline(fh, 0, self._s123addr(2, numdatarecords), recordtype=5, bytesperline=32)
+            elif numdatarecords <= 0xFFFFFF:
+                self._encodesrecline(fh, 0, self._s123addr(3, numdatarecords), recordtype=6, bytesperline=32)
+        self._encodesrecline(fh, start, self._s123addr(recordtype, self._start_address), recordtype=recordtype_end, bytesperline=32)
 
     @classmethod
     def fromsrecfile(cls, filename):
         """Generates SRecord instance from S-Record file."""
         with open(filename, "r") as fh:
-            cls.fromsrecfh(fh)
+            return cls.fromsrecfh(fh)
 
     @classmethod
     def fromsrecfh(cls, fh):
@@ -142,17 +150,47 @@ class SRecord(MultiPartBuffer):
         self.loadsrecfh(fh)
         return self
 
-    def loadsrecfh(self, fh):
+    def loadsrecfh(self, fh, raise_error_on_miscount=True):
         """Loads data from S-Record file over file handle."""
         line = fh.readline()
+        numdatarecords = 0
         while line != '':
             (recordtype, address, data, datasize, crccorrect) = cls._parsesrecline(line)
             if recordtype >= 1 and recordtype <= 3:
                 self.set(address, data, datasize)
+                numdatarecords += 1
+            elif recordtype == 0:
+                self._header = data
+            elif recordtype == 5 or recordtype == 6:
+                if raise_error_on_miscount and numdatarecords != address:
+                    raise DecodeError("Number of records read ({:d}) differs from stored number of records ({:d}).".format(numdatarecords,address))
+            elif recordtype >=7 and recordtype <= 9:
+                self._start_address = address
+            else:
+                raise DecodeError("Unsupported record type " + str(recordtype))
             line = fh.readline()
         return self
 
+    def getstartaddress(self):
+        return self._start_address
 
+    def setstartaddress(self, start_address):
+        start_address = int(start_address)
+        if start_address > 0xFFFFFFFF:
+            raise ValueError("Start address must fit to 32-bit width.")
+        self._start_address = start_address
+        return self
+
+    def getheader(self):
+        return self._header
+
+    def setheader(self, header):
+        self._header = str(header)
+        if len(self._header) >= 252:
+            self._header = self._header[0:252] + "\x00"
+        elif self._header[-1] != "\x00":
+            self._header += "\x00"
+        return self
 
 
 class IntelHex(MultiPartBuffer):
@@ -230,6 +268,7 @@ class IntelHex(MultiPartBuffer):
 
     def settings(self, **kvargs):
         (self._bytesperline, self._variant, self._cs_ip, self._eip) = self._parsesettings(True, **kvargs)
+        return self
 
     def _parsesettings(self, isinit, **kvargs):
         if 'bytesperline' in kvargs:
@@ -342,6 +381,7 @@ class IntelHex(MultiPartBuffer):
         elif variant == 16 and cs_ip is not None:
             fh.write(self._encodeihexline(3, 0, cs_ip))
         fh.write(self._encodeihexline(1))
+        return self
 
 
 class HexDump(MultiPartBuffer):
