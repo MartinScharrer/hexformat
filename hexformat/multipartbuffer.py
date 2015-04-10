@@ -16,7 +16,7 @@ class MultiPartBuffer(object):
         """Print representation including class name, id, number of parts, range and used size."""
         start, totalsize = self.range()
         return "<{:s} at 0x{:X}: {:d} parts in range 0x{:X} + 0x{:X}; used 0x{:X}>".format(self.__class__.__name__, id(self), len(self._parts), start, totalsize, self.usedsize())
-        
+
     def __eq__(self, other):
         """Compare with other instance for equality."""
         return self._parts == other._parts
@@ -140,7 +140,6 @@ class MultiPartBuffer(object):
             if nextbufferstart is None or nextbufferstart > endaddress:
                 after = endaddress - bufferend
                 self._extend( index, newdata, after, dataoffset )
-                return
             else:
                 gap = nextbufferstart - bufferend
                 self._extend( index, newdata, gap, dataoffset )
@@ -387,7 +386,7 @@ class MultiPartBuffer(object):
     def tobinfile(self, filename, address=None, size=None, fillpattern=None):
         """ """
         with open(filename, "wb") as fh:
-            self.tobinfh(fh, address, size, fillpattern)
+            return self.tobinfh(fh, address, size, fillpattern)
 
     def tobinfh(self, fh, address=None, size=None, fillpattern=None):
         """ """
@@ -403,6 +402,7 @@ class MultiPartBuffer(object):
         if size is None:
             size = esize
         fh.write( self.get(start, size, fillpattern) )
+        return self
 
     def todict(self):
         """Return a dictionary with a numeric key for all used bytes like intelhex.IntelHex does it."""
