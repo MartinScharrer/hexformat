@@ -1,2 +1,2 @@
-sphinx-apidoc -f -o docs/source ../hexformat
+sphinx-apidoc -f -o source ../hexformat
 sphinx-build -b html source build

@@ -16,6 +16,14 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    
+  Attributes:
+    RT_DATA (int constant=0): Intel-Hex record type number for data record.
+    RT_END_OF_FILE (int constant=1): Intel-Hex record type number for end of file record.
+    RT_EXTENDED_SEGMENT_ADDRESS (int constant=2): Intel-Hex record type number for extend segment address record.
+    RT_START_SEGMENT_ADDRESS (int constant=3): Intel-Hex record type number for start segment address record.
+    RT_EXTENDED_LINEAR_ADDRESS (int constant=4): Intel-Hex record type number for extended linear address record.
+    RT_START_LINEAR_ADDRESS (int constant=5): Intel-Hex record type number for start linear address record.
 """
 
 from multipartbuffer import MultiPartBuffer, Buffer
@@ -47,6 +55,12 @@ class SRecord(MultiPartBuffer):
     """Motorola S-Record hex file representation class.
 
        The SRecord class is able to parse and generate binary data in the S-Record representation.
+       
+       Attributes:
+         _SRECORD_ADDRESSLENGTH (tuple): Address length in bytes for each record type.
+         _STANDARD_FORMAT (str): The standard format used by fromfh() and fromfile() if no format was given.
+         _start_address (int): Start address of program. Default: 0.
+         _header (data buffer or None): Header data written using record type 0 if not None. The content is application specific.
     """
 
     _SRECORD_ADDRESSLENGTH = (2,2,3,4,None,2,None,4,3,2)
@@ -56,7 +70,14 @@ class SRecord(MultiPartBuffer):
 
     @classmethod
     def _parsesrecline(cls, line):
-        """Parse S-Record line and return decoded parts as tuple."""
+        """Parse S-Record line and return decoded parts as tuple.
+        
+           Args:
+             line (str): Single input line, usually with line termination character(s).
+             
+           Returns:
+             Tuple (recordtype, address, data, datasize, crccorrect) with types (int, int, Buffer, int, bool).
+        """
         try:
             line = line.rstrip("\r\n")
             startcode = line[0]
