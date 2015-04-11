@@ -1,7 +1,7 @@
 """ Provide class to handle a data buffer with multiple disconnected parts.
 
   License::
-  
+
     Copyright (C) 2015  Martin Scharrer <martin@scharrer-online.de>
 
     This program is free software: you can redistribute it and/or modify

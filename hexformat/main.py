@@ -1,7 +1,7 @@
 """ Provide classes to handle IntelHex, SRecord and HexDump content.
 
   License::
-  
+
     Copyright (C) 2015  Martin Scharrer <martin@scharrer-online.de>
 
     This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-    
+
   Attributes:
     RT_DATA (int constant=0): Intel-Hex record type number for data record.
     RT_END_OF_FILE (int constant=1): Intel-Hex record type number for end of file record.
@@ -55,7 +55,7 @@ class SRecord(MultiPartBuffer):
     """Motorola S-Record hex file representation class.
 
        The SRecord class is able to parse and generate binary data in the S-Record representation.
-       
+
        Attributes:
          _SRECORD_ADDRESSLENGTH (tuple): Address length in bytes for each record type.
          _STANDARD_FORMAT (str): The standard format used by :meth:`fromfh` and :meth:`fromfile` if no format was given.
@@ -71,10 +71,10 @@ class SRecord(MultiPartBuffer):
     @classmethod
     def _parsesrecline(cls, line):
         """Parse S-Record line and return decoded parts as tuple.
-        
+
            Args:
              line (str): Single input line, usually with line termination character(s).
-             
+
            Returns:
              Tuple (recordtype, address, data, datasize, crccorrect) with types (int, int, Buffer, int, bool).
         """
@@ -100,15 +100,15 @@ class SRecord(MultiPartBuffer):
     @staticmethod
     def _s123addr(addresslength, address):
         """Returns a tuple with the address bytes with the given length for encoding.
-        
+
            Args:
-             addresslength (int: 2..4): Address length in bytes. Valid values are 2, 3 or 4. 
+             addresslength (int: 2..4): Address length in bytes. Valid values are 2, 3 or 4.
              address (int): Address to be encoded.
-             
+
            Returns:
              Tuple with address bytes in big endian byte order (MSB first).
              The length of the tuple is equal to the addresslength argument.
-             
+
            Raises:
              ValueError: If addresslength is not 2, 3 or 4.
         """
@@ -124,13 +124,13 @@ class SRecord(MultiPartBuffer):
     @staticmethod
     def _minaddresslength(address):
         """Returns minimum byte length required to encode given address.
-        
+
            Args:
-             address (int): Address to be encoded. 
-             
+             address (int): Address to be encoded.
+
            Returns:
              addresslength (int): Minimum number of bytes required to encode given address.
-             
+
            Raise:
              ValueError: If address is too large to fit in 32 bit.
         """
@@ -148,9 +148,9 @@ class SRecord(MultiPartBuffer):
     @classmethod
     def _encodesrecline(cls, fh, address, buffer, offset=0, recordtype=123, bytesperline=32):
         """Encode given data to a S-Record line.
-        
+
            One or more S-Record lines are encoded from the given address and buffer and written to the given file handle.
-        
+
            Args:
              fh (file handle or compatible): Destination of S-Record lines.
              address (int): Address of first byte in buffer data.
@@ -189,10 +189,10 @@ class SRecord(MultiPartBuffer):
 
     def tosrecfile(cls, filename, bytesperline=32, addresslength=None, write_number_of_records=True):
         """Writes content as S-Record file to given file name.
-           
+
            Opens filename for writing and calls :meth:`tosrecfh` with the file handle and all arguments.
            See :meth:`tosecfh` for description of the arguments.
-           
+
            Returns:
              Return value of :meth:`tosrecfh` call.
         """
@@ -201,7 +201,7 @@ class SRecord(MultiPartBuffer):
 
     def tosrecfh(self, fh, bytesperline=32, addresslength=None, write_number_of_records=True):
         """Writes content as S-Record file to given file handle.
-        
+
            Args:
              fh (file handle or compatible): Destination of S-Record lines.
              bytesperline (int): Number of data bytes per line.
@@ -209,7 +209,7 @@ class SRecord(MultiPartBuffer):
                     If None then the shortest possible address length large enough to encode the highest address present is used.
              write_number_of_records (bool): If True then the number of data records is written as a record type 5 or 6.
                                              This adds an additional verification method if the S-Record file is consistent.
-                                             
+
            Returns:
              self
         """
@@ -235,24 +235,24 @@ class SRecord(MultiPartBuffer):
     @classmethod
     def fromsrecfile(cls, filename):
         """Generates SRecord instance from S-Record file.
-           
+
            Opens filename for reading and calls :meth:`fromsrecfh` with the file handle.
-           
+
            Returns:
              New instance of class with loaded data.
-        """        
+        """
         with open(filename, "r") as fh:
             return cls.fromsrecfh(fh)
 
     @classmethod
     def fromsrecfh(cls, fh):
         """Generates SRecord instance from file handle which must point to S-Record lines.
-        
+
            Creates new instance and calls :meth:`loadsrecfh` on it.
-        
+
            Args:
              fh (file handle or compatible): Source of S-Record lines.
-             
+
            Returns:
              New instance of class with loaded data.
         """
@@ -262,16 +262,16 @@ class SRecord(MultiPartBuffer):
 
     def loadsrecfh(self, fh, raise_error_on_miscount=True):
         """Loads data from S-Record file over file handle.
-        
+
            Parses every source line using :meth:`_parsesrecline` and processes the decoded elements according to the record type.
-        
+
            Args:
              fh (file handle or compatible): Source of S-Record lines.
              raise_error_on_miscount (bool): If True a DecodeError is raised if the number of records read differs from stored number of records.
-        
+
            Returns:
              self
-             
+
            Raises:
              DecodeError: If decoded record type is outside of range 0..9.
              DecodeError: If raise_error_on_miscount is True and number of records read differ from stored number of records.
@@ -297,7 +297,7 @@ class SRecord(MultiPartBuffer):
 
     def getstartaddress(self):
         """Getter mehtod of starting execution location.
-        
+
            Returns:
              address (int): starting execution location.
         """
@@ -305,13 +305,13 @@ class SRecord(MultiPartBuffer):
 
     def setstartaddress(self, start_address):
         """Sets starting execution location.
-        
+
            Args:
              start_address (int): 16, 24 or 32 bit address of the starting execution location, i.e. where the start-up routine is located in the program data.
-           
+
            Returns:
              self
-             
+
            Raises:
              ValueError: if address is too large for 32 bit.
         """
@@ -323,8 +323,8 @@ class SRecord(MultiPartBuffer):
 
     def getheader(self):
         """Return header data which is stored using record type 0.
-           The header data usually 
-        
+           The header data usually
+
            Returns:
              Buffer (str): NULL ("\\\\x00") terminated string.
         """
@@ -332,14 +332,14 @@ class SRecord(MultiPartBuffer):
 
     def setheader(self, header):
         """Sets S-Record header which will be written using record type 0.
-        
+
            Args:
              header (None or str): Header data. A vendor specific ASCII text which can contains e.g.
                 file/module name, version/revision number, date/time, product name, vendor name, memory designator on PCB, copyright notice.
                 If None no header will be written.
                 Will be truncated to a length of 251 if longer.
-                If it does not end with a NULL ("\\\\x00") character, one is added. 
-                
+                If it does not end with a NULL ("\\\\x00") character, one is added.
+
            Returns:
              self
         """
@@ -372,7 +372,7 @@ class IntelHex(MultiPartBuffer):
     def __init__(self, **settings):
         super(IntelHex, self).__init__()
         self.settings(**settings)
-        
+
     def __eq__(self, other):
         """Compare with other instance for equality."""
         return super(IntelHex, self).__eq__(other) and self._eip == other._eip and self._cs_ip == other._cs_ip
@@ -420,7 +420,7 @@ class IntelHex(MultiPartBuffer):
     @classmethod
     def fromihexfile(cls, filename, ignore_checksum_errors=False):
         with open(filename, "r") as fh:
-            return cls.fromihexfh(fh, ignore_checksum_errors)    
+            return cls.fromihexfh(fh, ignore_checksum_errors)
 
     @classmethod
     def fromihexfh(cls, fh, ignore_checksum_errors=False):
@@ -464,8 +464,8 @@ class IntelHex(MultiPartBuffer):
 
     def loadihexfile(self, filename, ignore_checksum_errors=False):
         with open(filename, "r") as fh:
-            return self.loadihexfh(fh, ignore_checksum_errors)    
-        
+            return self.loadihexfh(fh, ignore_checksum_errors)
+
     def loadihexfh(self, fh, ignore_checksum_errors=False):
         highaddr = 0
         line = fh.readline()
@@ -503,7 +503,7 @@ class IntelHex(MultiPartBuffer):
     def toihexfile(self, filename, **settings):
         with open(filename, "w") as fh:
             return self.toihexfh(fh, **settings)
-    
+
     def toihexfh(self, fh, **settings):
         (bytesperline, variant, cs_ip, eip) = self._parsesettings(False, **settings)
         highaddr = 0
@@ -564,7 +564,7 @@ class HexDump(MultiPartBuffer):
         asciistr = ""
         if ascii:
             asciistr = " |{{:{:d}s}}|".format(bytesperline).format("".join([char in string.printable and char or "." for char in str(data)]))
-        numgroups = bytesperline/groupsize 
+        numgroups = bytesperline/groupsize
         hwidth = bytesperline * 2 + numgroups - 1
         return "{{:08X}}: {{:{:d}s}}{{:s}}\n".format(hwidth).format(address, datastr, asciistr)
 
@@ -614,11 +614,11 @@ class HexDump(MultiPartBuffer):
         self = cls()
         self.loadhexdumpfh(fh, bigendian)
         return self
-        
+
     def loadhexdumpfile(self, filename, bigendian=True):
         with open(filename, "r") as fh:
             return cls.loadhexdumpfh(fh, bigendian)
-        
+
     def loadhexdumpfh(self, fh, bigendian=True):
         line = fh.readline()
         while line != '':

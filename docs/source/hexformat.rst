@@ -12,14 +12,6 @@ hexformat.fillpattern module
     :undoc-members:
     :show-inheritance:
 
-hexformat.intelhex (2) module
------------------------------
-
-.. automodule:: hexformat.intelhex (2)
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 hexformat.main module
 ---------------------
 
@@ -32,14 +24,6 @@ hexformat.multipartbuffer module
 --------------------------------
 
 .. automodule:: hexformat.multipartbuffer
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-hexformat.rand module
----------------------
-
-.. automodule:: hexformat.rand
     :members:
     :undoc-members:
     :show-inheritance:
