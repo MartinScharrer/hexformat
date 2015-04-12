@@ -84,7 +84,7 @@ class FillPattern(object):
               width (int or long; optional):  byte width of the number. Usually 1 till 4. If number is narrower than this width it is zero padded.
               bigendian (bool; optional):  If True (default) the number will be turned into a list of bytes from most to least significant byte ("MSB first", "Motorola" style).
                                    Otherwise the byte order will be from least to most significant byte ("LSB first", "Intel" style).
-                                   For any other byte order the method frompattern() must be used with a byte list.
+                                   For any other byte order the method :meth:`frompattern` must be used with a byte list.
               length (None or int, optional): Official length of FillPattern. Only used if used with len() or str() etc.     
                                               If None then the length of the pattern is used instead.
                                               

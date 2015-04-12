@@ -77,19 +77,24 @@ class SRecord(MultiPartBuffer):
 
            Returns:
              Tuple (recordtype, address, data, datasize, crccorrect) with types (int, int, Buffer, int, bool).
+             
+           Raises:
+             DecodeError: if line does not start with start code ("S").
+             DecodeError: on misformatted S-Record input line.
+             DecodeError: on byte count - line data mismatch.
         """
         try:
             line = line.rstrip("\r\n")
             startcode = line[0]
             if startcode != "S":
-                raise ValueError
+                raise DecodeError("No valid S-Record start code found.")
             recordtype = int(line[1])
             bytes = bytearray.fromhex(line[2:])
         except:
-            raise ValueError
+            raise DecodeError("misformatted S-Record line.")
         bytecount = bytes[0]
         if bytecount != len(bytes)-1:
-            raise ValueError
+            raise DecodeError("Byte count does not match line data.")
         crccorrect = ( (sum(bytes) & 0xFF) == 0xFF)
         al = cls._SRECORD_ADDRESSLENGTH[recordtype]
         address = int(line[4:4+2*al], 16)
@@ -158,6 +163,9 @@ class SRecord(MultiPartBuffer):
              offset (int): Reading start index of buffer.
              recordtype (int: 0..9 or 123): S-Record record type. If equal to 123 the a record type 1, 2 or 3 is determined by the minimum address byte width.
              bytesperline (int): Number of bytes to be written on a single line.
+             
+           Raises:
+             EncodeError: on unsupported record type.
         """
         lastaddress = address + len(buffer) - 1
         if recordtype == 123:
@@ -166,7 +174,7 @@ class SRecord(MultiPartBuffer):
             recordtype = int(recordtype)
             addresslength = int(cls._SRECORD_ADDRESSLENGTH[recordtype])
         except IndexError, TypeError:
-            raise ValueError
+            raise EncodeError("Unsupported record type.")
 
         bytesperline = max(addresslength+2, min(bytesperline, 254-addresslength))
         bytecount = bytesperline + addresslength + 1
@@ -194,7 +202,7 @@ class SRecord(MultiPartBuffer):
            See :meth:`tosecfh` for description of the arguments.
 
            Returns:
-             Return value of :meth:`tosrecfh` call.
+             self
         """
         with open(filename, "w") as fh:
             return cls.tosrecfh(fh, bytesperline, addresslength, write_number_of_records, variant)
@@ -237,6 +245,9 @@ class SRecord(MultiPartBuffer):
         """Generates SRecord instance from S-Record file.
 
            Opens filename for reading and calls :meth:`fromsrecfh` with the file handle.
+           
+           Args:
+             filename (str): Name of S-Record file.
 
            Returns:
              New instance of class with loaded data.
@@ -359,6 +370,12 @@ class IntelHex(MultiPartBuffer):
     """Intel-Hex file representation class.
 
        The IntelHex class is able to parse and generate binary data in the Intel-Hex representation.
+       
+       Args:
+         bytesperline (int): Number of bytes per line.
+         variant: Variant of Intel-Hex format. Must be one out of ('I08HEX', 'I8HEX', 'I16HEX', 'I32HEX', 8, 16, 32).
+         cs_ip (int, 32-bit): Value of CS:IP starting address used for I16HEX variant.
+         eip (int, 32-bit): Value of EIP starting address used for I32HEX variant.
     """
     _DATALENGTH = (None, 0, 2, 4, 2, 4)
     _VARIANTS = { 'I08HEX':8, 'I8HEX':8, 'I16HEX':16, 'I32HEX':32, 8:8, 16:16, 32:32 }
@@ -373,11 +390,21 @@ class IntelHex(MultiPartBuffer):
         super(IntelHex, self).__init__()
         self.settings(**settings)
 
-    def __eq__(self, other):
-        """Compare with other instance for equality."""
-        return super(IntelHex, self).__eq__(other) and self._eip == other._eip and self._cs_ip == other._cs_ip
-
     def _parseihexline(self, line):
+        """Parse Intel-Hex line and return decoded parts as tuple.
+
+           Args:
+             line (str): Single input line, usually with line termination character(s).
+
+           Returns:
+             Tuple (recordtype, address, data, bytecount, crccorrect) with types (int, int, Buffer, int, bool).
+             
+           Raises:
+             DecodeError: on lines which do not start with start code (":").
+             DecodeError: on data length - byte count mismatch.
+             DecodeError: on unknown record type.
+             DecodeError: on data length - record type mismatch.
+        """
         try:
             line = line.rstrip("\r\n")
             startcode = line[0]
@@ -402,6 +429,22 @@ class IntelHex(MultiPartBuffer):
         return (recordtype, address, data, bytecount, checksumcorrect)
 
     def _encodeihexline(self, recordtype, address16bit=0, data=bytearray()):
+        """Encode given data to Intel-Hex format.
+
+           One or more Intel-Hex lines are encoded from the given address and buffer and written to the given file handle.
+
+           Args:
+             recordtype (int: 0..5): Intel-Hex record type.
+             address16bit (int): Lower 16-bit part of address of first byte in buffer data.
+             data (Buffer): Buffer with data to be encoded.
+             
+           Returns:
+             line (str): Intel-Hex encoded line.
+             
+           Raises:
+             DecodeError: on unknown record type.
+             DecodeError: on datalength - record type mismatch.
+        """    
         linelen = 2*len(data) + 11
         linetempl = ":{:02X}{:04X}{:02X}{:s}{:02X}\n"
         bytecount = len(data)
@@ -419,20 +462,69 @@ class IntelHex(MultiPartBuffer):
 
     @classmethod
     def fromihexfile(cls, filename, ignore_checksum_errors=False):
+        """Generates IntelHex instance from Intel-Hex file.
+
+           Opens filename for reading and calls :meth:`fromihexfh` with the file handle.
+           
+           Args:
+             ignore_checksum_errors (bool): If True no error is raised on checksum failures.
+
+           Returns:
+             New instance of class with loaded data.
+        """    
         with open(filename, "r") as fh:
             return cls.fromihexfh(fh, ignore_checksum_errors)
 
     @classmethod
     def fromihexfh(cls, fh, ignore_checksum_errors=False):
+        """Generates IntelHex instance from file handle which must point to Intel-Hex lines.
+
+           Creates new instance and calls :meth:`loadihexfh` on it.
+
+           Args:
+             fh (file handle or compatible): Source of Intel-Hex lines.
+             ignore_checksum_errors (bool): If True no error is raised on checksum failures.
+
+           Returns:
+             New instance of class with loaded data.
+        """    
         self = cls()
         self.loadihexfh(fh, ignore_checksum_errors)
         return self
 
     def settings(self, **kvargs):
+        """Sets setting.
+        
+           Calls :meth:`_parsesettings` with the key-value pairs and stores the result in instance attributes.
+        
+           Args:
+             bytesperline (int): Number of bytes per line.
+             variant: Variant of Intel-Hex format. Must be one out of ('I08HEX', 'I8HEX', 'I16HEX', 'I32HEX', 8, 16, 32).
+             cs_ip (int, 32-bit): Value of CS:IP starting address used for I16HEX variant.
+             eip (int, 32-bit): Value of EIP starting address used for I32HEX variant.
+             
+           Returns:
+             self
+        """
         (self._bytesperline, self._variant, self._cs_ip, self._eip) = self._parsesettings(True, **kvargs)
         return self
 
     def _parsesettings(self, isinit, **kvargs):
+        """Parses settings and returns tuple with all settings. Default values are substituted if needed.
+        
+           Args:
+             isinit (bool): If False substitute None values with default values.
+             bytesperline (int): Number of bytes per line.
+             variant: Variant of Intel-Hex format. Must be one out of ('I08HEX', 'I8HEX', 'I16HEX', 'I32HEX', 8, 16, 32).
+             cs_ip (int, 32-bit): Value of CS:IP starting address used for I16HEX variant.
+             eip (int, 32-bit): Value of EIP starting address used for I32HEX variant.
+             
+           Returns:
+             Tuple with settings: (bytesperline, variant, cs_ip, eip)
+             
+           Raises:
+             ValueError: If cs_ip or eip value is larger than 32 bit.
+        """
         if 'bytesperline' in kvargs:
             bytesperline = int(kvargs['bytesperline'])
         else:
@@ -444,14 +536,14 @@ class IntelHex(MultiPartBuffer):
         if 'cs_ip' in kvargs:
             cs_ip = int(kvargs['cs_ip'])
             if cs_ip > 0xFFFFFFFF:
-                raise ValueError
+                raise ValueError("cs_ip value must not be larger than 32 bit.")
             cs_ip = bytearray.fromhex("{:08x}".format(cs_ip))
         else:
             cs_ip = self._cs_ip
         if 'eip' in kvargs:
             eip = int(kvargs['eip'])
             if eip > 0xFFFFFFFF:
-                raise ValueError
+                raise ValueError("eip value must not be larger than 32 bit.")
             eip = bytearray.fromhex("{:08x}".format(eip))
         else:
             eip = self._eip
@@ -463,10 +555,34 @@ class IntelHex(MultiPartBuffer):
         return (bytesperline, variant, cs_ip, eip)
 
     def loadihexfile(self, filename, ignore_checksum_errors=False):
+        """Generates IntelHex instance from named Intel-Hex file.
+
+           Creates new instance and calls :meth:`loadihexfh` on it.
+
+           Args:
+             filename (str): Name of Intel-Hex file.
+             ignore_checksum_errors (bool): If True no error is raised on checksum failures.             
+
+           Returns:
+             New instance of class with loaded data.
+        """
         with open(filename, "r") as fh:
             return self.loadihexfh(fh, ignore_checksum_errors)
 
     def loadihexfh(self, fh, ignore_checksum_errors=False):
+        """Generates IntelHex instance from file handle which must point to Intel-Hex lines.
+
+           Args:
+             fh (file handle or compatible): Source of Intel-Hex lines.
+             ignore_checksum_errors (bool): If True no error is raised on checksum failures.             
+
+           Returns:
+             New instance of class with loaded data.
+             
+           Raises:
+             DecodeError: on checksum mismatch if ignore_checksum_errors is False.
+             DecodeError: on unsupported record type.
+        """    
         highaddr = 0
         line = fh.readline()
         while line != '':
@@ -501,10 +617,39 @@ class IntelHex(MultiPartBuffer):
         return self
 
     def toihexfile(self, filename, **settings):
+        """Writes content as Intel-Hex file to given file name.
+
+           Opens filename for writing and calls :meth:`toihexfh` with the file handle and all arguments.
+           See :meth:`toihexfh` for description of the arguments.
+           
+           Args:
+             bytesperline (int): Number of bytes per line.
+             variant: Variant of Intel-Hex format. Must be one out of ('I08HEX', 'I8HEX', 'I16HEX', 'I32HEX', 8, 16, 32).
+             cs_ip (int, 32-bit): Value of CS:IP starting address used for I16HEX variant.
+             eip (int, 32-bit): Value of EIP starting address used for I32HEX variant.           
+
+           Returns:
+             self
+        """    
         with open(filename, "w") as fh:
             return self.toihexfh(fh, **settings)
 
     def toihexfh(self, fh, **settings):
+        """Writes content as Intel-Hex file to given file handle.
+
+           Args:
+             fh (file handle or compatible): Destination of S-Record lines.
+             bytesperline (int): Number of bytes per line.
+             variant: Variant of Intel-Hex format. Must be one out of ('I08HEX', 'I8HEX', 'I16HEX', 'I32HEX', 8, 16, 32).
+             cs_ip (int, 32-bit): Value of CS:IP starting address used for I16HEX variant.
+             eip (int, 32-bit): Value of EIP starting address used for I32HEX variant.
+
+           Returns:
+             self
+             
+           Raises:
+             EncodeError: if selected address length is not wide enough to fit all addresses. 
+        """    
         (bytesperline, variant, cs_ip, eip) = self._parsesettings(False, **settings)
         highaddr = 0
         addresshigh = 0
@@ -544,6 +689,13 @@ class IntelHex(MultiPartBuffer):
             fh.write(self._encodeihexline(3, 0, cs_ip))
         fh.write(self._encodeihexline(1))
         return self
+
+    def __eq__(self, other):
+        """Compare with other instance for equality.
+        
+           Both instances are equal if both _parts lists, _eip and _cs_ip are identical.
+        """
+        return super(IntelHex, self).__eq__(other) and self._eip == other._eip and self._cs_ip == other._cs_ip
 
 
 class HexDump(MultiPartBuffer):
