@@ -24,12 +24,15 @@ class MultiPartBuffer(object):
     """Class to handle disconnected binary data.
 
        Each segment (simply called "part") is identified by its starting address and its content (a Buffer instance).
+       
+       Attributes:
+         _STANDARD_FORMAT (str): The standard format used by :meth:`.fromfh` and :meth:`.fromfile` if no format was given.
+         _padding (int, iterable or FillPattern): Standard fill pattern.
     """
     _STANDARD_FORMAT = 'bin'
     _padding = 0xFF
 
     def __init__(self):
-        """Init parts list."""
         self._parts = list()
 
     def __repr__(self):
@@ -42,7 +45,13 @@ class MultiPartBuffer(object):
         return self._parts == other._parts
 
     def _create(self, beforeindex, address, data=list()):
-        """Create new buffer before index or at end if index is None."""
+        """Create new buffer before index or at end if index is None.
+        
+           Args:
+             beforeindex (int): The data will be inserted before this index.
+             address (int): Address of first byte in data buffer.
+             data (Buffer): Data to be stored.
+        """
         buffer = Buffer(data)
         if beforeindex is None:
             self._parts.append( [ address, buffer ] )
@@ -50,11 +59,18 @@ class MultiPartBuffer(object):
             self._parts.insert(beforeindex, [ address, buffer ])
 
     def _find(self, address, size, create=True):
-        """Return (buffer index, mod) for given address and size.
-           The meaning of <mod> is:
-              0  Buffer of given index contains at least part of the given range. Always returned if create=True.
-              1  No buffer containing the given range found. Index states next buffer with an higher address.
-             -1  Address lies after all buffers. Index states last buffer before address.
+        """Find buffer corresponding to data block given by address and size.
+        
+           Args:
+             address (int): Starting address of data block.
+             size (int): Size of data block.
+             create (bool): If True a new (empty) buffer is created if no suitable one already exists.
+        
+           Returns:
+             Tuple (buffer index, mod). The meaning of <mod> is
+                0: Buffer of given index contains at least part of the given range. Always returned if create=True.
+                1: No buffer containing the given range found. Index states next buffer with an higher address.
+                -1: Address lies after all buffers. Index states last buffer before address.
         """
         dataend = address + size
         for index,part in enumerate(self._parts):
@@ -83,7 +99,14 @@ class MultiPartBuffer(object):
             return (index, -1)
 
     def _insert(self, index, newdata, datasize, dataoffset):
-        """Insert new data at begin of existing buffer. Lower address of buffer accordantly."""
+        """Insert new data at begin of existing buffer. Reduce starting address of buffer accordantly.
+        
+           Args:
+             index (int): Index of buffer.
+             newdata (Buffer): Data buffer with new data to be inserted. 
+             datasize (int): Size of data be added. Can be smaller than data buffer size if not all content should be inserted.
+             dataoffset (int): Starting read offset of newdata.
+        """
         data = None
         if dataoffset == 0 and datasize == len(newdata):
             data = newdata
@@ -93,7 +116,15 @@ class MultiPartBuffer(object):
         self._parts[index][0] -= datasize   # adjust address
 
     def _set(self, index, address, newdata, datasize, dataoffset):
-        """Store new data in given buffer at given address. New data is read from given offset for the given size."""
+        """Store new data in given buffer at given address. New data is read from given offset for the given size.
+        
+           Args:
+             index (int): Index of buffer where data will be stored.
+             address (int): Address of first data byte.
+             newdata (Buffer): Data buffer with new data. 
+             datasize (int): Size of data. Can be smaller than data buffer size if not all content should be inserted.
+             dataoffset (int): Starting read offset of newdata.        
+        """
         bufferstart = self._parts[index][0]
         bufferoffset = address - bufferstart
         data = None
@@ -104,7 +135,14 @@ class MultiPartBuffer(object):
         self._parts[index][1] [bufferoffset:bufferoffset+datasize] = data
 
     def _extend(self, index, newdata, datasize, dataoffset):
-        """Extend given buffer with the new data. New data is read from given offset for the given size."""
+        """Extend given buffer with the new data.
+        
+           Args:
+             index (int): Index of buffer where data will be appended.
+             newdata (Buffer): Data buffer with new data. 
+             datasize (int): Size of data. Can be smaller than data buffer size if not all content should be inserted.
+             dataoffset (int): Starting read offset of newdata.       
+        """
         data = None
         if dataoffset == 0 and datasize == len(newdata):
             data = newdata
@@ -113,7 +151,11 @@ class MultiPartBuffer(object):
         self._parts[index][1].extend( data )
 
     def _merge(self, index):
-        """Merge the given buffer with the next following one."""
+        """Merge the given buffer with the next following one.
+        
+           Args:
+             index (int): Index of first buffer which will be merged with the next buffer.
+        """
         nextpart = self._parts.pop(index+1)
         self._parts[index][1].extend( nextpart[1] )
 
@@ -436,12 +478,34 @@ class MultiPartBuffer(object):
         return self
 
     def __iadd__(self, other):
+        """Add content of other instance to itself, overwriting existing data if parts overlap.
+        
+           Args:
+             other (MultiPartBuffer, dict or iterable): Second summand.
+               If a dict then the keys must be address and the values a buffer.
+               If an iterable it must yield (address, data) combinations. 
+        """
         self._iadd(other, True)
 
     def __ior__(self, other):
+        """Add content of other instance to itself, keeping existing data if parts overlap.
+        
+           Args:
+             other (MultiPartBuffer, dict or iterable): Second summand.
+               If a dict then the keys must be address and the values a buffer.
+               If an iterable it must yield (address, data) combinations. 
+        """
         self._iadd(other, False)
 
     def _iadd(self, other, overwrite):
+        """Add content of other instance to itself, overwriting or keeping existing data if parts overlap.
+            
+           Args:
+             other (MultiPartBuffer, dict or iterable): Second summand.
+               If a dict then the keys must be address and the values a buffer.
+               If an iterable it must yield (address, data) combinations. 
+             overwrite (bool): If True existing data will be overwritten if parts overlap.
+        """
         source = None
         if isinstance(other, MultiPartBuffer):
             source = other._parts
@@ -458,6 +522,17 @@ class MultiPartBuffer(object):
         return self
 
     def __add__(self, other):
+        """Add two instances together and return the sum as new instance.
+        
+           Args:
+             other (MultiPartBuffer, dict or iterable): Second summand.
+               If a dict then the keys must be address and the values a buffer.
+               If an iterable it must yield (address, data) combinations. 
+           
+           Returns:
+             New instance with the data of both sources combined.
+             Overlapping parts will be set to the data of the second summand.
+        """
         sum = self.copy()
         sum.__iadd__(other)
         return sum

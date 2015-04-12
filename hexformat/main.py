@@ -58,7 +58,7 @@ class SRecord(MultiPartBuffer):
 
        Attributes:
          _SRECORD_ADDRESSLENGTH (tuple): Address length in bytes for each record type.
-         _STANDARD_FORMAT (str): The standard format used by :meth:`fromfh` and :meth:`fromfile` if no format was given.
+         _STANDARD_FORMAT (str): The standard format used by :meth:`.fromfh` and :meth:`.fromfile` if no format was given.
          _start_address (int): Starting execution location. This tells the programmer which address contains the start routine. Default: 0.
          _header (data buffer or None): Header data written using record type 0 if not None. The content is application specific.
 
