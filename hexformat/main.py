@@ -798,52 +798,6 @@ class HexDump(MultiPartBuffer):
         except Exception as e:
             raise DecodeError("Invalid formatted input line: " + str(e))
 
-    def tohexdumpfile(self, filename, bytesperline=16, groupsize=1, bigendian=True, ascii=True):
-        """Writes hex dump to named file.
-
-           Opens filename for writing and calls :meth:`.tohexdumpfh` on it.
-
-           Args:
-             filename (str): Name of file to be written.
-             bytesperline (int): Number of data bytes per line.
-             groupsize (int): Number of data bytes to be grouped together.
-             bigendian (bool): If True the bytes in a group are written in big endian (Motorola style, MSB first) order,
-                               otherwise in little endian (Intel style, LSB first) order.
-             ascii (bool): If True the ASCII representation is written after the hex values.
-
-           Returns:
-             self
-        """
-        with open(filename, "w") as fh:
-            return self.tohexdumpfh(fh, bytesperline, groupsize, bigendian, ascii)
-
-    def tohexdumpfh(self, fh, bytesperline=16, groupsize=1, bigendian=True, ascii=True):
-        """Writes hex dump to file handle.
-
-           Args:
-             fh (file handle or compatible): File handle to be written to.
-             bytesperline (int): Number of data bytes per line.
-             groupsize (int): Number of data bytes to be grouped together.
-             bigendian (bool): If True the bytes in a group are written in big endian (Motorola style, MSB first) order,
-                               otherwise in little endian (Intel style, LSB first) order.
-             ascii (bool): If True the ASCII representation is written after the hex values.
-
-           Returns:
-             self
-        """
-        groupsize = int(groupsize)
-        if (bytesperline % groupsize) != 0:
-            bytesperline = int(round( float(bytesperline) / groupsize )) * groupsize
-        for address,buffer in self._parts:
-            pos = 0
-            datalength = len(buffer)
-            while pos < datalength:
-                endpos = min( pos + bytesperline, datalength )
-                fh.write(self._encodehexdumpline(address, buffer[pos:endpos], bytesperline, groupsize, bigendian, ascii))
-                address += bytesperline
-                pos = endpos
-        return self
-
     @classmethod
     def fromhexdumpfile(cls, filename, bigendian=True):
         """Generates HexDump instance from hex dump file.
@@ -910,3 +864,50 @@ class HexDump(MultiPartBuffer):
             self.set(address, data)
             line = fh.readline()
         return self
+
+    def tohexdumpfile(self, filename, bytesperline=16, groupsize=1, bigendian=True, ascii=True):
+        """Writes hex dump to named file.
+
+           Opens filename for writing and calls :meth:`.tohexdumpfh` on it.
+
+           Args:
+             filename (str): Name of file to be written.
+             bytesperline (int): Number of data bytes per line.
+             groupsize (int): Number of data bytes to be grouped together.
+             bigendian (bool): If True the bytes in a group are written in big endian (Motorola style, MSB first) order,
+                               otherwise in little endian (Intel style, LSB first) order.
+             ascii (bool): If True the ASCII representation is written after the hex values.
+
+           Returns:
+             self
+        """
+        with open(filename, "w") as fh:
+            return self.tohexdumpfh(fh, bytesperline, groupsize, bigendian, ascii)
+
+    def tohexdumpfh(self, fh, bytesperline=16, groupsize=1, bigendian=True, ascii=True):
+        """Writes hex dump to file handle.
+
+           Args:
+             fh (file handle or compatible): File handle to be written to.
+             bytesperline (int): Number of data bytes per line.
+             groupsize (int): Number of data bytes to be grouped together.
+             bigendian (bool): If True the bytes in a group are written in big endian (Motorola style, MSB first) order,
+                               otherwise in little endian (Intel style, LSB first) order.
+             ascii (bool): If True the ASCII representation is written after the hex values.
+
+           Returns:
+             self
+        """
+        groupsize = int(groupsize)
+        if (bytesperline % groupsize) != 0:
+            bytesperline = int(round( float(bytesperline) / groupsize )) * groupsize
+        for address,buffer in self._parts:
+            pos = 0
+            datalength = len(buffer)
+            while pos < datalength:
+                endpos = min( pos + bytesperline, datalength )
+                fh.write(self._encodehexdumpline(address, buffer[pos:endpos], bytesperline, groupsize, bigendian, ascii))
+                address += bytesperline
+                pos = endpos
+        return self
+        
