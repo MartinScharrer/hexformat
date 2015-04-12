@@ -52,7 +52,7 @@ class EncodeError(HexformatError):
 
 
 class SRecord(MultiPartBuffer):
-    """Motorola S-Record hex file representation class.
+    """Motorola `S-Record`_ hex file representation class.
 
        The SRecord class is able to parse and generate binary data in the S-Record representation.
 
@@ -61,6 +61,8 @@ class SRecord(MultiPartBuffer):
          _STANDARD_FORMAT (str): The standard format used by :meth:`fromfh` and :meth:`fromfile` if no format was given.
          _start_address (int): Starting execution location. This tells the programmer which address contains the start routine. Default: 0.
          _header (data buffer or None): Header data written using record type 0 if not None. The content is application specific.
+
+       .. _`S-Record`: http://en.wikipedia.org/wiki/SREC_%28file_format%29
     """
 
     _SRECORD_ADDRESSLENGTH = (2,2,3,4,None,2,None,4,3,2)
@@ -77,7 +79,7 @@ class SRecord(MultiPartBuffer):
 
            Returns:
              Tuple (recordtype, address, data, datasize, crccorrect) with types (int, int, Buffer, int, bool).
-             
+
            Raises:
              DecodeError: if line does not start with start code ("S").
              DecodeError: on misformatted S-Record input line.
@@ -163,7 +165,7 @@ class SRecord(MultiPartBuffer):
              offset (int): Reading start index of buffer.
              recordtype (int: 0..9 or 123): S-Record record type. If equal to 123 the a record type 1, 2 or 3 is determined by the minimum address byte width.
              bytesperline (int): Number of bytes to be written on a single line.
-             
+
            Raises:
              EncodeError: on unsupported record type.
         """
@@ -245,7 +247,7 @@ class SRecord(MultiPartBuffer):
         """Generates SRecord instance from S-Record file.
 
            Opens filename for reading and calls :meth:`fromsrecfh` with the file handle.
-           
+
            Args:
              filename (str): Name of S-Record file.
 
@@ -270,6 +272,21 @@ class SRecord(MultiPartBuffer):
         self = cls()
         self.loadsrecfh(fh)
         return self
+        
+    def loadsrecfile(self, filename, raise_error_on_miscount=True):
+        """Loads S-Record lines from named file.
+
+           Creates new instance and calls :meth:`loadsrecfh` on it.
+
+           Args:
+             filename (str): Name of S-Record file.
+             raise_error_on_miscount (bool): If True a DecodeError is raised if the number of records read differs from stored number of records.
+
+           Returns:
+             self
+        """
+        with open(filename, "r") as fh:
+            return self.loadsrecfh(fh, raise_error_on_miscount)        
 
     def loadsrecfh(self, fh, raise_error_on_miscount=True):
         """Loads data from S-Record file over file handle.
@@ -367,15 +384,27 @@ class SRecord(MultiPartBuffer):
 
 
 class IntelHex(MultiPartBuffer):
-    """Intel-Hex file representation class.
+    """`Intel-Hex`_ file representation class.
 
        The IntelHex class is able to parse and generate binary data in the Intel-Hex representation.
-       
+
        Args:
          bytesperline (int): Number of bytes per line.
          variant: Variant of Intel-Hex format. Must be one out of ('I08HEX', 'I8HEX', 'I16HEX', 'I32HEX', 8, 16, 32).
          cs_ip (int, 32-bit): Value of CS:IP starting address used for I16HEX variant.
          eip (int, 32-bit): Value of EIP starting address used for I32HEX variant.
+
+       Attributes:
+         _DATALENGTH (tuple): Data length according to record type.
+         _VARIANTS (dict): Mapping dict from variant name to number.
+         _DEFAULT_BYTES_PER_LINE (int): Default number of bytes per line.
+         _DEFAULT_VARIANT: Default variant.
+         _bytesperline (None or int): Number of bytes per line of this instance. If None the default value will be used.
+         _cs_ip (None or int): CS:IP address for I16HEX variant. If None no CS:IP address will be written.
+         _eip (None or int): EIP address for I32HEX variant. If None no CS:IP address will be written.
+         _variant (None or 8, 16 or 32): Numeric file format variant. If None the default variant is used.
+
+       .. _`Intel-Hex`: http://en.wikipedia.org/wiki/Intel_HEX
     """
     _DATALENGTH = (None, 0, 2, 4, 2, 4)
     _VARIANTS = { 'I08HEX':8, 'I8HEX':8, 'I16HEX':16, 'I32HEX':32, 8:8, 16:16, 32:32 }
@@ -398,7 +427,7 @@ class IntelHex(MultiPartBuffer):
 
            Returns:
              Tuple (recordtype, address, data, bytecount, crccorrect) with types (int, int, Buffer, int, bool).
-             
+
            Raises:
              DecodeError: on lines which do not start with start code (":").
              DecodeError: on data length - byte count mismatch.
@@ -437,14 +466,14 @@ class IntelHex(MultiPartBuffer):
              recordtype (int: 0..5): Intel-Hex record type.
              address16bit (int): Lower 16-bit part of address of first byte in buffer data.
              data (Buffer): Buffer with data to be encoded.
-             
+
            Returns:
              line (str): Intel-Hex encoded line.
-             
+
            Raises:
              DecodeError: on unknown record type.
              DecodeError: on datalength - record type mismatch.
-        """    
+        """
         linelen = 2*len(data) + 11
         linetempl = ":{:02X}{:04X}{:02X}{:s}{:02X}\n"
         bytecount = len(data)
@@ -465,13 +494,13 @@ class IntelHex(MultiPartBuffer):
         """Generates IntelHex instance from Intel-Hex file.
 
            Opens filename for reading and calls :meth:`fromihexfh` with the file handle.
-           
+
            Args:
              ignore_checksum_errors (bool): If True no error is raised on checksum failures.
 
            Returns:
              New instance of class with loaded data.
-        """    
+        """
         with open(filename, "r") as fh:
             return cls.fromihexfh(fh, ignore_checksum_errors)
 
@@ -487,22 +516,22 @@ class IntelHex(MultiPartBuffer):
 
            Returns:
              New instance of class with loaded data.
-        """    
+        """
         self = cls()
         self.loadihexfh(fh, ignore_checksum_errors)
         return self
 
     def settings(self, **kvargs):
         """Sets setting.
-        
+
            Calls :meth:`_parsesettings` with the key-value pairs and stores the result in instance attributes.
-        
+
            Args:
              bytesperline (int): Number of bytes per line.
              variant: Variant of Intel-Hex format. Must be one out of ('I08HEX', 'I8HEX', 'I16HEX', 'I32HEX', 8, 16, 32).
              cs_ip (int, 32-bit): Value of CS:IP starting address used for I16HEX variant.
              eip (int, 32-bit): Value of EIP starting address used for I32HEX variant.
-             
+
            Returns:
              self
         """
@@ -511,17 +540,17 @@ class IntelHex(MultiPartBuffer):
 
     def _parsesettings(self, isinit, **kvargs):
         """Parses settings and returns tuple with all settings. Default values are substituted if needed.
-        
+
            Args:
              isinit (bool): If False substitute None values with default values.
              bytesperline (int): Number of bytes per line.
              variant: Variant of Intel-Hex format. Must be one out of ('I08HEX', 'I8HEX', 'I16HEX', 'I32HEX', 8, 16, 32).
              cs_ip (int, 32-bit): Value of CS:IP starting address used for I16HEX variant.
              eip (int, 32-bit): Value of EIP starting address used for I32HEX variant.
-             
+
            Returns:
              Tuple with settings: (bytesperline, variant, cs_ip, eip)
-             
+
            Raises:
              ValueError: If cs_ip or eip value is larger than 32 bit.
         """
@@ -555,34 +584,34 @@ class IntelHex(MultiPartBuffer):
         return (bytesperline, variant, cs_ip, eip)
 
     def loadihexfile(self, filename, ignore_checksum_errors=False):
-        """Generates IntelHex instance from named Intel-Hex file.
+        """Loads Intel-Hex lines from named file.
 
            Creates new instance and calls :meth:`loadihexfh` on it.
 
            Args:
              filename (str): Name of Intel-Hex file.
-             ignore_checksum_errors (bool): If True no error is raised on checksum failures.             
+             ignore_checksum_errors (bool): If True no error is raised on checksum failures.
 
            Returns:
-             New instance of class with loaded data.
+             self
         """
         with open(filename, "r") as fh:
             return self.loadihexfh(fh, ignore_checksum_errors)
 
     def loadihexfh(self, fh, ignore_checksum_errors=False):
-        """Generates IntelHex instance from file handle which must point to Intel-Hex lines.
+        """Loads Intel-Hex lines from file handle.
 
            Args:
              fh (file handle or compatible): Source of Intel-Hex lines.
-             ignore_checksum_errors (bool): If True no error is raised on checksum failures.             
+             ignore_checksum_errors (bool): If True no error is raised on checksum failures.
 
            Returns:
-             New instance of class with loaded data.
-             
+             self
+
            Raises:
              DecodeError: on checksum mismatch if ignore_checksum_errors is False.
              DecodeError: on unsupported record type.
-        """    
+        """
         highaddr = 0
         line = fh.readline()
         while line != '':
@@ -621,16 +650,16 @@ class IntelHex(MultiPartBuffer):
 
            Opens filename for writing and calls :meth:`toihexfh` with the file handle and all arguments.
            See :meth:`toihexfh` for description of the arguments.
-           
+
            Args:
              bytesperline (int): Number of bytes per line.
              variant: Variant of Intel-Hex format. Must be one out of ('I08HEX', 'I8HEX', 'I16HEX', 'I32HEX', 8, 16, 32).
              cs_ip (int, 32-bit): Value of CS:IP starting address used for I16HEX variant.
-             eip (int, 32-bit): Value of EIP starting address used for I32HEX variant.           
+             eip (int, 32-bit): Value of EIP starting address used for I32HEX variant.
 
            Returns:
              self
-        """    
+        """
         with open(filename, "w") as fh:
             return self.toihexfh(fh, **settings)
 
@@ -646,10 +675,10 @@ class IntelHex(MultiPartBuffer):
 
            Returns:
              self
-             
+
            Raises:
-             EncodeError: if selected address length is not wide enough to fit all addresses. 
-        """    
+             EncodeError: if selected address length is not wide enough to fit all addresses.
+        """
         (bytesperline, variant, cs_ip, eip) = self._parsesettings(False, **settings)
         highaddr = 0
         addresshigh = 0
@@ -692,15 +721,35 @@ class IntelHex(MultiPartBuffer):
 
     def __eq__(self, other):
         """Compare with other instance for equality.
-        
+
            Both instances are equal if both _parts lists, _eip and _cs_ip are identical.
         """
         return super(IntelHex, self).__eq__(other) and self._eip == other._eip and self._cs_ip == other._cs_ip
 
 
 class HexDump(MultiPartBuffer):
+    """`Hex dump`_ representation class.
+
+       The HexDump class is able to generate and parse hex dumps of binary data.
+
+       .. _`Hex dump`: http://en.wikipedia.org/wiki/Hex_dump
+    """
 
     def _encodehexdumpline(self, address, data, bytesperline, groupsize, bigendian, ascii):
+        """Return encoded hex dump line.
+
+           Args:
+             address (int): Address of first byte in buffer.
+             data (Buffer): To be encoded data.
+             bytesperline (int): Number of data bytes per line.
+             groupsize (int): Number of data bytes to be grouped together.
+             bigendian (bool): If True the bytes in a group are written in big endian (Motorola style, MSB first) order,
+                               otherwise in little endian (Intel style, LSB first) order.
+             ascii (bool): If True the ASCII representation is written after the hex values.
+
+           Returns:
+             Encoded hex dump line.
+        """
         groups = list()
         cgroup = list()
         for n,byte in enumerate(data, 1):
@@ -721,6 +770,16 @@ class HexDump(MultiPartBuffer):
         return "{{:08X}}: {{:{:d}s}}{{:s}}\n".format(hwidth).format(address, datastr, asciistr)
 
     def _parsehexdumpline(self, line, bigendian):
+        """Parses hex dump line to extract address and data.
+
+           Args:
+             line (str): Hex dump line to be parsed.
+             bigendian (bool): If True the bytes in a group will be interpreted in big endian (Motorola style, MSB first) order,
+                               otherwise in little endian (Intel style, LSB first) order.
+
+           Returns:
+             Tuple (address, data) with types (int, Buffer).
+        """
         try:
             line = line.rstrip("\r\n")
             cidx = line.index(":")
@@ -740,10 +799,38 @@ class HexDump(MultiPartBuffer):
             raise DecodeError("Invalid formatted input line: " + str(e))
 
     def tohexdumpfile(self, filename, bytesperline=16, groupsize=1, bigendian=True, ascii=True):
+        """Writes hex dump to named file.
+
+           Opens filename for writing and calls :meth:`.tohexdumpfh` on it.
+
+           Args:
+             filename (str): Name of file to be written.
+             bytesperline (int): Number of data bytes per line.
+             groupsize (int): Number of data bytes to be grouped together.
+             bigendian (bool): If True the bytes in a group are written in big endian (Motorola style, MSB first) order,
+                               otherwise in little endian (Intel style, LSB first) order.
+             ascii (bool): If True the ASCII representation is written after the hex values.
+
+           Returns:
+             self
+        """
         with open(filename, "w") as fh:
-            self.tohexdumpfh(fh, bytesperline, groupsize, bigendian, ascii)
+            return self.tohexdumpfh(fh, bytesperline, groupsize, bigendian, ascii)
 
     def tohexdumpfh(self, fh, bytesperline=16, groupsize=1, bigendian=True, ascii=True):
+        """Writes hex dump to file handle.
+
+           Args:
+             fh (file handle or compatible): File handle to be written to.
+             bytesperline (int): Number of data bytes per line.
+             groupsize (int): Number of data bytes to be grouped together.
+             bigendian (bool): If True the bytes in a group are written in big endian (Motorola style, MSB first) order,
+                               otherwise in little endian (Intel style, LSB first) order.
+             ascii (bool): If True the ASCII representation is written after the hex values.
+
+           Returns:
+             self
+        """
         groupsize = int(groupsize)
         if (bytesperline % groupsize) != 0:
             bytesperline = int(round( float(bytesperline) / groupsize )) * groupsize
@@ -755,23 +842,68 @@ class HexDump(MultiPartBuffer):
                 fh.write(self._encodehexdumpline(address, buffer[pos:endpos], bytesperline, groupsize, bigendian, ascii))
                 address += bytesperline
                 pos = endpos
+        return self
 
     @classmethod
     def fromhexdumpfile(cls, filename, bigendian=True):
+        """Generates HexDump instance from hex dump file.
+
+           Opens filename for reading and calls :meth:`fromhexdumpfh` with the file handle.
+
+           Args:
+             filename (str): Name of file to be loaded.
+             bigendian (bool): If True the bytes in a group will be interpreted in big endian (Motorola style, MSB first) order,
+                               otherwise in little endian (Intel style, LSB first) order.
+
+           Returns:
+             New instance of class with loaded data.
+        """
         with open(filename, "r") as fh:
             return cls.fromhexdumpfh(fh, bigendian)
 
     @classmethod
     def fromhexdumpfh(cls, fh, bigendian=True):
+        """Generates HexDump instance from file handle which must point to hex dump lines.
+
+           Creates new instance and calls :meth:`loadhexdumpfh` on it.
+
+           Args:
+             fh (file handle or compatible): Source of Intel-Hex lines.
+             bigendian (bool): If True the bytes in a group will be interpreted in big endian (Motorola style, MSB first) order,
+                               otherwise in little endian (Intel style, LSB first) order.
+
+           Returns:
+             New instance of class with loaded data.
+        """
         self = cls()
         self.loadhexdumpfh(fh, bigendian)
         return self
 
     def loadhexdumpfile(self, filename, bigendian=True):
+        """Loads hex dump lines from named file.
+
+           Args:
+             filename (str): Name of file to be loaded.
+             bigendian (bool): If True the bytes in a group will be interpreted in big endian (Motorola style, MSB first) order,
+                               otherwise in little endian (Intel style, LSB first) order.
+
+           Returns:
+             self
+        """
         with open(filename, "r") as fh:
             return cls.loadhexdumpfh(fh, bigendian)
 
     def loadhexdumpfh(self, fh, bigendian=True):
+        """Loads hex dump lines from file handle.
+
+           Args:
+             fh (file handle or compatible): Source of Intel-Hex lines.
+             bigendian (bool): If True the bytes in a group will be interpreted in big endian (Motorola style, MSB first) order,
+                               otherwise in little endian (Intel style, LSB first) order.
+
+           Returns:
+             self
+        """
         line = fh.readline()
         while line != '':
             (address, data) = self._parsehexdumpline(line, bigendian)

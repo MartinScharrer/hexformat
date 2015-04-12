@@ -185,7 +185,7 @@ class RandomContent(FillPattern):
     
         Return random content instead any given pattern.
         Every call produces a different random content. 
-        For this the Python random.randint method is used.
+        For this the Python :meth:`random.randint` method is used.
 
         Args:
             pattern (None or byte or iterable of bytes; optional):  Pattern content is ignored, but might be used to set length.
@@ -232,5 +232,5 @@ class RandomContent(FillPattern):
             yield randint(0, 255)
         
     def __getitem__(self, i):
-        """Return random byte value independed from input value."""
+        """Return random byte value independent from input value."""
         return randint(0, 255)
