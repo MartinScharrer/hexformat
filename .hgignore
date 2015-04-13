@@ -10,3 +10,7 @@ syntax: glob
 *.srec
 *.hexdump
 docs/build/
+build/*
+dist/*
+*.zip
+*.egg*
