@@ -158,6 +158,18 @@ class MultiPartBuffer(object):
         """
         nextpart = self._parts.pop(index+1)
         self._parts[index][1].extend( nextpart[1] )
+        
+    def setint(self, address, intvalue, datasize, bigendian=True, overwrite=True):
+        """Set integer value at given address."""
+        datasize = int(datasize)
+        bytes = bytearray(datasize)
+        order = range(0,datasize)
+        if bigendian:
+            order.reverse()
+        for n in order:
+            bytes[n] = intvalue & 0xFF
+            intvalue >>= 8
+        return self.set(address, bytes, datasize, 0, overwrite)
 
     def set(self, address, newdata, datasize=None, dataoffset=0, overwrite=True):
         """Add <newdata> starting at <address>.
@@ -212,14 +224,20 @@ class MultiPartBuffer(object):
                 self.set( address, newdata, datasize, dataoffset, overwrite )
         return self
 
-    def clip(self, address, size=None):
-        """Clip content to range <address>+<size> by deleting all other content."""
+    def crop(self, address, size=None):
+        """Crop content to range <address>+<size> by deleting all other content."""
         address,size = self._checkaddrnsize(address,size)
         start,totalsize = self.range()
         end = start + totalsize
         self.delete(start, address-start)
         self.delete(address+size, end-address)
         return self
+        
+    def __getslice__(self, i, j):
+        """Return new instance with content cropped to given range."""
+        sliceinst = self.copy()
+        sliceinst.crop(i, j-i)
+        return sliceinst
 
     def delete(self, address, size=None):
         """Deletes <size> bytes starting from <address>. Does nothing if <size> is non-positive."""
