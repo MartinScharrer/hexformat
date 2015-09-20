@@ -532,7 +532,6 @@ class MultiPartBuffer(object):
         else:
             source = other
         try:
-            print repr(other)
             for address,buffer in source:
                 self.set(address, buffer, overwrite=overwrite)
         except Exception as e:

@@ -175,7 +175,7 @@ class SRecord(MultiPartBuffer):
         try:
             recordtype = int(recordtype)
             addresslength = int(cls._SRECORD_ADDRESSLENGTH[recordtype])
-        except IndexError, TypeError:
+        except (IndexError, TypeError):
             raise EncodeError("Unsupported record type.")
 
         bytesperline = max(addresslength+2, min(bytesperline, 254-addresslength))
