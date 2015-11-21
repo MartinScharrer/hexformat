@@ -18,5 +18,5 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from main import SRecord, IntelHex, HexDump
-from fillpattern import FillPattern, RandomContent
+from hexformat.main import SRecord, IntelHex, HexDump
+from hexformat.fillpattern import FillPattern, RandomContent

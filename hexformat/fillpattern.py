@@ -22,6 +22,13 @@ from random import randint
 import math
 import copy
 
+import sys
+if sys.version_info < (3,):
+    integer_types = (int, long,)
+else:
+	integer_types = (int,)
+
+
 class FillPattern(object):
     """General fill pattern class which instances contain a underlying pattern with is automatically repeated if required.
 
@@ -40,7 +47,7 @@ class FillPattern(object):
     """
 
     def __init__(self, pattern=0xFF, length=None):
-        if isinstance(pattern,(int,long)):
+        if isinstance(pattern, integer_types):
             if pattern < 0x100:
                 pattern = [pattern,]
             else:

@@ -18,7 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from fillpattern import FillPattern
+from hexformat.fillpattern import FillPattern
 
 class MultiPartBuffer(object):
     """Class to handle disconnected binary data.
