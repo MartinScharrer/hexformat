@@ -163,7 +163,7 @@ class MultiPartBuffer(object):
         """Set integer value at given address."""
         datasize = int(datasize)
         bytes = bytearray(datasize)
-        order = range(0,datasize)
+        order = list(range(0,datasize))
         if bigendian:
             order.reverse()
         for n in order:
@@ -491,7 +491,7 @@ class MultiPartBuffer(object):
 
     def loaddict(self, d, overwrite=True):
         """Load data from dictionary where each key must be numeric and represent an address and the corresponding value the byte value."""
-        for addr,byte in d.iteritems():
+        for addr,byte in d.items():
             self.set(addr, (byte,), 1, overwrite=overwrite)
         return self
 
@@ -528,7 +528,7 @@ class MultiPartBuffer(object):
         if isinstance(other, MultiPartBuffer):
             source = other._parts
         elif isinstance(other, dict):
-            source = other.iteritems()
+            source = iter(other.items())
         else:
             source = other
         try:

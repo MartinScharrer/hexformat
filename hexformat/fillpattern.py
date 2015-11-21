@@ -101,7 +101,7 @@ class FillPattern(object):
             Raises:
               ValueError: If number or width are anything except an int or long or if with is non-positive.
         """
-        if not isinstance(number, (int,long)) or not isinstance(width, (int,long)) or width < 1:
+        if not isinstance(number, integer_types) or not isinstance(width, integer_types) or width < 1:
             raise ValueError("number and width must be integers and width must be positive.")
         pattern = [0,]*width
         for n in range(0,width):
@@ -135,7 +135,7 @@ class FillPattern(object):
            Raises:
              ValueError: if m is not a positive int or long.             
         """ 
-        if not isinstance(m,(int,long)) or m <= 0:
+        if not isinstance(m, integer_types) or m <= 0:
             raise  ValueError("can't multiply instance by non-int or non-positive integer")
         return self[0:self._length * m]
 
@@ -148,7 +148,7 @@ class FillPattern(object):
            Raises:
              ValueError: if m is not a positive int or long.
         """     
-        if not isinstance(m,(int,long)) or m <= 0:
+        if not isinstance(m, integer_types) or m <= 0:
             raise ValueError("can't multiply instance by non-int or non-positive integer")
         self._length *= int(m)
         return self
@@ -156,7 +156,7 @@ class FillPattern(object):
     def __iter__(self):
         """Yields every element over official length."""
         plen = len(self._pattern)
-        for i in xrange(0,self._length):
+        for i in range(0,self._length):
             n = (self._offset + i) % plen
             yield self._pattern[n]
 
@@ -225,7 +225,7 @@ class RandomContent(FillPattern):
            Raises:
              ValueError: if factor is not a positive int or long.             
         """
-        if not isinstance(factor,(int,long)) or factor <= 0:
+        if not isinstance(factor, integer_types) or factor <= 0:
             raise  ValueError("can't multiply instance by non-int or non-positive integer")
         return self.__class__(self._length * int(factor))
         
@@ -235,7 +235,7 @@ class RandomContent(FillPattern):
 
     def __iter__(self):
         """Yield random byte values. The number of bytes is the official length of the instance."""
-        for n in xrange(0,self._length):
+        for n in range(0,self._length):
             yield randint(0, 255)
         
     def __getitem__(self, i):
