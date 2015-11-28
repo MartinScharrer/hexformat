@@ -605,7 +605,7 @@ class MultiPartBuffer(object):
         if format == "bin" or (format is None and cls._STANDARD_FORMAT == "bin"):
             opt = "wb"
         with open(filename, opt) as fh:
-            return cls.fromfh(fh, *args, format=format, **kvargs)
+            return cls.tofh(fh, *args, format=format, **kvargs)
 
     def tofh(cls, fh, format=None, *args, **kvargs):
         """ """

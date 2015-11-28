@@ -65,8 +65,9 @@ class SRecord(MultiPartBuffer):
        .. _`S-Record`: http://en.wikipedia.org/wiki/SREC_%28file_format%29
     """
 
-    _SRECORD_ADDRESSLENGTH = (2,2,3,4,None,2,None,4,3,2)
+    _SRECORD_ADDRESSLENGTH = (2,2,3,4,None,2,3,4,3,2)
     _STANDARD_FORMAT = 'srec'
+    _STANDARD_HEADER = Buffer(b'hexformat Python library')
     _start_address = 0
     _header = None
 
@@ -126,7 +127,7 @@ class SRecord(MultiPartBuffer):
         elif addresslength == 4:
             return ( ((address >> 24) & 0xFF), ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF) )
         else:
-            raise ValueError("Invalid address length. Valid values are 2, 3 or 4.")
+            raise ValueError("Invalid address length (%s). Valid values are 2, 3 or 4." % (str(addresslength),))
 
     @staticmethod
     def _minaddresslength(address):
@@ -169,29 +170,29 @@ class SRecord(MultiPartBuffer):
            Raises:
              EncodeError: on unsupported record type.
         """
-        lastaddress = address + len(buffer) - 1
+        endaddress = address + len(buffer) - 1
         if recordtype == 123:
-            recordtype = cls._minaddresslength(lastaddress) - 1
+            recordtype = cls._minaddresslength(endaddress) - 1
         try:
             recordtype = int(recordtype)
             addresslength = int(cls._SRECORD_ADDRESSLENGTH[recordtype])
         except (IndexError, TypeError):
             raise EncodeError("Unsupported record type.")
 
-        bytesperline = max(addresslength+2, min(bytesperline, 254-addresslength))
+        bytesperline = max(2, min(bytesperline, 254-addresslength))
         bytecount = bytesperline + addresslength + 1
         numdatarecords = 0
-        while address < lastaddress or numdatarecords == 0:
+        while address < endaddress or numdatarecords == 0:
             numdatarecords += 1
-            if address + bytesperline > lastaddress:
-                bytesperline = lastaddress - address + 1
+            if address + bytesperline > endaddress:
+                bytesperline = endaddress - address + 1
                 bytecount = bytesperline + addresslength + 1
             linebuffer = bytearray([0,] * (bytecount+1))
             linebuffer[0] = bytecount
             linebuffer[1:addresslength+1] = cls._s123addr(addresslength, address)
             linebuffer[addresslength+1:bytecount] = buffer[offset:offset+bytesperline]
             linebuffer[bytecount] = ((~sum(linebuffer)) & 0xFF)
-            line = "".join(["S", str(recordtype), binascii.hexlify(linebuffer).upper(), "\n"])
+            line = "".join(["S", str(recordtype), binascii.hexlify(linebuffer).upper().decode(), "\n"])
             fh.write(line)
             offset += bytesperline
             address += bytesperline
@@ -230,16 +231,16 @@ class SRecord(MultiPartBuffer):
             addresslength = self._minaddresslength(lastaddress)
         recordtype = addresslength - 1
         recordtype_end = 10 - recordtype
-        if self._header is not None:
-            self._encodesrecline(fh, 0, self._header, recordtype=0, bytesperline=32)
+        header = self._header or self._STANDARD_HEADER
+        self._encodesrecline(fh, 0, header, recordtype=0, bytesperline=len(header))
         for address, buffer in self._parts:
             numdatarecords += self._encodesrecline(fh, address, buffer, recordtype=recordtype, bytesperline=bytesperline)
         if write_number_of_records:
             if numdatarecords <= 0xFFFF:
-                self._encodesrecline(fh, 0, self._s123addr(2, numdatarecords), recordtype=5, bytesperline=32)
+                self._encodesrecline(fh, numdatarecords, Buffer(), recordtype=5, bytesperline=253)
             elif numdatarecords <= 0xFFFFFF:
-                self._encodesrecline(fh, 0, self._s123addr(3, numdatarecords), recordtype=6, bytesperline=32)
-        self._encodesrecline(fh, start, self._s123addr(recordtype, self._start_address), recordtype=recordtype_end, bytesperline=32)
+                self._encodesrecline(fh, numdatarecords, Buffer(), recordtype=6, bytesperline=253)
+        self._encodesrecline(fh, self._start_address, Buffer(), recordtype=recordtype_end, bytesperline=253)
         return self
 
     @classmethod

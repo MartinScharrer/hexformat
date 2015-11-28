@@ -26,7 +26,7 @@ import sys
 if sys.version_info < (3,):
     integer_types = (int, long,)
 else:
-	integer_types = (int,)
+    integer_types = (int,)
 
 
 class FillPattern(object):
@@ -183,6 +183,8 @@ class FillPattern(object):
 
     def __getitem__(self, i):
         """Return item at given official index by repeating internal pattern."""
+        if isinstance(i, slice):
+            return self.__getslice__(i.start, i.stop)
         n = (self._offset + i) % len(self._pattern)
         return self._pattern[n]
 
