@@ -585,8 +585,17 @@ class MultiPartBuffer(object):
     @classmethod
     def fromfile(cls, filename, format=None, *args, **kvargs):
         """ """
-        with open(filename, "rb") as fh:
-            return cls.fromfh(fh, *args, format=format, **kvargs)
+        if format is None:
+            format = cls._STANDARD_FORMAT
+        methodname = "from" + format.lower() + "file"
+        if hasattr(cls, methodname):
+            return getattr(cls, methodname)(filename, *args, **kvargs)
+        else:
+            opt = "r"
+            if format == "bin" or (format is None and cls._STANDARD_FORMAT == "bin"):
+                opt = "rb"
+            with open(filename, opt) as fh:
+                return cls.fromfh(fh, *args, format=format, **kvargs)
 
     @classmethod
     def fromfh(cls, fh, format=None, *args, **kvargs):

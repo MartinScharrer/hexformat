@@ -308,7 +308,7 @@ class SRecord(MultiPartBuffer):
         line = fh.readline()
         numdatarecords = 0
         while line != '':
-            (recordtype, address, data, datasize, crccorrect) = self._parsesrecline(line)
+            (recordtype, address, data, datasize, crccorrect) = self.__class__._parsesrecline(line)
             if recordtype >= 1 and recordtype <= 3:
                 self.set(address, data, datasize)
                 numdatarecords += 1
