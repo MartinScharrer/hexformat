@@ -67,7 +67,7 @@ class SRecord(MultiPartBuffer):
 
     _SRECORD_ADDRESSLENGTH = (2,2,3,4,None,2,3,4,3,2)
     _STANDARD_FORMAT = 'srec'
-    _STANDARD_HEADER = Buffer(b'hexformat Python library')
+    _STANDARD_HEADER = Buffer(b'')
     _start_address = 0
     _header = None
 
@@ -179,7 +179,7 @@ class SRecord(MultiPartBuffer):
         except (IndexError, TypeError):
             raise EncodeError("Unsupported record type.")
 
-        bytesperline = max(2, min(bytesperline, 254-addresslength))
+        bytesperline = max(1, min(bytesperline, 254-addresslength))
         bytecount = bytesperline + addresslength + 1
         numdatarecords = 0
         while address < endaddress or numdatarecords == 0:
@@ -308,7 +308,7 @@ class SRecord(MultiPartBuffer):
         line = fh.readline()
         numdatarecords = 0
         while line != '':
-            (recordtype, address, data, datasize, crccorrect) = cls._parsesrecline(line)
+            (recordtype, address, data, datasize, crccorrect) = self._parsesrecline(line)
             if recordtype >= 1 and recordtype <= 3:
                 self.set(address, data, datasize)
                 numdatarecords += 1
