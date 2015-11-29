@@ -59,7 +59,7 @@ class SRecord(MultiPartBuffer):
        Attributes:
          _SRECORD_ADDRESSLENGTH (tuple): Address length in bytes for each record type.
          _STANDARD_FORMAT (str): The standard format used by :meth:`.fromfh` and :meth:`.fromfile` if no format was given.
-         _start_address (int): Starting execution location. This tells the programmer which address contains the start routine. Default: 0.
+         _startaddress (int): Starting execution location. This tells the programmer which address contains the start routine. Default: 0.
          _header (data buffer or None): Header data written using record type 0 if not None. The content is application specific.
 
        .. _`S-Record`: http://en.wikipedia.org/wiki/SREC_%28file_format%29
@@ -70,12 +70,99 @@ class SRecord(MultiPartBuffer):
     _STANDARD_HEADER = Buffer(b'')
     _STANDARD_START_ADDRESS = 0
     
-    def __init__(self, startaddress=None, header=None, bytesperline=None):
+    def __init__(self, addresslength=None, startaddress=None, bytesperline=None, header=None):
         super(SRecord, self).__init__()
-        self.setstartaddress(startaddress)
-        self.setheader(header)
-        self.setbytesperline(byteperline)
+        self.addresslength = addresslength
+        self.startaddress = startaddress
+        self.bytesperline = bytesperline
+        self.header = header
         
+    @property
+    def addresslength(self):
+        return self._addresslength
+        
+    @addresslength.setter
+    def addresslength(self, addresslength):
+        if addresslength is None:
+            self._addresslength = None
+        else:
+            self._addresslength = self._check_addresslength(addresslength)
+        
+    @staticmethod
+    def _check_addresslength(addresslength):
+        addresslength = int(addresslength)
+        if addresslength >= 2 and addresslength <= 4:
+            return addresslength
+        else:
+            raise ValueError("addresslength must be 2, 3 or 4 bytes.")
+        
+    @property
+    def startaddress(self):
+        return self._startaddress
+
+    @startaddress.setter
+    def startaddress(self, startaddress):
+        """Sets starting execution location.
+
+           Args:
+             startaddress (int): 16, 24 or 32 bit address of the starting execution location, i.e. where the start-up routine is located in the program data.
+
+           Returns:
+             self
+
+           Raises:
+             ValueError: if address is too large for 32 bit.
+        """
+        if startaddress is None:
+            self._startaddress = None
+        else:
+            startaddress = int(startaddress)
+            if startaddress > 0xFFFFFFFF:
+                raise ValueError("Start address must fit to 32-bit width.")
+            self._startaddress = startaddress
+        return self
+        
+    @property
+    def bytesperline(self):
+        return self._bytesperline
+        
+    @bytesperline.setter
+    def bytesperline(self, bytesperline):
+        if bytesperline is None:
+            self._bytesperline = None
+        else:
+            self._bytesperline = int(bytesperline)
+        
+    @property
+    def header(self):
+        return self._header
+     
+    @header.setter
+    def header(self, header):
+        """Sets S-Record header which will be written using record type 0.
+
+           Args:
+             header (None or str): Header data. A vendor specific ASCII text which can contains e.g.
+                file/module name, version/revision number, date/time, product name, vendor name, memory designator on PCB, copyright notice.
+                If None no header will be written.
+                Will be truncated to a length of 251 if longer.
+                If it does not end with a NULL ("\\\\x00") character, one is added.
+
+           Returns:
+             self
+        """
+        if header is None:
+            self._header = None
+        else:
+            self._header = str(header)
+            if not self._header:
+                pass
+            elif len(self._header) >= 252:
+                self._header = self._header[0:252]
+                self._header += "\x00"
+            elif self._header[-1] != "\x00":
+                self._header += "\x00"
+        return self
 
     @classmethod
     def _parsesrecline(cls, line):
@@ -246,7 +333,7 @@ class SRecord(MultiPartBuffer):
                 self._encodesrecline(fh, numdatarecords, Buffer(), recordtype=5, bytesperline=253)
             elif numdatarecords <= 0xFFFFFF:
                 self._encodesrecline(fh, numdatarecords, Buffer(), recordtype=6, bytesperline=253)
-        self._encodesrecline(fh, self._start_address, Buffer(), recordtype=recordtype_end, bytesperline=253)
+        self._encodesrecline(fh, self._startaddress, Buffer(), recordtype=recordtype_end, bytesperline=253)
         return self
 
     @classmethod
@@ -319,76 +406,15 @@ class SRecord(MultiPartBuffer):
                 self.set(address, data, datasize)
                 numdatarecords += 1
             elif recordtype == 0:
-                self._header = data
+                self.header = data
             elif recordtype == 5 or recordtype == 6:
                 if raise_error_on_miscount and numdatarecords != address:
                     raise DecodeError("Number of records read ({:d}) differs from stored number of records ({:d}).".format(numdatarecords,address))
             elif recordtype >=7 and recordtype <= 9:
-                self._start_address = address
+                self.startaddress = address
             else:
                 raise DecodeError("Unsupported record type " + str(recordtype))
             line = fh.readline()
-        return self
-
-    def getstartaddress(self):
-        """Getter mehtod of starting execution location.
-
-           Returns:
-             address (int): starting execution location.
-        """
-        return self._start_address
-
-    def setstartaddress(self, start_address):
-        """Sets starting execution location.
-
-           Args:
-             start_address (int): 16, 24 or 32 bit address of the starting execution location, i.e. where the start-up routine is located in the program data.
-
-           Returns:
-             self
-
-           Raises:
-             ValueError: if address is too large for 32 bit.
-        """
-        if start_address is None:
-            start_address = self._STANDARD_START_ADDRESS
-        start_address = int(start_address)
-        if start_address > 0xFFFFFFFF:
-            raise ValueError("Start address must fit to 32-bit width.")
-        self._start_address = start_address
-        return self
-
-    def getheader(self):
-        """Return header data which is stored using record type 0.
-           The header data usually
-
-           Returns:
-             Buffer (str): NULL ("\\\\x00") terminated string.
-        """
-        return self._header
-
-    def setheader(self, header):
-        """Sets S-Record header which will be written using record type 0.
-
-           Args:
-             header (None or str): Header data. A vendor specific ASCII text which can contains e.g.
-                file/module name, version/revision number, date/time, product name, vendor name, memory designator on PCB, copyright notice.
-                If None no header will be written.
-                Will be truncated to a length of 251 if longer.
-                If it does not end with a NULL ("\\\\x00") character, one is added.
-
-           Returns:
-             self
-        """
-        if header is None:
-            self._header = None
-        else:
-            self._header = str(header)
-            if len(self._header) >= 252:
-                self._header = self._header[0:252]
-                self._header += "\x00"
-            elif self._header[-1] != "\x00":
-                self._header += "\x00"
         return self
 
 
@@ -567,10 +593,12 @@ class IntelHex(MultiPartBuffer):
             bytesperline = int(kvargs['bytesperline'])
         else:
             bytesperline = self._bytesperline
+            
         if 'variant' in kvargs:
             variant = self._VARIANTS[ kvargs['variant'] ]
         else:
             variant = self._variant
+            
         if 'cs_ip' in kvargs:
             cs_ip = int(kvargs['cs_ip'])
             if cs_ip > 0xFFFFFFFF:
@@ -578,6 +606,7 @@ class IntelHex(MultiPartBuffer):
             cs_ip = bytearray.fromhex("{:08x}".format(cs_ip))
         else:
             cs_ip = self._cs_ip
+            
         if 'eip' in kvargs:
             eip = int(kvargs['eip'])
             if eip > 0xFFFFFFFF:
@@ -585,6 +614,7 @@ class IntelHex(MultiPartBuffer):
             eip = bytearray.fromhex("{:08x}".format(eip))
         else:
             eip = self._eip
+            
         if not isinit:
             if variant is None:
                 variant = self._DEFAULT_VARIANT
