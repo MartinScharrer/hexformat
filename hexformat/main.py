@@ -68,8 +68,14 @@ class SRecord(MultiPartBuffer):
     _SRECORD_ADDRESSLENGTH = (2,2,3,4,None,2,3,4,3,2)
     _STANDARD_FORMAT = 'srec'
     _STANDARD_HEADER = Buffer(b'')
-    _start_address = 0
-    _header = None
+    _STANDARD_START_ADDRESS = 0
+    
+    def __init__(self, startaddress=None, header=None, bytesperline=None):
+        super(SRecord, self).__init__()
+        self.setstartaddress(startaddress)
+        self.setheader(header)
+        self.setbytesperline(byteperline)
+        
 
     @classmethod
     def _parsesrecline(cls, line):
@@ -344,6 +350,8 @@ class SRecord(MultiPartBuffer):
            Raises:
              ValueError: if address is too large for 32 bit.
         """
+        if start_address is None:
+            start_address = self._STANDARD_START_ADDRESS
         start_address = int(start_address)
         if start_address > 0xFFFFFFFF:
             raise ValueError("Start address must fit to 32-bit width.")
