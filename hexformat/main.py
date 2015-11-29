@@ -50,7 +50,7 @@ class EncodeError(HexformatError):
     """Exception is raised if errors during the encoding of a hex file occur."""
     pass
 
-
+    
 class SRecord(MultiPartBuffer):
     """Motorola `S-Record`_ hex file representation class.
 
@@ -69,159 +69,72 @@ class SRecord(MultiPartBuffer):
     _STANDARD_FORMAT = 'srec'
     _STANDARD_HEADER = Buffer(b'')
     _STANDARD_START_ADDRESS = 0
+    _STANDARD_BYTES_PER_LINE = 32
     
-    def __init__(self, addresslength=None, startaddress=None, bytesperline=None, header=None):
+    
+    def __init__(self, startaddress=None, addresslength=None, bytesperline=None, header=None):
         super(SRecord, self).__init__()
-        self.addresslength = addresslength
         self.startaddress = startaddress
+        self.addresslength = addresslength
         self.bytesperline = bytesperline
         self.header = header
-        
-    @property
-    def addresslength(self):
-        return self._addresslength
-        
-    @addresslength.setter
-    def addresslength(self, addresslength):
-        if addresslength is None:
-            self._addresslength = None
-        else:
-            self._addresslength = self._check_addresslength(addresslength)
-        
-    @staticmethod
-    def _check_addresslength(addresslength):
-        addresslength = int(addresslength)
-        if addresslength >= 2 and addresslength <= 4:
-            return addresslength
-        else:
-            raise ValueError("addresslength must be 2, 3 or 4 bytes.")
-        
-    @property
-    def startaddress(self):
-        return self._startaddress
-
-    @startaddress.setter
-    def startaddress(self, startaddress):
-        """Sets starting execution location.
+    
+    def tosrecfh(self, fh, startaddress=None, bytesperline=None, addresslength=None, header=None, write_number_of_records=True):
+        """Writes content as S-Record file to given file handle.
 
            Args:
-             startaddress (int): 16, 24 or 32 bit address of the starting execution location, i.e. where the start-up routine is located in the program data.
+             fh (file handle or compatible): Destination of S-Record lines.
+             bytesperline (int): Number of data bytes per line.
+             addresslength (None or int in range 2..4): Address length in bytes. This determines the used file format variant.
+                    If None then the shortest possible address length large enough to encode the highest address present is used.
+             write_number_of_records (bool): If True then the number of data records is written as a record type 5 or 6.
+                                             This adds an additional verification method if the S-Record file is consistent.
 
            Returns:
              self
-
-           Raises:
-             ValueError: if address is too large for 32 bit.
         """
         if startaddress is None:
-            self._startaddress = None
-        else:
-            startaddress = int(startaddress)
-            if startaddress > 0xFFFFFFFF:
-                raise ValueError("Start address must fit to 32-bit width.")
-            self._startaddress = startaddress
-        return self
-        
-    @property
-    def bytesperline(self):
-        return self._bytesperline
-        
-    @bytesperline.setter
-    def bytesperline(self, bytesperline):
+            if self.startaddress is None:
+                startaddress = self._STANDARD_START_ADDRESS
+            else:
+                startaddress = self.startaddress
+                
         if bytesperline is None:
-            self._bytesperline = None
-        else:
-            self._bytesperline = int(bytesperline)
+            if self.bytesperline is None:
+                bytesperline = self._STANDARD_BYTES_PER_LINE
+            else:
+                bytesperline = self.bytesperline
         
-    @property
-    def header(self):
-        return self._header
-     
-    @header.setter
-    def header(self, header):
-        """Sets S-Record header which will be written using record type 0.
-
-           Args:
-             header (None or str): Header data. A vendor specific ASCII text which can contains e.g.
-                file/module name, version/revision number, date/time, product name, vendor name, memory designator on PCB, copyright notice.
-                If None no header will be written.
-                Will be truncated to a length of 251 if longer.
-                If it does not end with a NULL ("\\\\x00") character, one is added.
-
-           Returns:
-             self
-        """
+        if addresslength is None:
+            if self.addresslength is None:
+                start, size = self.range()
+                lastaddress = start + size - 1
+                addresslength = self._minaddresslength(lastaddress)
+            else:
+                addresslength = self.addresslength
+            
         if header is None:
-            self._header = None
-        else:
-            self._header = str(header)
-            if not self._header:
-                pass
-            elif len(self._header) >= 252:
-                self._header = self._header[0:252]
-                self._header += "\x00"
-            elif self._header[-1] != "\x00":
-                self._header += "\x00"
+            if self.header is None:
+                header = self._STANDARD_HEADER
+            else:
+                header = self.header
+                
+        recordtype = addresslength - 1
+        recordtype_end = 10 - recordtype
+        numdatarecords = 0
+        
+        self._encodesrecline(fh, 0, header, recordtype=0, bytesperline=len(header))
+        for address, buffer in self._parts:
+            numdatarecords += self._encodesrecline(fh, address, buffer, recordtype=recordtype, bytesperline=bytesperline)
+        if write_number_of_records:
+            if numdatarecords <= 0xFFFF:
+                self._encodesrecline(fh, numdatarecords, Buffer(), recordtype=5, bytesperline=253)
+            elif numdatarecords <= 0xFFFFFF:
+                self._encodesrecline(fh, numdatarecords, Buffer(), recordtype=6, bytesperline=253)
+
+        self._encodesrecline(fh, self.startaddress, Buffer(), recordtype=recordtype_end, bytesperline=253)
         return self
-
-    @classmethod
-    def _parsesrecline(cls, line):
-        """Parse S-Record line and return decoded parts as tuple.
-
-           Args:
-             line (str): Single input line, usually with line termination character(s).
-
-           Returns:
-             Tuple (recordtype, address, data, datasize, crccorrect) with types (int, int, Buffer, int, bool).
-
-           Raises:
-             DecodeError: if line does not start with start code ("S").
-             DecodeError: on misformatted S-Record input line.
-             DecodeError: on byte count - line data mismatch.
-        """
-        try:
-            line = line.rstrip("\r\n")
-            startcode = line[0]
-            if startcode != "S":
-                raise DecodeError("No valid S-Record start code found.")
-            recordtype = int(line[1])
-            bytes = bytearray.fromhex(line[2:])
-        except:
-            raise DecodeError("misformatted S-Record line.")
-        bytecount = bytes[0]
-        if bytecount != len(bytes)-1:
-            raise DecodeError("Byte count does not match line data.")
-        crccorrect = ( (sum(bytes) & 0xFF) == 0xFF)
-        al = cls._SRECORD_ADDRESSLENGTH[recordtype]
-        address = int(line[4:4+2*al], 16)
-        datasize = bytecount - al - 1
-        data = bytes[1+al:-1]
-        return (recordtype, address, data, datasize, crccorrect)
-
-    @staticmethod
-    def _s123addr(addresslength, address):
-        """Returns a tuple with the address bytes with the given length for encoding.
-
-           Args:
-             addresslength (int: 2..4): Address length in bytes. Valid values are 2, 3 or 4.
-             address (int): Address to be encoded.
-
-           Returns:
-             Tuple with address bytes in big endian byte order (MSB first).
-             The length of the tuple is equal to the addresslength argument.
-
-           Raises:
-             ValueError: If addresslength is not 2, 3 or 4.
-        """
-        if addresslength == 2:
-            return ( ((address >> 8) & 0xFF), (address & 0xFF) )
-        elif addresslength == 3:
-            return ( ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF) )
-        elif addresslength == 4:
-            return ( ((address >> 24) & 0xFF), ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF) )
-        else:
-            raise ValueError("Invalid address length (%s). Valid values are 2, 3 or 4." % (str(addresslength),))
-
+    
     @staticmethod
     def _minaddresslength(address):
         """Returns minimum byte length required to encode given address.
@@ -245,6 +158,30 @@ class SRecord(MultiPartBuffer):
         else:
             raise ValueError("Address must not be larger than 32 bit.")
         return addresslength
+        
+    @staticmethod
+    def _s123addr(addresslength, address):
+        """Returns a tuple with the address bytes with the given length for encoding.
+
+           Args:
+             addresslength (int: 2..4): Address length in bytes. Valid values are 2, 3 or 4.
+             address (int): Address to be encoded.
+
+           Returns:
+             Tuple with address bytes in big endian byte order (MSB first).
+             The length of the tuple is equal to the addresslength argument.
+
+           Raises:
+             ValueError: If addresslength is not 2, 3 or 4.
+        """
+        if addresslength == 2:
+            return ( ((address >> 8) & 0xFF), (address & 0xFF) )
+        elif addresslength == 3:
+            return ( ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF) )
+        elif addresslength == 4:
+            return ( ((address >> 24) & 0xFF), ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF) )
+        else:            raise ValueError("Invalid address length (%s). Valid values are 2, 3 or 4." % (str(addresslength),))
+        
 
     @classmethod
     def _encodesrecline(cls, fh, address, buffer, offset=0, recordtype=123, bytesperline=32):
@@ -290,8 +227,69 @@ class SRecord(MultiPartBuffer):
             offset += bytesperline
             address += bytesperline
         return numdatarecords
+   
+    
+class SRecordOld(MultiPartBuffer):
+    """Motorola `S-Record`_ hex file representation class.
 
-    def tosrecfile(cls, filename, bytesperline=32, addresslength=None, write_number_of_records=True):
+       The SRecord class is able to parse and generate binary data in the S-Record representation.
+
+       Attributes:
+         _SRECORD_ADDRESSLENGTH (tuple): Address length in bytes for each record type.
+         _STANDARD_FORMAT (str): The standard format used by :meth:`.fromfh` and :meth:`.fromfile` if no format was given.
+         _startaddress (int): Starting execution location. This tells the programmer which address contains the start routine. Default: 0.
+         _header (data buffer or None): Header data written using record type 0 if not None. The content is application specific.
+
+       .. _`S-Record`: http://en.wikipedia.org/wiki/SREC_%28file_format%29
+    """
+
+    _SRECORD_ADDRESSLENGTH = (2,2,3,4,None,2,3,4,3,2)
+    _STANDARD_FORMAT = 'srec'
+    _STANDARD_HEADER = Buffer(b'')
+    _STANDARD_START_ADDRESS = 0
+    
+    def __init__(self, **settings):
+        super(SRecord, self).__init__()
+        if 'header' in settings:
+            self._header = str(settings['header'])
+        else:
+            self._header = None
+
+    @classmethod
+    def _parsesrecline(cls, line):
+        """Parse S-Record line and return decoded parts as tuple.
+
+           Args:
+             line (str): Single input line, usually with line termination character(s).
+
+           Returns:
+             Tuple (recordtype, address, data, datasize, crccorrect) with types (int, int, Buffer, int, bool).
+
+           Raises:
+             DecodeError: if line does not start with start code ("S").
+             DecodeError: on misformatted S-Record input line.
+             DecodeError: on byte count - line data mismatch.
+        """
+        try:
+            line = line.rstrip("\r\n")
+            startcode = line[0]
+            if startcode != "S":
+                raise DecodeError("No valid S-Record start code found.")
+            recordtype = int(line[1])
+            bytes = bytearray.fromhex(line[2:])
+        except:
+            raise DecodeError("misformatted S-Record line.")
+        bytecount = bytes[0]
+        if bytecount != len(bytes)-1:
+            raise DecodeError("Byte count does not match line data.")
+        crccorrect = ( (sum(bytes) & 0xFF) == 0xFF)
+        al = cls._SRECORD_ADDRESSLENGTH[recordtype]
+        address = int(line[4:4+2*al], 16)
+        datasize = bytecount - al - 1
+        data = bytes[1+al:-1]
+        return (recordtype, address, data, datasize, crccorrect)
+
+    def tosrecfile(cls, filename, bytesperline=32, addresslength=None, header=None, write_number_of_records=True):
         """Writes content as S-Record file to given file name.
 
            Opens filename for writing and calls :meth:`tosrecfh` with the file handle and all arguments.
@@ -303,38 +301,6 @@ class SRecord(MultiPartBuffer):
         with open(filename, "w") as fh:
             return cls.tosrecfh(fh, bytesperline, addresslength, write_number_of_records, variant)
 
-    def tosrecfh(self, fh, bytesperline=32, addresslength=None, write_number_of_records=True):
-        """Writes content as S-Record file to given file handle.
-
-           Args:
-             fh (file handle or compatible): Destination of S-Record lines.
-             bytesperline (int): Number of data bytes per line.
-             addresslength (None or int in range 2..4): Address length in bytes. This determines the used file format variant.
-                    If None then the shortest possible address length large enough to encode the highest address present is used.
-             write_number_of_records (bool): If True then the number of data records is written as a record type 5 or 6.
-                                             This adds an additional verification method if the S-Record file is consistent.
-
-           Returns:
-             self
-        """
-        numdatarecords = 0
-        start, size = self.range()
-        if addresslength is None:
-            lastaddress = start + size - 1
-            addresslength = self._minaddresslength(lastaddress)
-        recordtype = addresslength - 1
-        recordtype_end = 10 - recordtype
-        header = self._header or self._STANDARD_HEADER
-        self._encodesrecline(fh, 0, header, recordtype=0, bytesperline=len(header))
-        for address, buffer in self._parts:
-            numdatarecords += self._encodesrecline(fh, address, buffer, recordtype=recordtype, bytesperline=bytesperline)
-        if write_number_of_records:
-            if numdatarecords <= 0xFFFF:
-                self._encodesrecline(fh, numdatarecords, Buffer(), recordtype=5, bytesperline=253)
-            elif numdatarecords <= 0xFFFFFF:
-                self._encodesrecline(fh, numdatarecords, Buffer(), recordtype=6, bytesperline=253)
-        self._encodesrecline(fh, self._startaddress, Buffer(), recordtype=recordtype_end, bytesperline=253)
-        return self
 
     @classmethod
     def fromsrecfile(cls, filename):
