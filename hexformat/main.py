@@ -68,18 +68,130 @@ class SRecord(MultiPartBuffer):
     _SRECORD_ADDRESSLENGTH = (2,2,3,4,None,2,3,4,3,2)
     _STANDARD_FORMAT = 'srec'
     _STANDARD_HEADER = Buffer(b'')
-    _STANDARD_START_ADDRESS = 0
-    _STANDARD_BYTES_PER_LINE = 32
+    _STANDARD_STARTADDRESS = 0
+    _STANDARD_ADDRESSLENGTH = None    
+    _STANDARD_BYTESPERLINE = 32
+    _STANDARD_WRITE_NUMBER_OF_RECORDS = False
     
-    
-    def __init__(self, startaddress=None, addresslength=None, bytesperline=None, header=None):
+    def __init__(self, **settings):
         super(SRecord, self).__init__()
-        self.startaddress = startaddress
-        self.addresslength = addresslength
-        self.bytesperline = bytesperline
-        self.header = header
+        self._startaddress = None
+        self._addresslength = None
+        self._bytesperline = None
+        self._header = None
+        self._write_number_of_records = None
+        self.settings(**settings)     
+        
+    @property
+    def startaddress(self):
+        return self._startaddress
+        
+    @startaddress.setter
+    def startaddress(self, startaddress):
+        self._startaddress = self._parse_startaddress(startaddress)
+        
+    @staticmethod
+    def _parse_startaddress(startaddress):
+        if startaddress is not None:
+            startaddress = int(startaddress)
+            if startaddress < 0 or startaddress > 0xFFFFFFFF:
+                raise ValueError("startaddress must be between 0 and 0xFFFFFFFF")
+        return startaddress
+        
+    @property
+    def addresslength(self):
+        return self._addresslength
+        
+    @addresslength.setter
+    def addresslength(self, addresslength):
+        self._addresslength = self._parse_addresslength(addresslength)
+        
+    @staticmethod
+    def _parse_addresslength(addresslength):
+        if addresslength is not None:
+            addresslength = int(addresslength)
+            if addresslength < 2 or addresslength > 4:
+                raise ValueError("addresslength must be 2, 3 or 4 bytes")
+        return addresslength
+
+    @property
+    def bytesperline(self):
+        return self._bytesperline
+        
+    @bytesperline.setter
+    def bytesperline(self, bytesperline):
+        self._bytesperline = self._parse_bytesperline(bytesperline)
+        
+    @staticmethod
+    def _parse_bytesperline(bytesperline):
+        if bytesperline is not None:
+            bytesperline = int(bytesperline)
+            if bytesperline < 1 or bytesperline > 253:
+                raise ValueError("bytesperline must be between 0 and 253")
+        return bytesperline
+        
+    @property
+    def header(self):
+        return self._header
+        
+    @header.setter
+    def header(self, header):
+        self._header = self._parse_header(header)
+        
+    @staticmethod
+    def _parse_header(header):
+        if header is not None:
+            header = Buffer(header)
+        return header        
+        
+    @property
+    def write_number_of_records(self):
+        return self._write_number_of_records
+        
+    @write_number_of_records.setter
+    def write_number_of_records(self, write_number_of_records):
+        self._write_number_of_records = self._parse_write_number_of_records(write_number_of_records)
+        
+    @staticmethod
+    def _parse_write_number_of_records(write_number_of_records):
+        if write_number_of_records is not None:
+            write_number_of_records = bool(write_number_of_records)
+        return write_number_of_records     
+        
+    def settings(self, **settings):
+        for name,value in settings.items():
+            if name in set(('startaddress', 'addresslength', 'bytesperline', 'header', 'write_number_of_records')):
+                setattr(self, name, value)
+            else:
+                raise AttributeError("Unknown setting {:s}".format(name))
+        return self
     
-    def tosrecfh(self, fh, startaddress=None, bytesperline=None, addresslength=None, header=None, write_number_of_records=True):
+    def _parse_settings(self, **settings):
+        retvals = list()
+        for sname in ('startaddress', 'addresslength', 'bytesperline', 'header', 'write_number_of_records'):
+            value = None
+            if sname in settings:
+                value = getattr(self, '_parse_'+sname)(settings[sname])
+            if value is None:
+                value = getattr(self, sname)
+            if value is None:
+                value = getattr(self, '_STANDARD_'+sname.upper())
+            retvals.append(value)
+        return retvals
+
+    def tosrecfile(cls, filename, **settings):
+        """Writes content as S-Record file to given file name.
+
+           Opens filename for writing and calls :meth:`tosrecfh` with the file handle and all arguments.
+           See :meth:`tosecfh` for description of the arguments.
+
+           Returns:
+             self
+        """
+        with open(filename, "w") as fh:
+            return cls.tosrecfh(fh, **settings)
+      
+    def tosrecfh(self, fh, **settings):
         """Writes content as S-Record file to given file handle.
 
            Args:
@@ -93,32 +205,13 @@ class SRecord(MultiPartBuffer):
            Returns:
              self
         """
-        if startaddress is None:
-            if self.startaddress is None:
-                startaddress = self._STANDARD_START_ADDRESS
-            else:
-                startaddress = self.startaddress
-                
-        if bytesperline is None:
-            if self.bytesperline is None:
-                bytesperline = self._STANDARD_BYTES_PER_LINE
-            else:
-                bytesperline = self.bytesperline
+        (startaddress, addresslength, bytesperline, header, write_number_of_records) = self._parse_settings(**settings)
         
         if addresslength is None:
-            if self.addresslength is None:
-                start, size = self.range()
-                lastaddress = start + size - 1
-                addresslength = self._minaddresslength(lastaddress)
-            else:
-                addresslength = self.addresslength
-            
-        if header is None:
-            if self.header is None:
-                header = self._STANDARD_HEADER
-            else:
-                header = self.header
-                
+            start, size = self.range()
+            endaddress = start + size - 1
+            addresslength = self._minaddresslength(endaddress)
+
         recordtype = addresslength - 1
         recordtype_end = 10 - recordtype
         numdatarecords = 0
@@ -132,7 +225,7 @@ class SRecord(MultiPartBuffer):
             elif numdatarecords <= 0xFFFFFF:
                 self._encodesrecline(fh, numdatarecords, Buffer(), recordtype=6, bytesperline=253)
 
-        self._encodesrecline(fh, self.startaddress, Buffer(), recordtype=recordtype_end, bytesperline=253)
+        self._encodesrecline(fh, startaddress, Buffer(), recordtype=recordtype_end, bytesperline=253)
         return self
     
     @staticmethod
@@ -180,7 +273,8 @@ class SRecord(MultiPartBuffer):
             return ( ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF) )
         elif addresslength == 4:
             return ( ((address >> 24) & 0xFF), ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF) )
-        else:            raise ValueError("Invalid address length (%s). Valid values are 2, 3 or 4." % (str(addresslength),))
+        else:            
+            raise ValueError("Invalid address length (%s). Valid values are 2, 3 or 4." % (str(addresslength),))
         
 
     @classmethod
@@ -227,33 +321,7 @@ class SRecord(MultiPartBuffer):
             offset += bytesperline
             address += bytesperline
         return numdatarecords
-   
-    
-class SRecordOld(MultiPartBuffer):
-    """Motorola `S-Record`_ hex file representation class.
 
-       The SRecord class is able to parse and generate binary data in the S-Record representation.
-
-       Attributes:
-         _SRECORD_ADDRESSLENGTH (tuple): Address length in bytes for each record type.
-         _STANDARD_FORMAT (str): The standard format used by :meth:`.fromfh` and :meth:`.fromfile` if no format was given.
-         _startaddress (int): Starting execution location. This tells the programmer which address contains the start routine. Default: 0.
-         _header (data buffer or None): Header data written using record type 0 if not None. The content is application specific.
-
-       .. _`S-Record`: http://en.wikipedia.org/wiki/SREC_%28file_format%29
-    """
-
-    _SRECORD_ADDRESSLENGTH = (2,2,3,4,None,2,3,4,3,2)
-    _STANDARD_FORMAT = 'srec'
-    _STANDARD_HEADER = Buffer(b'')
-    _STANDARD_START_ADDRESS = 0
-    
-    def __init__(self, **settings):
-        super(SRecord, self).__init__()
-        if 'header' in settings:
-            self._header = str(settings['header'])
-        else:
-            self._header = None
 
     @classmethod
     def _parsesrecline(cls, line):
@@ -289,18 +357,6 @@ class SRecordOld(MultiPartBuffer):
         data = bytes[1+al:-1]
         return (recordtype, address, data, datasize, crccorrect)
 
-    def tosrecfile(cls, filename, bytesperline=32, addresslength=None, header=None, write_number_of_records=True):
-        """Writes content as S-Record file to given file name.
-
-           Opens filename for writing and calls :meth:`tosrecfh` with the file handle and all arguments.
-           See :meth:`tosecfh` for description of the arguments.
-
-           Returns:
-             self
-        """
-        with open(filename, "w") as fh:
-            return cls.tosrecfh(fh, bytesperline, addresslength, write_number_of_records, variant)
-
 
     @classmethod
     def fromsrecfile(cls, filename):
@@ -333,7 +389,7 @@ class SRecordOld(MultiPartBuffer):
         self.loadsrecfh(fh)
         return self
         
-    def loadsrecfile(self, filename, raise_error_on_miscount=True):
+    def loadsrecfile(self, filename, overwrite_metadata=False, overwrite_data=True, raise_error_on_miscount=True):
         """Loads S-Record lines from named file.
 
            Creates new instance and calls :meth:`loadsrecfh` on it.
@@ -346,9 +402,9 @@ class SRecordOld(MultiPartBuffer):
              self
         """
         with open(filename, "r") as fh:
-            return self.loadsrecfh(fh, raise_error_on_miscount)        
+            return self.loadsrecfh(fh, overwrite_metadata, overwrite_data, raise_error_on_miscount)        
 
-    def loadsrecfh(self, fh, raise_error_on_miscount=True):
+    def loadsrecfh(self, fh, overwrite_metadata=False, overwrite_data=True, raise_error_on_miscount=True):
         """Loads data from S-Record file over file handle.
 
            Parses every source line using :meth:`_parsesrecline` and processes the decoded elements according to the record type.
@@ -369,19 +425,57 @@ class SRecordOld(MultiPartBuffer):
         while line != '':
             (recordtype, address, data, datasize, crccorrect) = self.__class__._parsesrecline(line)
             if recordtype >= 1 and recordtype <= 3:
-                self.set(address, data, datasize)
+                self.set(address, data, datasize, overwrite=overwrite_data)
+                if numdatarecords == 0:
+                    if overwrite_metadata or self._bytesperline is None:
+                        self.bytesperline = datasize
+                    if overwrite_metadata or self._addresslength is None:
+                        self.addresslength = recordtype + 1
                 numdatarecords += 1
             elif recordtype == 0:
-                self.header = data
+                if overwrite_metadata or self._header is None:
+                    self.header = data
             elif recordtype == 5 or recordtype == 6:
+                if overwrite_metadata or self._write_number_of_records is None:
+                    self.write_number_of_records = True
                 if raise_error_on_miscount and numdatarecords != address:
                     raise DecodeError("Number of records read ({:d}) differs from stored number of records ({:d}).".format(numdatarecords,address))
             elif recordtype >=7 and recordtype <= 9:
-                self.startaddress = address
+                if overwrite_metadata or self._startaddress is None:
+                    self.startaddress = address
             else:
                 raise DecodeError("Unsupported record type " + str(recordtype))
             line = fh.readline()
+        if self._write_number_of_records is None:
+            self.write_number_of_records = False
         return self
+
+    
+class SRecordOld(MultiPartBuffer):
+    """Motorola `S-Record`_ hex file representation class.
+
+       The SRecord class is able to parse and generate binary data in the S-Record representation.
+
+       Attributes:
+         _SRECORD_ADDRESSLENGTH (tuple): Address length in bytes for each record type.
+         _STANDARD_FORMAT (str): The standard format used by :meth:`.fromfh` and :meth:`.fromfile` if no format was given.
+         _startaddress (int): Starting execution location. This tells the programmer which address contains the start routine. Default: 0.
+         _header (data buffer or None): Header data written using record type 0 if not None. The content is application specific.
+
+       .. _`S-Record`: http://en.wikipedia.org/wiki/SREC_%28file_format%29
+    """
+
+    _SRECORD_ADDRESSLENGTH = (2,2,3,4,None,2,3,4,3,2)
+    _STANDARD_FORMAT = 'srec'
+    _STANDARD_HEADER = Buffer(b'')
+    _STANDARD_START_ADDRESS = 0
+    
+    def __init__(self, **settings):
+        super(SRecord, self).__init__()
+        if 'header' in settings:
+            self._header = str(settings['header'])
+        else:
+            self._header = None
 
 
 class IntelHex(MultiPartBuffer):

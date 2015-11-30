@@ -20,6 +20,12 @@
 
 from hexformat.fillpattern import FillPattern
 
+
+class Buffer(bytearray):
+    """Buffer class to abstract real buffer class."""
+    pass
+
+
 class MultiPartBuffer(object):
     """Class to handle disconnected binary data.
 
@@ -664,10 +670,5 @@ class MultiPartBuffer(object):
         """ """
         with open(filename, "rb") as fh:
             return cls.loadbinfh(fh, address, size, offset)
-
-
-class Buffer(bytearray):
-    """Buffer class to abstract real buffer class."""
-    pass
 
 
