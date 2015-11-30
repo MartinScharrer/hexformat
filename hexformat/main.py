@@ -450,32 +450,6 @@ class SRecord(MultiPartBuffer):
             self.write_number_of_records = False
         return self
 
-    
-class SRecordOld(MultiPartBuffer):
-    """Motorola `S-Record`_ hex file representation class.
-
-       The SRecord class is able to parse and generate binary data in the S-Record representation.
-
-       Attributes:
-         _SRECORD_ADDRESSLENGTH (tuple): Address length in bytes for each record type.
-         _STANDARD_FORMAT (str): The standard format used by :meth:`.fromfh` and :meth:`.fromfile` if no format was given.
-         _startaddress (int): Starting execution location. This tells the programmer which address contains the start routine. Default: 0.
-         _header (data buffer or None): Header data written using record type 0 if not None. The content is application specific.
-
-       .. _`S-Record`: http://en.wikipedia.org/wiki/SREC_%28file_format%29
-    """
-
-    _SRECORD_ADDRESSLENGTH = (2,2,3,4,None,2,3,4,3,2)
-    _STANDARD_FORMAT = 'srec'
-    _STANDARD_HEADER = Buffer(b'')
-    _STANDARD_START_ADDRESS = 0
-    
-    def __init__(self, **settings):
-        super(SRecord, self).__init__()
-        if 'header' in settings:
-            self._header = str(settings['header'])
-        else:
-            self._header = None
 
 
 class IntelHex(MultiPartBuffer):
