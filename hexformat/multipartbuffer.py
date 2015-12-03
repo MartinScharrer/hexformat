@@ -187,6 +187,10 @@ class MultiPartBuffer(object):
         """
         if datasize is None:
             datasize = len(newdata) - dataoffset
+            
+        if datasize == 0:
+            return self
+            
         (index, mod) = self._find(address, datasize, create=True)
         endaddress = address + datasize
 
