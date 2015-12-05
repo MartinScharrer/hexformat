@@ -309,6 +309,14 @@ class MultiPartBuffer(object):
         sliceinst = self.copy()
         sliceinst.crop(i, j-i)
         return sliceinst
+        
+    def __getitem__(self, i):
+        if isinstance(i, slice):
+            if i.step is not None:
+                raise IndexError("Slice step not supported")
+            return self.__getslice__(i.start, i.stop)
+        else:
+            return self.get(i, 1)[0]
 
     def delete(self, address, size=None):
         """Deletes <size> bytes starting from <address>. Does nothing if <size> is non-positive."""

@@ -239,7 +239,9 @@ class RandomContent(FillPattern):
         """Yield random byte values. The number of bytes is the official length of the instance."""
         for n in range(0,self._length):
             yield randint(0, 255)
-        
+
     def __getitem__(self, i):
         """Return random byte value independent from input value."""
+        if isinstance(i, slice):
+            return self.__getslice__(i.start, i.stop)
         return randint(0, 255)
