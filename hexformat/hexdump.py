@@ -19,10 +19,11 @@
 
 """
 
-from hexformat.multipartbuffer import MultiPartBuffer, Buffer
+from hexformat.multipartbuffer import Buffer
+from hexformat.main import HexFormat
 import string
 
-class HexDump(MultiPartBuffer):
+class HexDump(HexFormat):
     """`Hex dump`_ representation class.
 
        The HexDump class is able to generate and parse hex dumps of binary data.

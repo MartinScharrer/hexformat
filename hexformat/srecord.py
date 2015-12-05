@@ -19,10 +19,11 @@
 
 """
 
-from hexformat.multipartbuffer import MultiPartBuffer, Buffer
+from hexformat.multipartbuffer import Buffer
+from hexformat.main import HexFormat
 import binascii
     
-class SRecord(MultiPartBuffer):
+class SRecord(HexFormat):
     """Motorola `S-Record`_ hex file representation class.
 
        The SRecord class is able to parse and generate binary data in the S-Record representation.
@@ -43,6 +44,7 @@ class SRecord(MultiPartBuffer):
     _STANDARD_ADDRESSLENGTH = None    
     _STANDARD_BYTESPERLINE = 32
     _STANDARD_WRITE_NUMBER_OF_RECORDS = False
+    _SETTINGS = ['startaddress', 'addresslength', 'bytesperline', 'header', 'write_number_of_records']
     
     def __init__(self, **settings):
         super(SRecord, self).__init__()
@@ -128,27 +130,6 @@ class SRecord(MultiPartBuffer):
         if write_number_of_records is not None:
             write_number_of_records = bool(write_number_of_records)
         return write_number_of_records     
-        
-    def settings(self, **settings):
-        for name,value in settings.items():
-            if name in set(('startaddress', 'addresslength', 'bytesperline', 'header', 'write_number_of_records')):
-                setattr(self, name, value)
-            else:
-                raise AttributeError("Unknown setting {:s}".format(name))
-        return self
-    
-    def _parse_settings(self, **settings):
-        retvals = list()
-        for sname in ('startaddress', 'addresslength', 'bytesperline', 'header', 'write_number_of_records'):
-            value = None
-            if sname in settings:
-                value = getattr(self, '_parse_'+sname)(settings[sname])
-            if value is None:
-                value = getattr(self, sname)
-            if value is None:
-                value = getattr(self, '_STANDARD_'+sname.upper())
-            retvals.append(value)
-        return retvals
 
     def tosrecfile(cls, filename, **settings):
         """Writes content as S-Record file to given file name.

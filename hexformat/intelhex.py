@@ -26,8 +26,9 @@
     RT_START_LINEAR_ADDRESS (int constant=5): Intel-Hex record type number for start linear address record.
 """
 
-from hexformat.multipartbuffer import MultiPartBuffer, Buffer
-import bytearray
+from hexformat.multipartbuffer import Buffer
+from hexformat.main import HexFormat
+#import bytearray
 
 # Intel-Hex Record Types
 RT_DATA = 0
@@ -38,7 +39,7 @@ RT_EXTENDED_LINEAR_ADDRESS = 4
 RT_START_LINEAR_ADDRESS = 5
 
 
-class IntelHex(MultiPartBuffer):
+class IntelHex(HexFormat):
     """`Intel-Hex`_ file representation class.
 
        The IntelHex class is able to parse and generate binary data in the Intel-Hex representation.
@@ -67,6 +68,7 @@ class IntelHex(MultiPartBuffer):
     _DEFAULT_VARIANT = 32
     _DEFAULT_EIP = None
     _DEFAULT_CS_IP = None
+    _SETTINGS = ['bytesperline', 'cs_ip', 'eip', 'variant']
 
     def __init__(self, **settings):
         super(IntelHex, self).__init__()
@@ -157,41 +159,6 @@ class IntelHex(MultiPartBuffer):
        Raises:
          ValueError: If cs_ip or eip value is larger than 32 bit.
     """
-
-    def settings(self, **settings):
-        """Set settings.
-
-           Calls :meth:`_parsesettings` with the key-value pairs and stores the result in instance attributes.
-
-           Args:
-             bytesperline (int): Number of bytes per line.
-             variant: Variant of Intel-Hex format. Must be one out of ('I08HEX', 'I8HEX', 'I16HEX', 'I32HEX', 8, 16, 32).
-             cs_ip (int, 32-bit): Value of CS:IP starting address used for I16HEX variant.
-             eip (int, 32-bit): Value of EIP starting address used for I32HEX variant.
-
-           Returns:
-             self
-        """    
-        
-        for name,value in settings.items():
-            if name in set(('bytesperline', 'cs_ip', 'eip', 'variant')):
-                setattr(self, name, value)
-            else:
-                raise AttributeError("Unknown setting {:s}".format(name))
-        return self
-    
-    def _parse_settings(self, **settings):
-        retvals = list()
-        for sname in ('bytesperline', 'cs_ip', 'eip', 'variant'):
-            value = None
-            if sname in settings:
-                value = getattr(self, '_parse_'+sname)(settings[sname])
-            if value is None:
-                value = getattr(self, sname)
-            if value is None:
-                value = getattr(self, '_DEFAULT_'+sname.upper())
-            retvals.append(value)
-        return retvals
         
     def _parseihexline(self, line):
         """Parse Intel-Hex line and return decoded parts as tuple.
@@ -392,7 +359,7 @@ class IntelHex(MultiPartBuffer):
            Raises:
              EncodeError: if selected address length is not wide enough to fit all addresses.
         """
-        (bytesperline, variant, cs_ip, eip) = self._parsesettings(False, **settings)
+        (bytesperline, variant, cs_ip, eip) = self._parse_settings(**settings)
         highaddr = 0
         addresshigh = 0
         addresslow = 0

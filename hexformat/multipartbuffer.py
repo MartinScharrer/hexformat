@@ -19,6 +19,7 @@
 """
 
 from hexformat.fillpattern import FillPattern
+import copy
 
 MOD_USABLE_BUFFER_FOUND = 0
 MOD_NO_BUFFER_FOUND_NEXT_HIGHER_USED = 1
@@ -42,6 +43,7 @@ class MultiPartBuffer(object):
     _padding = 0xFF
 
     def __init__(self):
+        super(MultiPartBuffer, self).__init__();
         self._parts = list()
 
     def __repr__(self):
@@ -275,11 +277,12 @@ class MultiPartBuffer(object):
            A ValueError is raised if offset < -start, as this would lead to negative addresses.
            If offset is None, the negative start address is used, i.e. the first byte is moved to address 0.
         """
-        offset = int(offset)
         start = self.start()
         if offset is None:
             offset = -start
-        elif offset < -start:
+        else:
+            offset = int(offset)
+        if offset < -start:
             raise ValueError("offset < -start")
         for part in self._parts:
             part[0] += offset
@@ -654,7 +657,6 @@ class MultiPartBuffer(object):
 
     def copy(self):
         """Return a deep copy of the instance."""
-        import copy
         return copy.deepcopy(self)
 
     def filter(self, filterfunc, address=None, size=None, fillpattern=None):
@@ -763,4 +765,5 @@ class MultiPartBuffer(object):
         with open(filename, "rb") as fh:
             return cls.loadbinfh(fh, address, size, offset)
 
-
+ 
+        
