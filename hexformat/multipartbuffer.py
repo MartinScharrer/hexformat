@@ -309,19 +309,13 @@ class MultiPartBuffer(object):
             raise NotImplementedError("Partial relocation not implemented yet")
         return self
 
-    def __getslice__(self, i, j):
-        """Return new instance with content cropped to given range."""
-        sliceinst = self.copy()
-        sliceinst.crop(i, j - i)
-        return sliceinst
-
-    def __getitem__(self, i):
-        if isinstance(i, slice):
-            if i.step is not None:
+    def __getitem__(self, n):
+        try:
+            return self.get(int(n), 1)[0]
+        except TypeError:
+            if n.step is not None:
                 raise IndexError("Slice step not supported")
-            return self.__getslice__(i.start, i.stop)
-        else:
-            return self.get(i, 1)[0]
+            return self.get(n.start, n.stop)
 
     def delete(self, address, size=None):
         """Deletes <size> bytes starting from <address>. Does nothing if <size> is non-positive."""
