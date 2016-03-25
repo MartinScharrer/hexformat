@@ -10,7 +10,7 @@ config = {
     'download_url': 'https://bitbucket.org/martin_scharrer/hexformat/downloads/hexformat.zip',
     'author_email': 'martin@scharrer-online.de',
     'version': '0.1',
-    'install_requires': ['nose'],
+    'install_requires': [],
     'packages': ['hexformat'],
     'scripts': [],
     'name': 'hexformat'
