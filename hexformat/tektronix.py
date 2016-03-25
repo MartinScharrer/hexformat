@@ -19,15 +19,17 @@
 
 """
 
-from hexformat import DecodeError
-from hexformat.multipartbuffer import Buffer
-from hexformat.main import HexFormat
 import binascii
 
-TYPE_SYMBOL     = 3
-TYPE_DATA       = 6
+from hexformat import DecodeError
+from hexformat.main import HexFormat
+from hexformat.multipartbuffer import Buffer
+
+TYPE_SYMBOL = 3
+TYPE_DATA = 6
 TYPE_TERMINATOR = 8
-    
+
+
 class TektronixExtHex(HexFormat):
     """Tektronix Extended Hex file representation class.
 
@@ -42,22 +44,22 @@ class TektronixExtHex(HexFormat):
     _STANDARD_ADDRESSLENGTH = None
     _STANDARD_BYTESPERLINE = 32
     _SETTINGS = ['startaddress', 'bytesperline', 'addresslength']
-    
+
     def __init__(self, **settings):
         super(TektronixExtHex, self).__init__()
         self._startaddress = None
         self._bytesperline = None
         self._addresslength = None
-        self.settings(**settings)     
-        
+        self.settings(**settings)
+
     @property
     def startaddress(self):
         return self._startaddress
-        
+
     @startaddress.setter
     def startaddress(self, startaddress):
         self._startaddress = self._parse_startaddress(startaddress)
-        
+
     @staticmethod
     def _parse_startaddress(startaddress):
         if startaddress is not None:
@@ -69,11 +71,11 @@ class TektronixExtHex(HexFormat):
     @property
     def bytesperline(self):
         return self._bytesperline
-        
+
     @bytesperline.setter
     def bytesperline(self, bytesperline):
         self._bytesperline = self._parse_bytesperline(bytesperline)
-        
+
     @staticmethod
     def _parse_bytesperline(bytesperline):
         if bytesperline is not None:
@@ -81,15 +83,15 @@ class TektronixExtHex(HexFormat):
             if bytesperline < 1 or bytesperline > 124:
                 raise ValueError("bytesperline must be between 0 and 124")
         return bytesperline
- 
+
     @property
     def addresslength(self):
         return self._addresslength
-        
+
     @addresslength.setter
     def addresslength(self, addresslength):
         self._addresslength = self._parse_addresslength(addresslength)
-        
+
     @staticmethod
     def _parse_addresslength(addresslength):
         if addresslength is not None:
@@ -109,7 +111,7 @@ class TektronixExtHex(HexFormat):
         """
         with open(filename, "w") as fh:
             return cls.totekfh(fh, **settings)
-      
+
     def totekfh(self, fh, **settings):
         """Writes content as Tektronix Extended Hex file to given file handle.
 
@@ -121,7 +123,7 @@ class TektronixExtHex(HexFormat):
              self
         """
         (startaddress, bytesperline, addresslength) = self._parse_settings(**settings)
-        
+
         if addresslength is None:
             start, size = self.range()
             endaddress = start + size - 1
@@ -151,16 +153,18 @@ class TektronixExtHex(HexFormat):
              EncodeError: on unsupported record type.
         """
         endaddress = address + len(buffer) - 1
-        bytesperline = max(1, min(bytesperline, ((255-6-addresslength)//2)))
-        length = 2*bytesperline + addresslength + 6
+        bytesperline = max(1, min(bytesperline, ((255 - 6 - addresslength) // 2)))
+        length = 2 * bytesperline + addresslength + 6
         numdatarecords = 0
         while address < endaddress or numdatarecords == 0:
             numdatarecords += 1
             if address + bytesperline > endaddress:
                 bytesperline = endaddress - address + 1
-                length = 2*bytesperline + addresslength + 6
+                length = 2 * bytesperline + addresslength + 6
             checksum = 0
-            line = "{0:02X}{1:1X}{2:1X}{3:0{2:d}X}{4:s}".format(length, recordtype, addresslength, address, binascii.hexlify(buffer[offset:offset+bytesperline]).upper().decode())
+            line = "{0:02X}{1:1X}{2:1X}{3:0{2:d}X}{4:s}".format(length, recordtype, addresslength, address,
+                                                                binascii.hexlify(buffer[
+                                                                                 offset:offset + bytesperline]).upper().decode())
             for char in line:
                 checksum += int(char, 16)
             line = "%" + line[0:3] + "{:02X}".format(checksum) + line[3:] + "\n"
@@ -193,7 +197,7 @@ class TektronixExtHex(HexFormat):
             recordtype = int(line[3], 16)
             checksum = int(line[4:6], 16)
             addresslength = int(line[6], 16)
-            datalength = ((length - addresslength - 6)//2)
+            datalength = ((length - addresslength - 6) // 2)
             beginofdata = 7 + addresslength
             address = int(line[7:beginofdata], 16)
             if datalength > 0:
@@ -201,7 +205,7 @@ class TektronixExtHex(HexFormat):
             else:
                 data = bytearray()
             verifychecksum = 0
-            for char in line[1:4]+line[6:length+1]:
+            for char in line[1:4] + line[6:length + 1]:
                 verifychecksum += int(char, 16)
             checksumcorrect = (verifychecksum == checksum)
         except DecodeError:
@@ -209,7 +213,6 @@ class TektronixExtHex(HexFormat):
         except:
             raise DecodeError("Misformatted Tektronix Extended Hex line.")
         return (recordtype, address, addresslength, data, datalength, checksum, checksumcorrect)
-
 
     @classmethod
     def fromtekfile(cls, filename):
@@ -241,7 +244,7 @@ class TektronixExtHex(HexFormat):
         self = cls()
         self.loadtekfh(fh)
         return self
-        
+
     def loadtekfile(self, filename, overwrite_metadata=False, overwrite_data=True, raise_error_on_miscount=True):
         """Loads Tektronix Extended Hex lines from named file.
 
@@ -255,7 +258,7 @@ class TektronixExtHex(HexFormat):
              self
         """
         with open(filename, "r") as fh:
-            return self.loadtekfh(fh, overwrite_metadata, overwrite_data, raise_error_on_miscount)        
+            return self.loadtekfh(fh, overwrite_metadata, overwrite_data, raise_error_on_miscount)
 
     def loadtekfh(self, fh, overwrite_metadata=False, overwrite_data=True, raise_error_on_miscount=True):
         """Loads data from Tektronix Extended Hex file over file handle.
@@ -276,7 +279,8 @@ class TektronixExtHex(HexFormat):
         line = fh.readline()
         numdatarecords = 0
         while line != '':
-            (recordtype, address, addresslength, data, datalength, checksum, checksumcorrect) = self.__class__._parsetekline(line)
+            (recordtype, address, addresslength, data, datalength, checksum,
+             checksumcorrect) = self.__class__._parsetekline(line)
             if recordtype == TYPE_DATA:
                 self.set(address, data, datalength, overwrite=overwrite_data)
                 if numdatarecords == 0:

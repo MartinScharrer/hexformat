@@ -18,12 +18,14 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from hexformat.fillpattern import FillPattern
 import copy
+
+from hexformat.fillpattern import FillPattern
 
 MOD_USABLE_BUFFER_FOUND = 0
 MOD_NO_BUFFER_FOUND_NEXT_HIGHER_USED = 1
 MOD_BEYOND_END_LAST_BUFFER_USED = -1
+
 
 class Buffer(bytearray):
     """Buffer class to abstract real buffer class."""
@@ -49,7 +51,10 @@ class MultiPartBuffer(object):
     def __repr__(self):
         """Print representation including class name, id, number of parts, range and used size."""
         start, totalsize = self.range()
-        return "<{:s} at 0x{:X}: {:d} parts in range 0x{:X} + 0x{:X}; used 0x{:X}>".format(self.__class__.__name__, id(self), len(self._parts), start, totalsize, self.usedsize())
+        return "<{:s} at 0x{:X}: {:d} parts in range 0x{:X} + 0x{:X}; used 0x{:X}>".format(self.__class__.__name__,
+                                                                                           id(self), len(self._parts),
+                                                                                           start, totalsize,
+                                                                                           self.usedsize())
 
     def __eq__(self, other):
         """Compare with other instance for equality."""
@@ -65,9 +70,9 @@ class MultiPartBuffer(object):
         """
         buffer = Buffer(data)
         if beforeindex is None:
-            self._parts.append( [ address, buffer ] )
+            self._parts.append([address, buffer])
         else:
-            self._parts.insert(beforeindex, [ address, buffer ])
+            self._parts.insert(beforeindex, [address, buffer])
 
     def _find(self, address, size, create=True):
         """Find buffer corresponding to data block given by address and size.
@@ -84,7 +89,7 @@ class MultiPartBuffer(object):
                 -1: MOD_BEYOND_END_LAST_BUFFER_USED: Address lies after all buffers. Index states last buffer before address.
         """
         dataend = address + size
-        for index,part in enumerate(self._parts):
+        for index, part in enumerate(self._parts):
             bufstart, buffer = part
             bufend = bufstart + len(buffer)
             if (address < bufstart):
@@ -122,9 +127,9 @@ class MultiPartBuffer(object):
         if dataoffset == 0 and datasize == len(newdata):
             data = newdata
         else:
-            data = newdata[dataoffset:dataoffset+datasize]
+            data = newdata[dataoffset:dataoffset + datasize]
         self._parts[index][1] = Buffer(data) + self._parts[index][1]
-        self._parts[index][0] -= datasize   # adjust address
+        self._parts[index][0] -= datasize  # adjust address
 
     def _set(self, index, address, newdata, datasize, dataoffset):
         """Store new data in given buffer at given address. New data is read from given offset for the given size.
@@ -142,8 +147,8 @@ class MultiPartBuffer(object):
         if dataoffset == 0 and datasize == len(newdata):
             data = newdata
         else:
-            data = newdata[dataoffset:dataoffset+datasize]
-        self._parts[index][1] [bufferoffset:bufferoffset+datasize] = data
+            data = newdata[dataoffset:dataoffset + datasize]
+        self._parts[index][1][bufferoffset:bufferoffset + datasize] = data
 
     def _extend(self, index, newdata, datasize, dataoffset):
         """Extend given buffer with the new data.
@@ -158,8 +163,8 @@ class MultiPartBuffer(object):
         if dataoffset == 0 and datasize == len(newdata):
             data = newdata
         else:
-            data = newdata[dataoffset:dataoffset+datasize]
-        self._parts[index][1].extend( data )
+            data = newdata[dataoffset:dataoffset + datasize]
+        self._parts[index][1].extend(data)
 
     def _merge(self, index):
         """Merge the given buffer with the next following one.
@@ -167,14 +172,14 @@ class MultiPartBuffer(object):
            Args:
              index (int): Index of first buffer which will be merged with the next buffer.
         """
-        nextpart = self._parts.pop(index+1)
-        self._parts[index][1].extend( nextpart[1] )
-        
+        nextpart = self._parts.pop(index + 1)
+        self._parts[index][1].extend(nextpart[1])
+
     def setint(self, address, intvalue, datasize, bigendian=True, overwrite=True):
         """Set integer value at given address."""
         datasize = int(datasize)
         bytes = bytearray(datasize)
-        order = list(range(0,datasize))
+        order = list(range(0, datasize))
         if bigendian:
             order.reverse()
         for n in order:
@@ -189,10 +194,10 @@ class MultiPartBuffer(object):
         """
         if datasize is None:
             datasize = len(newdata) - dataoffset
-            
+
         if datasize == 0:
             return self
-            
+
         (index, mod) = self._find(address, datasize, create=True)
         endaddress = address + datasize
 
@@ -202,7 +207,7 @@ class MultiPartBuffer(object):
         # Insert left overlapping data
         if address < bufferstart:
             before = bufferstart - address
-            self._insert( index, newdata, before, dataoffset)
+            self._insert(index, newdata, before, dataoffset)
             # Adjust values for remaining data
             datasize -= before
             dataoffset += before
@@ -210,9 +215,9 @@ class MultiPartBuffer(object):
 
         # Overwrite existing data
         if datasize > 0:
-            size = min(datasize, bufferend-address)
+            size = min(datasize, bufferend - address)
             if overwrite:
-                self._set( index, address, newdata, size, dataoffset)
+                self._set(index, address, newdata, size, dataoffset)
             datasize -= size
             dataoffset += size
             address += size
@@ -228,41 +233,41 @@ class MultiPartBuffer(object):
             # Check if data does not reach into next buffer
             if nextbufferstart is None or nextbufferstart > endaddress:
                 after = endaddress - bufferend
-                self._extend( index, newdata, after, dataoffset )
+                self._extend(index, newdata, after, dataoffset)
             else:
                 gap = nextbufferstart - bufferend
-                self._extend( index, newdata, gap, dataoffset )
+                self._extend(index, newdata, gap, dataoffset)
                 datasize -= gap
                 dataoffset += gap
                 address += gap
-                self._merge( index )
-                self.set( address, newdata, datasize, dataoffset, overwrite )
+                self._merge(index)
+                self.set(address, newdata, datasize, dataoffset, overwrite)
         return self
 
     def crop(self, address, size=None):
         """Crop content to range <address>+<size> by deleting all other content."""
-        address,size = self._checkaddrnsize(address,size)
-        start,totalsize = self.range()
+        address, size = self._checkaddrnsize(address, size)
+        start, totalsize = self.range()
         end = start + totalsize
-        self.delete(start, address-start)
-        self.delete(address+size, end-address)
+        self.delete(start, address - start)
+        self.delete(address + size, end - address)
         return self
-        
+
     def extract(self, address, size=None, keep=True):
         """Extract given range and return it as new instance. Gaps in the range are preserved.
            The <keep> argument controls if the range is kept in the original instance or deleted.
-        """ 
+        """
         new = self.copy()
         new.crop(address, size)
         if not keep:
             self.delete(address, size)
         return new
-        
+
     def includesgaps(self, address=None, size=None):
-        address,size = self._checkaddrnsize(address,size)
+        address, size = self._checkaddrnsize(address, size)
         (index, mod) = self._find(address, size, False)
         if mod == MOD_USABLE_BUFFER_FOUND:
-            (start,data) = self._parts[index]
+            (start, data) = self._parts[index]
             end = start + len(data)
             if (address < start) or (end < (address + size)):
                 return True
@@ -271,7 +276,7 @@ class MultiPartBuffer(object):
             if len(self._parts) == 0 and address == 0 and size == 0:
                 return False
             return True
-        
+
     def offset(self, offset):
         """Add an offset to all addresses.
            A ValueError is raised if offset < -start, as this would lead to negative addresses.
@@ -287,7 +292,7 @@ class MultiPartBuffer(object):
         for part in self._parts:
             part[0] += offset
         return self
-        
+
     def relocate(self, newaddress, address=None, size=None, overwrite=True):
         """Relocate given range to new address.
            If address is None the start address is used.
@@ -296,20 +301,20 @@ class MultiPartBuffer(object):
            or if the overlapping bytes of the relocated data are discarded. 
         """
         newaddress = int(newaddress)
-        address,size = self._checkaddrnsize(address,size)
-        start,totalsize = self.range()
+        address, size = self._checkaddrnsize(address, size)
+        start, totalsize = self.range()
         if address == start and size == totalsize:
-            self.offset( newaddress - address )
+            self.offset(newaddress - address)
         else:
             raise NotImplementedError("Partial relocation not implemented yet")
         return self
-        
+
     def __getslice__(self, i, j):
         """Return new instance with content cropped to given range."""
         sliceinst = self.copy()
-        sliceinst.crop(i, j-i)
+        sliceinst.crop(i, j - i)
         return sliceinst
-        
+
     def __getitem__(self, i):
         if isinstance(i, slice):
             if i.step is not None:
@@ -320,7 +325,7 @@ class MultiPartBuffer(object):
 
     def delete(self, address, size=None):
         """Deletes <size> bytes starting from <address>. Does nothing if <size> is non-positive."""
-        address,size = self._checkaddrnsize(address,size)
+        address, size = self._checkaddrnsize(address, size)
         while size > 0:
             (index, mod) = self._find(address, size, create=True)
             bufferstart, buffer = self._parts[index]
@@ -328,26 +333,26 @@ class MultiPartBuffer(object):
             if address < bufferstart:
                 size -= bufferstart - address
                 address = bufferstart
-            leading  = address - bufferstart
+            leading = address - bufferstart
             trailing = bufferstart + buffersize - address - size
             trailaddress = address + size
             if trailing > 0:
                 if leading > 0:
                     self._parts[index][1] = buffer[0:leading]
-                    self._create(index+1, trailaddress, buffer[buffersize-trailing:buffersize])
+                    self._create(index + 1, trailaddress, buffer[buffersize - trailing:buffersize])
                 else:
-                    self._parts[index][1] = buffer[buffersize-trailing:buffersize]
+                    self._parts[index][1] = buffer[buffersize - trailing:buffersize]
                     self._parts[index][0] = trailaddress
                 break
             else:
                 nextbufferstart = None
-                if index < len(self._parts)-1:
-                    nextbufferstart = self._parts[index+1][0]
+                if index < len(self._parts) - 1:
+                    nextbufferstart = self._parts[index + 1][0]
 
                 if leading > 0:
                     self._parts[index][1] = buffer[0:leading]
                 else:
-                    self._parts.pop(index) # index now points to NEXT part
+                    self._parts.pop(index)  # index now points to NEXT part
 
                 if nextbufferstart is None:
                     break
@@ -364,7 +369,8 @@ class MultiPartBuffer(object):
     def _filler(self, size, fillpattern):
         """Generate buffer with given fillpattern and size."""
         size = int(size)
-        if isinstance(fillpattern, BaseException) or ( type(fillpattern) == type and issubclass(fillpattern, BaseException) ):
+        if isinstance(fillpattern, BaseException) or (
+                        type(fillpattern) == type and issubclass(fillpattern, BaseException)):
             raise fillpattern
         if fillpattern is None:
             fillpattern = self._padding
@@ -378,12 +384,12 @@ class MultiPartBuffer(object):
         Also if size is None the remaining size to the end of the last buffer is substituted.
         """
         if address is None or size is None:
-            start,totalsize = self.range()
+            start, totalsize = self.range()
             if address is None:
                 address = start
             if size is None:
                 size = start + totalsize - address
-        return (address,size)
+        return (address, size)
 
     def fill(self, address=None, size=None, fillpattern=None, overwrite=False):
         """Fill with <fillpattern> from <address> for <size> bytes.
@@ -392,7 +398,7 @@ class MultiPartBuffer(object):
            If <address> is None the first existing address is used.
            If <size> is None the remaining size is used.
         """
-        address,size = self._checkaddrnsize(address,size)
+        address, size = self._checkaddrnsize(address, size)
         self.set(address, self._filler(size, fillpattern), size, 0, overwrite)
         return self
 
@@ -403,23 +409,23 @@ class MultiPartBuffer(object):
         if unfillpattern is None:
             unfillpattern = self._padding
         if isinstance(unfillpattern, int):
-            unfillpattern = [ unfillpattern, ]
+            unfillpattern = [unfillpattern, ]
         unfillpattern = Buffer(unfillpattern)
         ufvlen = len(unfillpattern)
-        address,size = self._checkaddrnsize(address,size)
+        address, size = self._checkaddrnsize(address, size)
         (index, mod) = self._find(address, size, create=False)
         if mod == MOD_BEYOND_END_LAST_BUFFER_USED:
             return self
-        elif mod == MOD_NO_BUFFER_FOUND_NEXT_HIGHER_USED: 
+        elif mod == MOD_NO_BUFFER_FOUND_NEXT_HIGHER_USED:
             start = self._parts[index][0]
             dist = start - address
             size -= dist
             index = 0
         uflist = list()
         while index < len(self._parts) and size > 0:
-            bufferstart,buffer = self._parts[index]
+            bufferstart, buffer = self._parts[index]
             buffersize = len(buffer)
-            maxpos = min(buffersize,size)
+            maxpos = min(buffersize, size)
             startpos = address - bufferstart
             pos = startpos
             try:
@@ -429,15 +435,15 @@ class MultiPartBuffer(object):
                     while buffer.startswith(unfillpattern, pos, maxpos):
                         pos += ufvlen
                     ufsize = pos - delstartpos
-                    if ufsize >= mingapsize or pos == buffersize or delstartpos == startpos: # always delete at part boundaries
-                        uflist.append((bufferstart+delstartpos,ufsize))
+                    if ufsize >= mingapsize or pos == buffersize or delstartpos == startpos:  # always delete at part boundaries
+                        uflist.append((bufferstart + delstartpos, ufsize))
             except ValueError:
                 pass
             index += 1
             size -= maxpos
 
-        for deladdr,delsize in uflist:
-            self.delete(deladdr,delsize)
+        for deladdr, delsize in uflist:
+            self.delete(deladdr, delsize)
         return self
 
     def get(self, address, size, fillpattern=None):
@@ -453,7 +459,7 @@ class MultiPartBuffer(object):
              4) An exception class or instance.
                 If given then no filling is performed but the exception is raised if filling would be required.
         """
-        address,size = self._checkaddrnsize(address,size)
+        address, size = self._checkaddrnsize(address, size)
         (index, mod) = self._find(address, size, create=False)
         endaddress = address + size
 
@@ -472,12 +478,12 @@ class MultiPartBuffer(object):
                 address += before
 
             pos = address - bufferstart
-            insize = min(size, bufferend-pos)
+            insize = min(size, bufferend - pos)
             if insize > 0:
                 if len(retbuffer) > 0:
-                    retbuffer.extend( buffer[ pos : pos+insize ] )
+                    retbuffer.extend(buffer[pos: pos + insize])
                 else:
-                    retbuffer = buffer[ pos : pos+insize ]
+                    retbuffer = buffer[pos: pos + insize]
                 size -= insize
                 address += insize
 
@@ -490,13 +496,13 @@ class MultiPartBuffer(object):
                 # Check if data does not reach into next buffer
                 if nextbufferstart is None or nextbufferstart > endaddress:
                     after = endaddress - bufferend
-                    retbuffer.extend( self._filler(after, fillpattern) )
+                    retbuffer.extend(self._filler(after, fillpattern))
                 else:
                     gap = nextbufferstart - bufferend
-                    retbuffer.extend( self._filler(gap, fillpattern) )
+                    retbuffer.extend(self._filler(gap, fillpattern))
                     size -= gap
                     address += gap
-                    retbuffer.extend( self.get( address, size, fillpattern) )
+                    retbuffer.extend(self.get(address, size, fillpattern))
         return retbuffer
 
     def range(self):
@@ -504,7 +510,7 @@ class MultiPartBuffer(object):
            An empty buffer with return (0, 0).
         """
         if len(self._parts) == 0:
-            return (0,0)
+            return (0, 0)
         else:
             start = self._parts[0][0]
             lastaddress, buffer = self._parts[-1]
@@ -517,36 +523,36 @@ class MultiPartBuffer(object):
             return 0
         else:
             return self._parts[0][0]
-    
+
     def end(self):
         """Get end address, i.e. the address of the very last byte of data.
            An empty buffer will return -1.
         """
         (start, totalsize) = self.range()
         return (start + totalsize - 1)
-    
+
     def usedsize(self):
         """Returns used data size, i.e. without the size of any gaps"""
-        return sum([ len(buffer) for addr,buffer in self._parts ])
+        return sum([len(buffer) for addr, buffer in self._parts])
 
     def parts(self):
         """Return a list with (address,length) tuples for all parts."""
-        return [ (start, len(data)) for start,data in self._parts ]
+        return [(start, len(data)) for start, data in self._parts]
 
     def gaps(self):
         """Return a list with (address,length) tuples for all gaps between the existing parts."""
         gaplist = list()
-        for n in range(0,len(self._parts)-1):
-            address,buffer = self._parts[n]
-            nextaddress = self._parts[n+1][0]
+        for n in range(0, len(self._parts) - 1):
+            address, buffer = self._parts[n]
+            nextaddress = self._parts[n + 1][0]
             endaddress = address + len(buffer)
             gap = nextaddress - endaddress
-            gaplist.append( [endaddress, gap] )
+            gaplist.append([endaddress, gap])
         return gaplist
 
     def fillgaps(self, fillpattern=None):
         """Fill all gaps with given fillpattern."""
-        for address,size in self.gaps():
+        for address, size in self.gaps():
             self.fill(address, size, fillpattern)
         return self
 
@@ -560,7 +566,7 @@ class MultiPartBuffer(object):
             if size > 0:
                 self.fill(startaddress, size, fillpattern)
         return self
-        
+
     def fillend(self, endaddress, fillpattern=None):
         """Fill the data range after the buffer up to the given address.
         """
@@ -570,7 +576,7 @@ class MultiPartBuffer(object):
             size = endaddress - startaddress
             if size > 0:
                 self.fill(startaddress, size, fillpattern)
-        return self        
+        return self
 
     def tobinfile(self, filename, address=None, size=None, fillpattern=None):
         """ """
@@ -590,17 +596,17 @@ class MultiPartBuffer(object):
                 esize = 0
         if size is None:
             size = esize
-        fh.write( self.get(start, size, fillpattern) )
+        fh.write(self.get(start, size, fillpattern))
         return self
 
     def todict(self):
         """Return a dictionary with a numeric key for all used bytes like intelhex.IntelHex does it."""
-        d = { addr:byte for addr,byte in enumerate(buffer, address) for address, buffer in self._parts }
+        d = {addr: byte for addr, byte in enumerate(buffer, address) for address, buffer in self._parts}
         return d
 
     def loaddict(self, d, overwrite=True):
         """Load data from dictionary where each key must be numeric and represent an address and the corresponding value the byte value."""
-        for addr,byte in d.items():
+        for addr, byte in d.items():
             self.set(addr, (byte,), 1, overwrite=overwrite)
         return self
 
@@ -641,7 +647,7 @@ class MultiPartBuffer(object):
         else:
             source = other
         try:
-            for address,buffer in source:
+            for address, buffer in source:
                 self.set(address, buffer, overwrite=overwrite)
         except Exception as e:
             raise TypeError(e)
@@ -673,21 +679,21 @@ class MultiPartBuffer(object):
            If <size> is None the remaining size is used.
            If fillpattern is NOT None the given range is filled and the filter function will be called with the resulting single part.
         """
-        address,size = self._checkaddrnsize(address,size)
-        if size <= 0: # don't filter over a non-positive range
+        address, size = self._checkaddrnsize(address, size)
+        if size <= 0:  # don't filter over a non-positive range
             return self
         if fillpattern is not None:
             self.fill(address, size, fillpattern)
         (startindex, mod1) = self._find(address, size, create=False)
-        if mod1 == MOD_NO_BUFFER_FOUND_NEXT_HIGHER_USED: # range not included (was not filled)
+        if mod1 == MOD_NO_BUFFER_FOUND_NEXT_HIGHER_USED:  # range not included (was not filled)
             return self
         endaddress = address + size
-        (lastindex, mod2) = self._find(endaddress-1, 0, create=False)
+        (lastindex, mod2) = self._find(endaddress - 1, 0, create=False)
         if mod2 == MOD_NO_BUFFER_FOUND_NEXT_HIGHER_USED:
             lastindex -= 1
-        for bufferaddr,buffer in self._parts[startindex:lastindex+1]:
+        for bufferaddr, buffer in self._parts[startindex:lastindex + 1]:
             bufferstartindex = max(address - bufferaddr, 0)
-            buffersize = min( len(buffer) - bufferstartindex, endaddress - bufferaddr)
+            buffersize = min(len(buffer) - bufferstartindex, endaddress - bufferaddr)
             filterfunc(bufferaddr, buffer, bufferstartindex, buffersize)
 
     @classmethod
@@ -764,7 +770,7 @@ class MultiPartBuffer(object):
         """ """
         if offset != 0:
             fh.seek(offset, (offset < 0) and 2 or 0)
-        buffer = bytearray( fh.read(size) )
+        buffer = bytearray(fh.read(size))
         self.set(address, buffer)
         return self
 
@@ -772,6 +778,3 @@ class MultiPartBuffer(object):
         """ """
         with open(filename, "rb") as fh:
             return cls.loadbinfh(fh, address, size, offset)
-
- 
-        

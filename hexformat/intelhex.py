@@ -26,13 +26,14 @@
     RT_START_LINEAR_ADDRESS (int constant=5): Intel-Hex record type number for start linear address record.
 """
 
-from hexformat.multipartbuffer import Buffer
 from hexformat.main import HexFormat
-#import bytearray
+from hexformat.multipartbuffer import Buffer
+
+# import bytearray
 
 # Intel-Hex Record Types
 RT_DATA = 0
-RT_END_OF_FILE  = 1
+RT_END_OF_FILE = 1
 RT_EXTENDED_SEGMENT_ADDRESS = 2
 RT_START_SEGMENT_ADDRESS = 3
 RT_EXTENDED_LINEAR_ADDRESS = 4
@@ -63,7 +64,7 @@ class IntelHex(HexFormat):
        .. _`Intel-Hex`: http://en.wikipedia.org/wiki/Intel_HEX
     """
     _DATALENGTH = (None, 0, 2, 4, 2, 4)
-    _VARIANTS = { 'I08HEX':8, 'I8HEX':8, 'I16HEX':16, 'I32HEX':32, 8:8, 16:16, 32:32 }
+    _VARIANTS = {'I08HEX': 8, 'I8HEX': 8, 'I16HEX': 16, 'I32HEX': 32, 8: 8, 16: 16, 32: 32}
     _DEFAULT_BYTESPERLINE = 16
     _DEFAULT_VARIANT = 32
     _DEFAULT_EIP = None
@@ -77,11 +78,11 @@ class IntelHex(HexFormat):
         self._eip = None
         self._variant = None
         self.settings(**settings)
-        
+
     @property
     def bytesperline(self):
         return self._bytesperline
-        
+
     @bytesperline.setter
     def bytesperline(self, bytesperline):
         self._bytesperline = self._parse_bytesperline(bytesperline)
@@ -93,12 +94,11 @@ class IntelHex(HexFormat):
             if bytesperline < 1 or bytesperline > 255:
                 raise ValueError("bytesperline must be between 0 and 255")
         return bytesperline
-        
-       
+
     @property
     def variant(self):
         return self._variant
-        
+
     @variant.setter
     def variant(self, variant):
         self._variant = self._parse_variant(variant)
@@ -107,15 +107,15 @@ class IntelHex(HexFormat):
     def _parse_variant(variant):
         if variant is not None:
             if variant in self._VARIANTS:
-                variant = self._VARIANTS[ variant ]
+                variant = self._VARIANTS[variant]
             else:
                 raise ValueError("variant must be one of " + ", ".join(self._VARIANTS.keys()))
         return variant
-        
+
     @property
     def cs_ip(self):
         return self._cs_ip
-        
+
     @cs_ip.setter
     def cs_ip(self, cs_ip):
         self._cs_ip = self._parse_cs_ip(cs_ip)
@@ -127,11 +127,11 @@ class IntelHex(HexFormat):
                 raise ValueError("cs_ip value must not be larger than 32 bit.")
             cs_ip = bytearray.fromhex("{:08x}".format(cs_ip))
         return cs_ip
-        
+
     @property
     def eip(self):
         return self._eip
-        
+
     @eip.setter
     def eip(self, eip):
         self._eip = self._parse_eip(eip)
@@ -142,8 +142,8 @@ class IntelHex(HexFormat):
             if eip > 0xFFFFFFFF:
                 raise ValueError("eip value must not be larger than 32 bit.")
             eip = bytearray.fromhex("{:08x}".format(eip))
-        return eip   
-        
+        return eip
+
     """Parses settings and returns tuple with all settings. Default values are substituted if needed.
 
        Args:
@@ -159,7 +159,7 @@ class IntelHex(HexFormat):
        Raises:
          ValueError: If cs_ip or eip value is larger than 32 bit.
     """
-        
+
     def _parseihexline(self, line):
         """Parse Intel-Hex line and return decoded parts as tuple.
 
@@ -186,7 +186,7 @@ class IntelHex(HexFormat):
         bytecount = bytes[0]
         if bytecount != len(bytes) - 5:
             raise DecodeError("Data length does not match byte count.")
-        checksumcorrect = ( (sum(bytes) & 0xFF) == 0x00 )
+        checksumcorrect = ((sum(bytes) & 0xFF) == 0x00)
         address = (bytes[1] << 8) | bytes[2]
         recordtype = bytes[3]
         try:
@@ -215,7 +215,7 @@ class IntelHex(HexFormat):
              DecodeError: on unknown record type.
              DecodeError: on datalength - record type mismatch.
         """
-        linelen = 2*len(data) + 11
+        linelen = 2 * len(data) + 11
         linetempl = ":{:02X}{:04X}{:02X}{:s}{:02X}\n"
         bytecount = len(data)
         try:
@@ -262,7 +262,6 @@ class IntelHex(HexFormat):
         self.loadihexfh(fh, ignore_checksum_errors)
         return self
 
-
     def loadihexfile(self, filename, ignore_checksum_errors=False):
         """Loads Intel-Hex lines from named file.
 
@@ -299,7 +298,7 @@ class IntelHex(HexFormat):
             if not checksumcorrect and not ignore_checksum_errors:
                 raise DecodeError("Checksum mismatch.")
             if recordtype == 0:
-                self.set( (highaddr + lowaddress), data, datasize)
+                self.set((highaddr + lowaddress), data, datasize)
                 if self._bytesperline is None:
                     self._bytesperline = datasize
             elif recordtype == 1:
@@ -363,12 +362,12 @@ class IntelHex(HexFormat):
         highaddr = 0
         addresshigh = 0
         addresslow = 0
-        for address,buffer in self._parts:
+        for address, buffer in self._parts:
             pos = 0
             datalength = len(buffer)
             while pos < datalength:
                 if variant == 32:
-                    addresslow  = address & 0x0000FFFF
+                    addresslow = address & 0x0000FFFF
                     addresshigh = address & 0xFFFF0000
                     if address > 0xFFFFFFFF:
                         raise EncodeError("Address to large for format.")
@@ -385,10 +384,10 @@ class IntelHex(HexFormat):
                 if addresshigh != highaddr:
                     highaddr = addresshigh
                     if variant == 32:
-                        fh.write(self._encodeihexline(4, 0, [addresshigh>>24, (addresshigh>>16) & 0xFF]))
+                        fh.write(self._encodeihexline(4, 0, [addresshigh >> 24, (addresshigh >> 16) & 0xFF]))
                     else:
-                        fh.write(self._encodeihexline(2, 0, [addresshigh>>12, (addresshigh>>4) & 0xFF]))
-                endpos = min( pos + bytesperline, datalength )
+                        fh.write(self._encodeihexline(2, 0, [addresshigh >> 12, (addresshigh >> 4) & 0xFF]))
+                endpos = min(pos + bytesperline, datalength)
                 fh.write(self._encodeihexline(0, addresslow, buffer[pos:endpos]))
                 address += bytesperline
                 pos = endpos
@@ -405,4 +404,3 @@ class IntelHex(HexFormat):
            Both instances are equal if both _parts lists, _eip and _cs_ip are identical.
         """
         return super(IntelHex, self).__eq__(other) and self._eip == other._eip and self._cs_ip == other._cs_ip
-

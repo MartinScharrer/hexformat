@@ -19,10 +19,12 @@
 
 """
 
-from hexformat.multipartbuffer import Buffer
-from hexformat.main import HexFormat
 import binascii
-    
+
+from hexformat.main import HexFormat
+from hexformat.multipartbuffer import Buffer
+
+
 class SRecord(HexFormat):
     """Motorola `S-Record`_ hex file representation class.
 
@@ -37,15 +39,15 @@ class SRecord(HexFormat):
        .. _`S-Record`: http://en.wikipedia.org/wiki/SREC_%28file_format%29
     """
 
-    _SRECORD_ADDRESSLENGTH = (2,2,3,4,None,2,3,4,3,2)
+    _SRECORD_ADDRESSLENGTH = (2, 2, 3, 4, None, 2, 3, 4, 3, 2)
     _STANDARD_FORMAT = 'srec'
     _STANDARD_HEADER = Buffer(b'')
     _STANDARD_STARTADDRESS = 0
-    _STANDARD_ADDRESSLENGTH = None    
+    _STANDARD_ADDRESSLENGTH = None
     _STANDARD_BYTESPERLINE = 32
     _STANDARD_WRITE_NUMBER_OF_RECORDS = False
     _SETTINGS = ['startaddress', 'addresslength', 'bytesperline', 'header', 'write_number_of_records']
-    
+
     def __init__(self, **settings):
         super(SRecord, self).__init__()
         self._startaddress = None
@@ -53,16 +55,16 @@ class SRecord(HexFormat):
         self._bytesperline = None
         self._header = None
         self._write_number_of_records = None
-        self.settings(**settings)     
-        
+        self.settings(**settings)
+
     @property
     def startaddress(self):
         return self._startaddress
-        
+
     @startaddress.setter
     def startaddress(self, startaddress):
         self._startaddress = self._parse_startaddress(startaddress)
-        
+
     @staticmethod
     def _parse_startaddress(startaddress):
         if startaddress is not None:
@@ -70,15 +72,15 @@ class SRecord(HexFormat):
             if startaddress < 0 or startaddress > 0xFFFFFFFF:
                 raise ValueError("startaddress must be between 0 and 0xFFFFFFFF")
         return startaddress
-        
+
     @property
     def addresslength(self):
         return self._addresslength
-        
+
     @addresslength.setter
     def addresslength(self, addresslength):
         self._addresslength = self._parse_addresslength(addresslength)
-        
+
     @staticmethod
     def _parse_addresslength(addresslength):
         if addresslength is not None:
@@ -90,11 +92,11 @@ class SRecord(HexFormat):
     @property
     def bytesperline(self):
         return self._bytesperline
-        
+
     @bytesperline.setter
     def bytesperline(self, bytesperline):
         self._bytesperline = self._parse_bytesperline(bytesperline)
-        
+
     @staticmethod
     def _parse_bytesperline(bytesperline):
         if bytesperline is not None:
@@ -102,34 +104,34 @@ class SRecord(HexFormat):
             if bytesperline < 1 or bytesperline > 253:
                 raise ValueError("bytesperline must be between 0 and 253")
         return bytesperline
-        
+
     @property
     def header(self):
         return self._header
-        
+
     @header.setter
     def header(self, header):
         self._header = self._parse_header(header)
-        
+
     @staticmethod
     def _parse_header(header):
         if header is not None:
             header = Buffer(header)
-        return header        
-        
+        return header
+
     @property
     def write_number_of_records(self):
         return self._write_number_of_records
-        
+
     @write_number_of_records.setter
     def write_number_of_records(self, write_number_of_records):
         self._write_number_of_records = self._parse_write_number_of_records(write_number_of_records)
-        
+
     @staticmethod
     def _parse_write_number_of_records(write_number_of_records):
         if write_number_of_records is not None:
             write_number_of_records = bool(write_number_of_records)
-        return write_number_of_records     
+        return write_number_of_records
 
     def tosrecfile(cls, filename, **settings):
         """Writes content as S-Record file to given file name.
@@ -142,7 +144,7 @@ class SRecord(HexFormat):
         """
         with open(filename, "w") as fh:
             return cls.tosrecfh(fh, **settings)
-      
+
     def tosrecfh(self, fh, **settings):
         """Writes content as S-Record file to given file handle.
 
@@ -158,7 +160,7 @@ class SRecord(HexFormat):
              self
         """
         (startaddress, addresslength, bytesperline, header, write_number_of_records) = self._parse_settings(**settings)
-        
+
         if addresslength is None:
             start, size = self.range()
             endaddress = start + size - 1
@@ -167,10 +169,11 @@ class SRecord(HexFormat):
         recordtype = addresslength - 1
         recordtype_end = 10 - recordtype
         numdatarecords = 0
-        
+
         self._encodesrecline(fh, 0, header, recordtype=0, bytesperline=len(header))
         for address, buffer in self._parts:
-            numdatarecords += self._encodesrecline(fh, address, buffer, recordtype=recordtype, bytesperline=bytesperline)
+            numdatarecords += self._encodesrecline(fh, address, buffer, recordtype=recordtype,
+                                                   bytesperline=bytesperline)
         if write_number_of_records:
             if numdatarecords <= 0xFFFF:
                 self._encodesrecline(fh, numdatarecords, Buffer(), recordtype=5, bytesperline=253)
@@ -179,7 +182,7 @@ class SRecord(HexFormat):
 
         self._encodesrecline(fh, startaddress, Buffer(), recordtype=recordtype_end, bytesperline=253)
         return self
-    
+
     @staticmethod
     def _minaddresslength(address):
         """Returns minimum byte length required to encode given address.
@@ -203,7 +206,7 @@ class SRecord(HexFormat):
         else:
             raise ValueError("Address must not be larger than 32 bit.")
         return addresslength
-        
+
     @staticmethod
     def _s123addr(addresslength, address):
         """Returns a tuple with the address bytes with the given length for encoding.
@@ -220,14 +223,13 @@ class SRecord(HexFormat):
              ValueError: If addresslength is not 2, 3 or 4.
         """
         if addresslength == 2:
-            return ( ((address >> 8) & 0xFF), (address & 0xFF) )
+            return (((address >> 8) & 0xFF), (address & 0xFF))
         elif addresslength == 3:
-            return ( ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF) )
+            return (((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF))
         elif addresslength == 4:
-            return ( ((address >> 24) & 0xFF), ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF) )
-        else:            
+            return (((address >> 24) & 0xFF), ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF))
+        else:
             raise ValueError("Invalid address length (%s). Valid values are 2, 3 or 4." % (str(addresslength),))
-        
 
     @classmethod
     def _encodesrecline(cls, fh, address, buffer, offset=0, recordtype=123, bytesperline=32):
@@ -255,7 +257,7 @@ class SRecord(HexFormat):
         except (IndexError, TypeError):
             raise EncodeError("Unsupported record type.")
 
-        bytesperline = max(1, min(bytesperline, 254-addresslength))
+        bytesperline = max(1, min(bytesperline, 254 - addresslength))
         bytecount = bytesperline + addresslength + 1
         numdatarecords = 0
         while address < endaddress or numdatarecords == 0:
@@ -263,17 +265,16 @@ class SRecord(HexFormat):
             if address + bytesperline > endaddress:
                 bytesperline = endaddress - address + 1
                 bytecount = bytesperline + addresslength + 1
-            linebuffer = bytearray([0,] * (bytecount+1))
+            linebuffer = bytearray([0, ] * (bytecount + 1))
             linebuffer[0] = bytecount
-            linebuffer[1:addresslength+1] = cls._s123addr(addresslength, address)
-            linebuffer[addresslength+1:bytecount] = buffer[offset:offset+bytesperline]
+            linebuffer[1:addresslength + 1] = cls._s123addr(addresslength, address)
+            linebuffer[addresslength + 1:bytecount] = buffer[offset:offset + bytesperline]
             linebuffer[bytecount] = ((~sum(linebuffer)) & 0xFF)
             line = "".join(["S", str(recordtype), binascii.hexlify(linebuffer).upper().decode(), "\n"])
             fh.write(line)
             offset += bytesperline
             address += bytesperline
         return numdatarecords
-
 
     @classmethod
     def _parsesrecline(cls, line):
@@ -300,15 +301,14 @@ class SRecord(HexFormat):
         except:
             raise DecodeError("misformatted S-Record line.")
         bytecount = bytes[0]
-        if bytecount != len(bytes)-1:
+        if bytecount != len(bytes) - 1:
             raise DecodeError("Byte count does not match line data.")
-        crccorrect = ( (sum(bytes) & 0xFF) == 0xFF)
+        crccorrect = ((sum(bytes) & 0xFF) == 0xFF)
         al = cls._SRECORD_ADDRESSLENGTH[recordtype]
-        address = int(line[4:4+2*al], 16)
+        address = int(line[4:4 + 2 * al], 16)
         datasize = bytecount - al - 1
-        data = bytes[1+al:-1]
+        data = bytes[1 + al:-1]
         return (recordtype, address, data, datasize, crccorrect)
-
 
     @classmethod
     def fromsrecfile(cls, filename):
@@ -340,7 +340,7 @@ class SRecord(HexFormat):
         self = cls()
         self.loadsrecfh(fh)
         return self
-        
+
     def loadsrecfile(self, filename, overwrite_metadata=False, overwrite_data=True, raise_error_on_miscount=True):
         """Loads S-Record lines from named file.
 
@@ -354,7 +354,7 @@ class SRecord(HexFormat):
              self
         """
         with open(filename, "r") as fh:
-            return self.loadsrecfh(fh, overwrite_metadata, overwrite_data, raise_error_on_miscount)        
+            return self.loadsrecfh(fh, overwrite_metadata, overwrite_data, raise_error_on_miscount)
 
     def loadsrecfh(self, fh, overwrite_metadata=False, overwrite_data=True, raise_error_on_miscount=True):
         """Loads data from S-Record file over file handle.
@@ -391,8 +391,10 @@ class SRecord(HexFormat):
                 if overwrite_metadata or self._write_number_of_records is None:
                     self.write_number_of_records = True
                 if raise_error_on_miscount and numdatarecords != address:
-                    raise DecodeError("Number of records read ({:d}) differs from stored number of records ({:d}).".format(numdatarecords,address))
-            elif recordtype >=7 and recordtype <= 9:
+                    raise DecodeError(
+                        "Number of records read ({:d}) differs from stored number of records ({:d}).".format(
+                            numdatarecords, address))
+            elif recordtype >= 7 and recordtype <= 9:
                 if overwrite_metadata or self._startaddress is None:
                     self.startaddress = address
             else:

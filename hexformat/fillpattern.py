@@ -18,11 +18,11 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
-from random import randint
-import math
 import copy
-
+import math
 import sys
+from random import randint
+
 if sys.version_info < (3,):
     integer_types = (int, long,)
 else:
@@ -49,7 +49,7 @@ class FillPattern(object):
     def __init__(self, pattern=0xFF, length=None):
         if isinstance(pattern, integer_types):
             if pattern < 0x100:
-                pattern = [pattern,]
+                pattern = [pattern, ]
             else:
                 raise ValueError("numeric pattern must be a single byte (0..255)")
         self._pattern = bytearray(pattern)
@@ -57,7 +57,6 @@ class FillPattern(object):
             length = len(self._pattern)
         self._length = length
         self._offset = 0
-    
 
     @classmethod
     def frompattern(cls, pattern, length=None):
@@ -73,7 +72,7 @@ class FillPattern(object):
                                               
             Returns:
               Instance of class based on the given pattern and length.
-        """    
+        """
         if isinstance(pattern, cls):
             if length is None or length == len(pattern):
                 return pattern
@@ -103,8 +102,8 @@ class FillPattern(object):
         """
         if not isinstance(number, integer_types) or not isinstance(width, integer_types) or width < 1:
             raise ValueError("number and width must be integers and width must be positive.")
-        pattern = [0,]*width
-        for n in range(0,width):
+        pattern = [0, ] * width
+        for n in range(0, width):
             pattern[n] = number & 0xFF
             number >>= 8
         if bigendian:
@@ -134,9 +133,9 @@ class FillPattern(object):
              
            Raises:
              ValueError: if m is not a positive int or long.             
-        """ 
+        """
         if not isinstance(m, integer_types) or m <= 0:
-            raise  ValueError("can't multiply instance by non-int or non-positive integer")
+            raise ValueError("can't multiply instance by non-int or non-positive integer")
         return self[0:self._length * m]
 
     def __imul__(self, m):
@@ -147,7 +146,7 @@ class FillPattern(object):
              
            Raises:
              ValueError: if m is not a positive int or long.
-        """     
+        """
         if not isinstance(m, integer_types) or m <= 0:
             raise ValueError("can't multiply instance by non-int or non-positive integer")
         self._length *= int(m)
@@ -156,16 +155,16 @@ class FillPattern(object):
     def __iter__(self):
         """Yields every element over official length."""
         plen = len(self._pattern)
-        for i in range(0,self._length):
+        for i in range(0, self._length):
             n = (self._offset + i) % plen
             yield self._pattern[n]
 
     def __str__(self):
         """Return string representation with official length of fillpattern."""
-        scale = int(math.ceil( float(self._length + self._offset) / len(self._pattern) ))
+        scale = int(math.ceil(float(self._length + self._offset) / len(self._pattern)))
         s = str(self._pattern * scale)
         if self._offset > 0:
-            s = s[self._offset:self._offset+self._length]
+            s = s[self._offset:self._offset + self._length]
         elif len(s) > self._length:
             s = s[0:self._length]
         return s
@@ -174,11 +173,11 @@ class FillPattern(object):
         """Return slice using a deep copy with adjusted offset and length."""
         other = copy.deepcopy(self)
         other._offset += i
-        other._length  = j - i
+        other._length = j - i
         plen = len(self._pattern)
         if other._offset > plen:
             other._length -= int(other._offset / plen)
-            other._offset  = other._offset % plen
+            other._offset = other._offset % plen
         return other
 
     def __getitem__(self, i):
@@ -188,7 +187,7 @@ class FillPattern(object):
         n = (self._offset + i) % len(self._pattern)
         return self._pattern[n]
 
-        
+
 class RandomContent(FillPattern):
     """Specific FillPattern subclass to produce random content. 
     
@@ -205,14 +204,14 @@ class RandomContent(FillPattern):
         Raises:
             AttributeError: May be raised by len(pattern) if input is not as requested above.     
     """
-    
+
     def __init__(self, pattern=None, length=None):
         if length is None:
             if pattern is None:
                 length = 1
             else:
                 length = len(pattern)
-        pattern = [0,]
+        pattern = [0, ]
         super(RandomContent, self).__init__(pattern, length)
 
     def __mul__(self, factor):
@@ -228,16 +227,16 @@ class RandomContent(FillPattern):
              ValueError: if factor is not a positive int or long.             
         """
         if not isinstance(factor, integer_types) or factor <= 0:
-            raise  ValueError("can't multiply instance by non-int or non-positive integer")
+            raise ValueError("can't multiply instance by non-int or non-positive integer")
         return self.__class__(self._length * int(factor))
-        
+
     def __str__(self):
         """Return string with random content with the official length of the instance."""
         return "".join([chr(n) for n in self])
 
     def __iter__(self):
         """Yield random byte values. The number of bytes is the official length of the instance."""
-        for n in range(0,self._length):
+        for n in range(0, self._length):
             yield randint(0, 255)
 
     def __getitem__(self, i):

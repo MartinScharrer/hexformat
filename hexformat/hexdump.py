@@ -19,9 +19,11 @@
 
 """
 
-from hexformat.multipartbuffer import Buffer
-from hexformat.main import HexFormat
 import string
+
+from hexformat.main import HexFormat
+from hexformat.multipartbuffer import Buffer
+
 
 class HexDump(HexFormat):
     """`Hex dump`_ representation class.
@@ -48,7 +50,7 @@ class HexDump(HexFormat):
         """
         groups = list()
         cgroup = list()
-        for n,byte in enumerate(data, 1):
+        for n, byte in enumerate(data, 1):
             cgroup.append("{:02X}".format(byte))
             if n % groupsize == 0:
                 groups.append(cgroup)
@@ -60,8 +62,9 @@ class HexDump(HexFormat):
         datastr = " ".join(["".join(bigendian and group or reversed(group)) for group in groups])
         asciistr = ""
         if ascii:
-            asciistr = " |{{:{:d}s}}|".format(bytesperline).format("".join([char in string.printable and char or "." for char in str(data)]))
-        numgroups = bytesperline/groupsize
+            asciistr = " |{{:{:d}s}}|".format(bytesperline).format(
+                "".join([char in string.printable and char or "." for char in str(data)]))
+        numgroups = bytesperline / groupsize
         hwidth = bytesperline * 2 + numgroups - 1
         return "{{:08X}}: {{:{:d}s}}{{:s}}\n".format(hwidth).format(address, datastr, asciistr)
 
@@ -83,7 +86,7 @@ class HexDump(HexFormat):
             if aidx == -1:
                 aidx = None
             address = int(line[0:cidx], 16)
-            groups = line[cidx+1:aidx].split()
+            groups = line[cidx + 1:aidx].split()
             data = Buffer()
             for group in groups:
                 groupdata = Buffer.fromhex(group)
@@ -196,14 +199,14 @@ class HexDump(HexFormat):
         """
         groupsize = int(groupsize)
         if (bytesperline % groupsize) != 0:
-            bytesperline = int(round( float(bytesperline) / groupsize )) * groupsize
-        for address,buffer in self._parts:
+            bytesperline = int(round(float(bytesperline) / groupsize)) * groupsize
+        for address, buffer in self._parts:
             pos = 0
             datalength = len(buffer)
             while pos < datalength:
-                endpos = min( pos + bytesperline, datalength )
-                fh.write(self._encodehexdumpline(address, buffer[pos:endpos], bytesperline, groupsize, bigendian, ascii))
+                endpos = min(pos + bytesperline, datalength)
+                fh.write(
+                    self._encodehexdumpline(address, buffer[pos:endpos], bytesperline, groupsize, bigendian, ascii))
                 address += bytesperline
                 pos = endpos
         return self
-        

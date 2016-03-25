@@ -18,13 +18,16 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+
 class HexformatError(Exception):
     """General hexformat exception. Base class for all other exceptions of this module."""
     pass
 
+
 class DecodeError(HexformatError):
     """Exception is raised if errors during the decoding of a hex file occur."""
     pass
+
 
 class EncodeError(HexformatError):
     """Exception is raised if errors during the encoding of a hex file occur."""
