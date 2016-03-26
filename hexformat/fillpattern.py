@@ -30,10 +30,12 @@ else:
 
 
 class FillPattern(object):
-    """General fill pattern class which instances contain a underlying pattern with is automatically repeated if required.
+    """General fill pattern class which instances contain a underlying pattern with is automatically repeated if \
+       required.
 
-        The underlying pattern is a bytearray which is repeated on demand to fit into a given official length or a slice of any length.
-        An internal start offset for the underlying pattern is used when an instance is produced as slice with a non-zero start offset.
+        The underlying pattern is a bytearray which is repeated on demand to fit into a given official length or a slice
+        of any length. An internal start offset for the underlying pattern is used when an instance is produced as slice
+        with a non-zero start offset.
        
         Args:
           pattern (byte or iterable of bytes):  The basic fill pattern which will be repeated.
@@ -65,8 +67,8 @@ class FillPattern(object):
         
             Args:
               pattern (cls, byte or iterable of bytes): If pattern is already an instance of the same class it is used,
-                             either directly or as a length adjusted copy if the length argument differs from its length.
-                             Otherwise it must be a byte or iterable of bytes which is simply passed to the class constructor.
+                      either directly or as a length adjusted copy if the length argument differs from its length.
+                      Otherwise it must be a byte or iterable of bytes which is simply passed to the class constructor.
               length (None or int, optional): Official length of FillPattern. Only used if used with len() or str() etc.     
                                               If None then the length of the pattern is used instead.
                                               
@@ -74,25 +76,27 @@ class FillPattern(object):
               Instance of class based on the given pattern and length.
         """
         if isinstance(pattern, cls):
-            if length is None or length == len(pattern):
-                return pattern
-            else:
-                return pattern[0:length]
+            return pattern[0:length]
         else:
             return cls(pattern, length)
 
     @classmethod
-    def fromnumber(cls, number, width=4, bigendian=True, length=None):
+    def fromnumber(cls, number, width=4, bigendian=True, length=None, signed=False):
         """Generate instance from integer number.
         
             Args:
               number (int or long):  a numerical value which will be used for the pattern.
-              width (int or long; optional):  byte width of the number. Usually 1 till 4. If number is narrower than this width it is zero padded.
-              bigendian (bool; optional):  If True (default) the number will be turned into a list of bytes from most to least significant byte ("MSB first", "Motorola" style).
-                                   Otherwise the byte order will be from least to most significant byte ("LSB first", "Intel" style).
-                                   For any other byte order the method :meth:`frompattern` must be used with a byte list.
+              width (int or long; optional):  byte width of the number. Usually 1 till 4. If number is narrower than
+                                              this width it is zero padded.
+              bigendian (bool; optional):  If True (default) the number will be turned into a list of bytes from most
+                                   to least significant byte ("MSB first", "Motorola" style).
+                                   Otherwise the byte order will be from least to most significant byte ("LSB first",
+                                   "Intel" style). For any other byte order the method :meth:`frompattern` must be used
+                                   with a byte list.
               length (None or int, optional): Official length of FillPattern. Only used if used with len() or str() etc.     
                                               If None then the length of the pattern is used instead.
+              signed (bool; optional): determines if number is represented in two's complement. If False and number is
+                                       negative an OverflowError is raised.
                                               
             Returns:
               New instance of class.
@@ -100,14 +104,7 @@ class FillPattern(object):
             Raises:
               ValueError: If number or width are anything except an int or long or if with is non-positive.
         """
-        if not isinstance(number, integer_types) or not isinstance(width, integer_types) or width < 1:
-            raise ValueError("number and width must be integers and width must be positive.")
-        pattern = [0, ] * width
-        for n in range(0, width):
-            pattern[n] = number & 0xFF
-            number >>= 8
-        if bigendian:
-            pattern = reversed(pattern)
+        pattern = number.to_bytes(width, bigendian and 'big' or 'little', signed=signed)
         return cls(pattern, length)
 
     def __len__(self):
@@ -169,23 +166,20 @@ class FillPattern(object):
             s = s[0:self._length]
         return s
 
-    def __getslice__(self, i, j):
-        """Return slice using a deep copy with adjusted offset and length."""
-        other = copy.deepcopy(self)
-        other._offset += i
-        other._length = j - i
-        plen = len(self._pattern)
-        if other._offset > plen:
-            other._length -= int(other._offset / plen)
-            other._offset = other._offset % plen
-        return other
-
     def __getitem__(self, i):
         """Return item at given official index by repeating internal pattern."""
-        if isinstance(i, slice):
-            return self.__getslice__(i.start, i.stop)
-        n = (self._offset + i) % len(self._pattern)
-        return self._pattern[n]
+        try:
+            n = (self._offset + int(i)) % len(self._pattern)
+            return self._pattern[n]
+        except TypeError:
+            other = copy.deepcopy(self)
+            other._offset += i.start
+            other._length = i.stop - i.start
+            plen = len(self._pattern)
+            if other._offset > plen:
+                other._length -= int(math.floor(other._offset / plen))
+                other._offset %= plen
+            return other
 
 
 class RandomContent(FillPattern):
@@ -196,7 +190,8 @@ class RandomContent(FillPattern):
         For this the Python :meth:`random.randint` method is used.
 
         Args:
-            pattern (None or byte or iterable of bytes; optional):  Pattern content is ignored, but might be used to set length.
+            pattern (None or byte or iterable of bytes; optional): Pattern content is ignored, but might be used to set
+                                                                   length.
             length (None or int, optional): Official length. Only used if used with len() or str() etc.     
                                             If None then the length of the pattern is used
                                             If it is also None the length is set to 1.
@@ -242,5 +237,5 @@ class RandomContent(FillPattern):
     def __getitem__(self, i):
         """Return random byte value independent from input value."""
         if isinstance(i, slice):
-            return self.__getslice__(i.start, i.stop)
+            return super(RandomContent, self).__getitem__(i.start, i.stop)
         return randint(0, 255)
