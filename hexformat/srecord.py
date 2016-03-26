@@ -21,8 +21,9 @@
 
 import binascii
 
-from hexformat.main import HexFormat
-from hexformat.multipartbuffer import Buffer
+from . import DecodeError, EncodeError
+from .main import HexFormat
+from .multipartbuffer import Buffer
 
 
 class SRecord(HexFormat):
@@ -32,9 +33,12 @@ class SRecord(HexFormat):
 
        Attributes:
          _SRECORD_ADDRESSLENGTH (tuple): Address length in bytes for each record type.
-         _STANDARD_FORMAT (str): The standard format used by :meth:`.fromfh` and :meth:`.fromfile` if no format was given.
-         _startaddress (int): Starting execution location. This tells the programmer which address contains the start routine. Default: 0.
-         _header (data buffer or None): Header data written using record type 0 if not None. The content is application specific.
+         _STANDARD_FORMAT (str): The standard format used by :meth:`.fromfh` and :meth:`.fromfile` if no format was
+                                 given.
+         _startaddress (int): Starting execution location. This tells the programmer which address contains the start
+                              routine. Default: 0.
+         _header (data buffer or None): Header data written using record type 0 if not None. The content is application
+                                        specific.
 
        .. _`S-Record`: http://en.wikipedia.org/wiki/SREC_%28file_format%29
     """
@@ -133,7 +137,7 @@ class SRecord(HexFormat):
             write_number_of_records = bool(write_number_of_records)
         return write_number_of_records
 
-    def tosrecfile(cls, filename, **settings):
+    def tosrecfile(self, filename, **settings):
         """Writes content as S-Record file to given file name.
 
            Opens filename for writing and calls :meth:`tosrecfh` with the file handle and all arguments.
@@ -143,7 +147,7 @@ class SRecord(HexFormat):
              self
         """
         with open(filename, "w") as fh:
-            return cls.tosrecfh(fh, **settings)
+            return self.tosrecfh(fh, **settings)
 
     def tosrecfh(self, fh, **settings):
         """Writes content as S-Record file to given file handle.
@@ -151,10 +155,11 @@ class SRecord(HexFormat):
            Args:
              fh (file handle or compatible): Destination of S-Record lines.
              bytesperline (int): Number of data bytes per line.
-             addresslength (None or int in range 2..4): Address length in bytes. This determines the used file format variant.
-                    If None then the shortest possible address length large enough to encode the highest address present is used.
+             addresslength (None or int in range 2..4): Address length in bytes. This determines the used file format
+                    variant. If None then the shortest possible address length large enough to encode the highest
+                    address present is used.
              write_number_of_records (bool): If True then the number of data records is written as a record type 5 or 6.
-                                             This adds an additional verification method if the S-Record file is consistent.
+                                         This adds an additional verification method if the S-Record file is consistent.
 
            Returns:
              self
@@ -196,7 +201,6 @@ class SRecord(HexFormat):
            Raise:
              ValueError: If address is too large to fit in 32 bit.
         """
-        addresslength = 0
         if address <= 0xFFFF:
             addresslength = 2
         elif address <= 0xFFFFFF:
@@ -223,11 +227,11 @@ class SRecord(HexFormat):
              ValueError: If addresslength is not 2, 3 or 4.
         """
         if addresslength == 2:
-            return (((address >> 8) & 0xFF), (address & 0xFF))
+            return ((address >> 8) & 0xFF), (address & 0xFF)
         elif addresslength == 3:
-            return (((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF))
+            return ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF)
         elif addresslength == 4:
-            return (((address >> 24) & 0xFF), ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF))
+            return ((address >> 24) & 0xFF), ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF)
         else:
             raise ValueError("Invalid address length (%s). Valid values are 2, 3 or 4." % (str(addresslength),))
 
@@ -235,14 +239,16 @@ class SRecord(HexFormat):
     def _encodesrecline(cls, fh, address, buffer, offset=0, recordtype=123, bytesperline=32):
         """Encode given data to a S-Record line.
 
-           One or more S-Record lines are encoded from the given address and buffer and written to the given file handle.
+           One or more S-Record lines are encoded from the given address and buffer and written to the given
+           file handle.
 
            Args:
              fh (file handle or compatible): Destination of S-Record lines.
              address (int): Address of first byte in buffer data.
              buffer (Buffer): Buffer with data to be encoded.
              offset (int): Reading start index of buffer.
-             recordtype (int: 0..9 or 123): S-Record record type. If equal to 123 the a record type 1, 2 or 3 is determined by the minimum address byte width.
+             recordtype (int: 0..9 or 123): S-Record record type. If equal to 123 the a record type 1, 2 or 3 is
+                                            determined by the minimum address byte width.
              bytesperline (int): Number of bytes to be written on a single line.
 
            Raises:
@@ -297,18 +303,18 @@ class SRecord(HexFormat):
             if startcode != "S":
                 raise DecodeError("No valid S-Record start code found.")
             recordtype = int(line[1])
-            bytes = bytearray.fromhex(line[2:])
+            databytes = bytearray.fromhex(line[2:])
         except:
             raise DecodeError("misformatted S-Record line.")
-        bytecount = bytes[0]
-        if bytecount != len(bytes) - 1:
+        bytecount = databytes[0]
+        if bytecount != len(databytes) - 1:
             raise DecodeError("Byte count does not match line data.")
-        crccorrect = ((sum(bytes) & 0xFF) == 0xFF)
+        crccorrect = ((sum(databytes) & 0xFF) == 0xFF)
         al = cls._SRECORD_ADDRESSLENGTH[recordtype]
         address = int(line[4:4 + 2 * al], 16)
         datasize = bytecount - al - 1
-        data = bytes[1 + al:-1]
-        return (recordtype, address, data, datasize, crccorrect)
+        data = databytes[1 + al:-1]
+        return recordtype, address, data, datasize, crccorrect
 
     @classmethod
     def fromsrecfile(cls, filename):
@@ -348,7 +354,10 @@ class SRecord(HexFormat):
 
            Args:
              filename (str): Name of S-Record file.
-             raise_error_on_miscount (bool): If True a DecodeError is raised if the number of records read differs from stored number of records.
+             overwrite_metadata (bool): If True existing metadata will be overwritten.
+             overwrite_data (bool): If True existing data will be overwritten.
+             raise_error_on_miscount (bool): If True a DecodeError is raised if the number of records read differs from
+                                             stored number of records.
 
            Returns:
              self
@@ -359,24 +368,29 @@ class SRecord(HexFormat):
     def loadsrecfh(self, fh, overwrite_metadata=False, overwrite_data=True, raise_error_on_miscount=True):
         """Loads data from S-Record file over file handle.
 
-           Parses every source line using :meth:`_parsesrecline` and processes the decoded elements according to the record type.
+           Parses every source line using :meth:`_parsesrecline` and processes the decoded elements according to the
+           record type.
 
            Args:
              fh (file handle or compatible): Source of S-Record lines.
-             raise_error_on_miscount (bool): If True a DecodeError is raised if the number of records read differs from stored number of records.
+             overwrite_metadata (bool): If True existing metadata will be overwritten.
+             overwrite_data (bool): If True existing data will be overwritten.
+             raise_error_on_miscount (bool): If True a DecodeError is raised if the number of records read differs from
+                                             stored number of records.
 
            Returns:
              self
 
            Raises:
              DecodeError: If decoded record type is outside of range 0..9.
-             DecodeError: If raise_error_on_miscount is True and number of records read differ from stored number of records.
+             DecodeError: If raise_error_on_miscount is True and number of records read differ from stored number of
+                          records.
         """
         line = fh.readline()
         numdatarecords = 0
         while line != '':
             (recordtype, address, data, datasize, crccorrect) = self.__class__._parsesrecline(line)
-            if recordtype >= 1 and recordtype <= 3:
+            if 1 <= recordtype <= 3:
                 self.set(address, data, datasize, overwrite=overwrite_data)
                 if numdatarecords == 0:
                     if overwrite_metadata or self._bytesperline is None:
@@ -394,7 +408,7 @@ class SRecord(HexFormat):
                     raise DecodeError(
                         "Number of records read ({:d}) differs from stored number of records ({:d}).".format(
                             numdatarecords, address))
-            elif recordtype >= 7 and recordtype <= 9:
+            elif 7 <= recordtype <= 9:
                 if overwrite_metadata or self._startaddress is None:
                     self.startaddress = address
             else:

@@ -26,8 +26,9 @@
     RT_START_LINEAR_ADDRESS (int constant=5): Intel-Hex record type number for start linear address record.
 """
 
-from hexformat.main import HexFormat
-from hexformat.multipartbuffer import Buffer
+from . import DecodeError, EncodeError
+from .main import HexFormat
+from .multipartbuffer import Buffer
 
 # import bytearray
 
@@ -103,8 +104,7 @@ class IntelHex(HexFormat):
     def variant(self, variant):
         self._variant = self._parse_variant(variant)
 
-    @staticmethod
-    def _parse_variant(variant):
+    def _parse_variant(self, variant):
         if variant is not None:
             if variant in self._VARIANTS:
                 variant = self._VARIANTS[variant]
@@ -180,28 +180,29 @@ class IntelHex(HexFormat):
             startcode = line[0]
             if startcode != ":":
                 raise DecodeError("No valid IntelHex start code found.")
-            bytes = bytearray.fromhex(line[1:])
+            databytes = bytearray.fromhex(line[1:])
         except:
             raise ValueError
-        bytecount = bytes[0]
-        if bytecount != len(bytes) - 5:
+        bytecount = databytes[0]
+        if bytecount != len(databytes) - 5:
             raise DecodeError("Data length does not match byte count.")
-        checksumcorrect = ((sum(bytes) & 0xFF) == 0x00)
-        address = (bytes[1] << 8) | bytes[2]
-        recordtype = bytes[3]
+        checksumcorrect = ((sum(databytes) & 0xFF) == 0x00)
+        address = (databytes[1] << 8) | databytes[2]
+        recordtype = databytes[3]
         try:
             supposed_datalength = self._DATALENGTH[recordtype]
         except IndexError:
             raise DecodeError("Unknown record type.")
         if supposed_datalength is not None and supposed_datalength != bytecount:
             raise DecodeError("Data length does not correspond to record type.")
-        data = bytes[4:-1]
-        return (recordtype, address, data, bytecount, checksumcorrect)
+        data = databytes[4:-1]
+        return recordtype, address, data, bytecount, checksumcorrect
 
     def _encodeihexline(self, recordtype, address16bit=0, data=bytearray()):
         """Encode given data to Intel-Hex format.
 
-           One or more Intel-Hex lines are encoded from the given address and buffer and written to the given file handle.
+           One or more Intel-Hex lines are encoded from the given address and buffer and written to the given
+           file handle.
 
            Args:
              recordtype (int: 0..5): Intel-Hex record type.
@@ -215,7 +216,7 @@ class IntelHex(HexFormat):
              DecodeError: on unknown record type.
              DecodeError: on datalength - record type mismatch.
         """
-        linelen = 2 * len(data) + 11
+        # linelen = 2 * len(data) + 11
         linetempl = ":{:02X}{:04X}{:02X}{:s}{:02X}\n"
         bytecount = len(data)
         try:
@@ -237,10 +238,12 @@ class IntelHex(HexFormat):
            Opens filename for reading and calls :meth:`fromihexfh` with the file handle.
 
            Args:
-             ignore_checksum_errors (bool): If True no error is raised on checksum failures.
+             filename (str): input filename
+             ignore_checksum_errors (bool): If True no error is raised on checksum failures
 
            Returns:
              New instance of class with loaded data.
+
         """
         with open(filename, "r") as fh:
             return cls.fromihexfh(fh, ignore_checksum_errors)
@@ -331,8 +334,9 @@ class IntelHex(HexFormat):
            See :meth:`toihexfh` for description of the arguments.
 
            Args:
+             filename (str): Input file name.
              bytesperline (int): Number of bytes per line.
-             variant: Variant of Intel-Hex format. Must be one out of ('I08HEX', 'I8HEX', 'I16HEX', 'I32HEX', 8, 16, 32).
+             variant ('I08HEX', 'I8HEX', 'I16HEX', 'I32HEX', 8, 16, 32): Variant of Intel-Hex format.
              cs_ip (int, 32-bit): Value of CS:IP starting address used for I16HEX variant.
              eip (int, 32-bit): Value of EIP starting address used for I32HEX variant.
 
@@ -348,7 +352,7 @@ class IntelHex(HexFormat):
            Args:
              fh (file handle or compatible): Destination of S-Record lines.
              bytesperline (int): Number of bytes per line.
-             variant: Variant of Intel-Hex format. Must be one out of ('I08HEX', 'I8HEX', 'I16HEX', 'I32HEX', 8, 16, 32).
+             variant ('I08HEX', 'I8HEX', 'I16HEX', 'I32HEX', 8, 16, 32): Variant of Intel-Hex format.
              cs_ip (int, 32-bit): Value of CS:IP starting address used for I16HEX variant.
              eip (int, 32-bit): Value of EIP starting address used for I32HEX variant.
 
@@ -361,7 +365,6 @@ class IntelHex(HexFormat):
         (bytesperline, variant, cs_ip, eip) = self._parse_settings(**settings)
         highaddr = 0
         addresshigh = 0
-        addresslow = 0
         for address, buffer in self._parts:
             pos = 0
             datalength = len(buffer)

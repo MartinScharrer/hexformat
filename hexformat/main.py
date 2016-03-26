@@ -7,7 +7,7 @@ class HexFormat(MultiPartBuffer):
     _SETTINGS = tuple()
 
     def __init__(self):
-        super(HexFormat, self).__init__();
+        super(HexFormat, self).__init__()
 
     @classmethod
     def fromother(cls, other, shallow_copy=False):

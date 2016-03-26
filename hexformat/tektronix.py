@@ -100,7 +100,7 @@ class TektronixExtHex(HexFormat):
                 raise ValueError("addresslength must be 2, 3 or 4 bytes")
         return addresslength
 
-    def totekfile(cls, filename, **settings):
+    def totekfile(self, filename, **settings):
         """Writes content as Tektronix Extended Hex file to given file name.
 
            Opens filename for writing and calls :meth:`totekfh` with the file handle and all arguments.
@@ -110,7 +110,7 @@ class TektronixExtHex(HexFormat):
              self
         """
         with open(filename, "w") as fh:
-            return cls.totekfh(fh, **settings)
+            return self.totekfh(fh, **settings)
 
     def totekfh(self, fh, **settings):
         """Writes content as Tektronix Extended Hex file to given file handle.
@@ -139,14 +139,16 @@ class TektronixExtHex(HexFormat):
     def _encodetekline(cls, fh, address, addresslength, buffer, offset=0, recordtype=TYPE_DATA, bytesperline=32):
         """Encode given data to a Tektronix Extended Hex line.
 
-           One or more Tektronix Extended Hex lines are encoded from the given address and buffer and written to the given file handle.
+           One or more Tektronix Extended Hex lines are encoded from the given address and buffer and written to the
+           given file handle.
 
            Args:
              fh (file handle or compatible): Destination of Tektronix Extended Hex lines.
              address (int): Address of first byte in buffer data.
              buffer (Buffer): Buffer with data to be encoded.
              offset (int): Reading start index of buffer.
-             recordtype (int: 0..9 or 123): Tektronix Extended Hex record type. If equal to 123 the a record type 1, 2 or 3 is determined by the minimum address byte width.
+             recordtype (int: 0..9 or 123): Tektronix Extended Hex record type. If equal to 123 the a
+                                            record type 1, 2 or 3 is determined by the minimum address byte width.
              bytesperline (int): Number of bytes to be written on a single line.
 
            Raises:
@@ -163,8 +165,7 @@ class TektronixExtHex(HexFormat):
                 length = 2 * bytesperline + addresslength + 6
             checksum = 0
             line = "{0:02X}{1:1X}{2:1X}{3:0{2:d}X}{4:s}".format(length, recordtype, addresslength, address,
-                                                                binascii.hexlify(buffer[
-                                                                                 offset:offset + bytesperline]).upper().decode())
+                        binascii.hexlify(buffer[offset:offset + bytesperline]).upper().decode())
             for char in line:
                 checksum += int(char, 16)
             line = "%" + line[0:3] + "{:02X}".format(checksum) + line[3:] + "\n"
@@ -181,7 +182,8 @@ class TektronixExtHex(HexFormat):
              line (str): Single input line, usually with line termination character(s).
 
            Returns:
-             Tuple (recordtype, address, addresslength, data, datasize, checksum, checksumcorrect) with types (int, int, int, Buffer, int, int, bool).
+             Tuple (recordtype, address, addresslength, data, datasize, checksum, checksumcorrect) with
+             types (int, int, int, Buffer, int, int, bool).
 
            Raises:
              DecodeError: if line does not start with start code ("S").
@@ -212,7 +214,7 @@ class TektronixExtHex(HexFormat):
             raise
         except:
             raise DecodeError("Misformatted Tektronix Extended Hex line.")
-        return (recordtype, address, addresslength, data, datalength, checksum, checksumcorrect)
+        return recordtype, address, addresslength, data, datalength, checksum, checksumcorrect
 
     @classmethod
     def fromtekfile(cls, filename):
@@ -252,7 +254,10 @@ class TektronixExtHex(HexFormat):
 
            Args:
              filename (str): Name of Tektronix Extended Hex file.
-             raise_error_on_miscount (bool): If True a DecodeError is raised if the number of records read differs from stored number of records.
+             overwrite_metadata (bool): If True existing metadata will be overwritten.
+             overwrite_data (bool): If True existing data will be overwritten.
+             raise_error_on_miscount (bool): If True a DecodeError is raised if the number of records read differs from
+                                             stored number of records.
 
            Returns:
              self
@@ -263,18 +268,23 @@ class TektronixExtHex(HexFormat):
     def loadtekfh(self, fh, overwrite_metadata=False, overwrite_data=True, raise_error_on_miscount=True):
         """Loads data from Tektronix Extended Hex file over file handle.
 
-           Parses every source line using :meth:`_parsetekline` and processes the decoded elements according to the record type.
+           Parses every source line using :meth:`_parsetekline` and processes the decoded elements according to the
+           record type.
 
            Args:
              fh (file handle or compatible): Source of Tektronix Extended Hex lines.
-             raise_error_on_miscount (bool): If True a DecodeError is raised if the number of records read differs from stored number of records.
+             overwrite_metadata (bool): If True existing metadata will be overwritten.
+             overwrite_data (bool): If True existing data will be overwritten.
+             raise_error_on_miscount (bool): If True a DecodeError is raised if the number of records read differs from
+                                             stored number of records.
 
            Returns:
              self
 
            Raises:
              DecodeError: If decoded record type is outside of range 0..9.
-             DecodeError: If raise_error_on_miscount is True and number of records read differ from stored number of records.
+             DecodeError: If raise_error_on_miscount is True and number of records read differ from stored number of
+                          records.
         """
         line = fh.readline()
         numdatarecords = 0

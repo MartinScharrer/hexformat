@@ -237,5 +237,5 @@ class RandomContent(FillPattern):
     def __getitem__(self, i):
         """Return random byte value independent from input value."""
         if isinstance(i, slice):
-            return super(RandomContent, self).__getitem__(i.start, i.stop)
+            return super(RandomContent, self).__getitem__(i)
         return randint(0, 255)

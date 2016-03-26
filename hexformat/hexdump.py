@@ -21,8 +21,9 @@
 
 import string
 
-from hexformat.main import HexFormat
-from hexformat.multipartbuffer import Buffer
+from . import DecodeError
+from .main import HexFormat
+from .multipartbuffer import Buffer
 
 
 class HexDump(HexFormat):
@@ -33,7 +34,8 @@ class HexDump(HexFormat):
        .. _`Hex dump`: http://en.wikipedia.org/wiki/Hex_dump
     """
 
-    def _encodehexdumpline(self, address, data, bytesperline, groupsize, bigendian, ascii):
+    @staticmethod
+    def _encodehexdumpline(address, data, bytesperline, groupsize, bigendian, ascii):
         """Return encoded hex dump line.
 
            Args:
@@ -68,13 +70,14 @@ class HexDump(HexFormat):
         hwidth = bytesperline * 2 + numgroups - 1
         return "{{:08X}}: {{:{:d}s}}{{:s}}\n".format(hwidth).format(address, datastr, asciistr)
 
-    def _parsehexdumpline(self, line, bigendian):
+    @staticmethod
+    def _parsehexdumpline(line, bigendian):
         """Parses hex dump line to extract address and data.
 
            Args:
              line (str): Hex dump line to be parsed.
-             bigendian (bool): If True the bytes in a group will be interpreted in big endian (Motorola style, MSB first) order,
-                               otherwise in little endian (Intel style, LSB first) order.
+             bigendian (bool): If True the bytes in a group will be interpreted in big endian (Motorola style,
+                               MSB first) order, otherwise in little endian (Intel style, LSB first) order.
 
            Returns:
              Tuple (address, data) with types (int, Buffer).
@@ -93,7 +96,7 @@ class HexDump(HexFormat):
                 if not bigendian:
                     groupdata = reversed(groupdata)
                 data.extend(groupdata)
-            return (address, data)
+            return address, data
         except Exception as e:
             raise DecodeError("Invalid formatted input line: " + str(e))
 
@@ -105,8 +108,8 @@ class HexDump(HexFormat):
 
            Args:
              filename (str): Name of file to be loaded.
-             bigendian (bool): If True the bytes in a group will be interpreted in big endian (Motorola style, MSB first) order,
-                               otherwise in little endian (Intel style, LSB first) order.
+             bigendian (bool): If True the bytes in a group will be interpreted in big endian (Motorola style,
+                               MSB first) order, otherwise in little endian (Intel style, LSB first) order.
 
            Returns:
              New instance of class with loaded data.
@@ -122,8 +125,8 @@ class HexDump(HexFormat):
 
            Args:
              fh (file handle or compatible): Source of Intel-Hex lines.
-             bigendian (bool): If True the bytes in a group will be interpreted in big endian (Motorola style, MSB first) order,
-                               otherwise in little endian (Intel style, LSB first) order.
+             bigendian (bool): If True the bytes in a group will be interpreted in big endian (Motorola style,
+                               MSB first) order, otherwise in little endian (Intel style, LSB first) order.
 
            Returns:
              New instance of class with loaded data.
@@ -137,22 +140,22 @@ class HexDump(HexFormat):
 
            Args:
              filename (str): Name of file to be loaded.
-             bigendian (bool): If True the bytes in a group will be interpreted in big endian (Motorola style, MSB first) order,
-                               otherwise in little endian (Intel style, LSB first) order.
+             bigendian (bool): If True the bytes in a group will be interpreted in big endian (Motorola style,
+                               MSB first) order, otherwise in little endian (Intel style, LSB first) order.
 
            Returns:
              self
         """
         with open(filename, "r") as fh:
-            return cls.loadhexdumpfh(fh, bigendian)
+            return self.loadhexdumpfh(fh, bigendian)
 
     def loadhexdumpfh(self, fh, bigendian=True):
         """Loads hex dump lines from file handle.
 
            Args:
              fh (file handle or compatible): Source of Intel-Hex lines.
-             bigendian (bool): If True the bytes in a group will be interpreted in big endian (Motorola style, MSB first) order,
-                               otherwise in little endian (Intel style, LSB first) order.
+             bigendian (bool): If True the bytes in a group will be interpreted in big endian (Motorola style,
+                               MSB first) order, otherwise in little endian (Intel style, LSB first) order.
 
            Returns:
              self
