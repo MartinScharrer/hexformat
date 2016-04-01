@@ -70,7 +70,6 @@ class FillPattern(object):
               pattern (cls, byte or iterable of bytes): If pattern is already an instance of the same class it is used,
                       either directly or as a length adjusted copy if the length argument differs from its length.
                       Otherwise it must be a byte or iterable of bytes which is simply passed to the class constructor.
-              length (None or int, optional): Official length of FillPattern. Only used if used with len() or str() etc.     
                                               If None then the length of the pattern is used instead.
                                               
             Returns:
@@ -157,16 +156,6 @@ class FillPattern(object):
             n = (self._offset + i) % plen
             yield self._pattern[n]
 
-    def __str__(self):
-        """Return string representation with official length of fillpattern."""
-        scale = int(math.ceil(float(self._length + self._offset) / len(self._pattern)))
-        s = str(self._pattern * scale)
-        if self._offset > 0:
-            s = s[self._offset:self._offset + self._length]
-        elif len(s) > self._length:
-            s = s[0:self._length]
-        return s
-
     def __getitem__(self, i):
         """Return item at given official index by repeating internal pattern."""
         try:
@@ -174,8 +163,20 @@ class FillPattern(object):
             return self._pattern[n]
         except TypeError:
             other = copy.deepcopy(self)
-            other._offset += i.start
-            other._length = i.stop - i.start
+            start = i.start
+            stop = i.stop
+            if i.step is not None:
+                raise KeyError("Step not supported")
+            if start is None:
+                start = 0
+            elif start < 0:
+                start = self._length + start
+            if stop is None:
+                stop = self._length
+            elif stop < 0:
+                stop = self._length + stop
+            other._offset += start
+            other._length = stop - start
             plen = len(self._pattern)
             if other._offset > plen:
                 other._length -= int(math.floor(other._offset / plen))
@@ -191,22 +192,13 @@ class RandomContent(FillPattern):
         For this the Python :meth:`random.randint` method is used.
 
         Args:
-            pattern (None or byte or iterable of bytes; optional): Pattern content is ignored, but might be used to set
-                                                                   length.
-            length (None or int, optional): Official length. Only used if used with len() or str() etc.     
-                                            If None then the length of the pattern is used
-                                            If it is also None the length is set to 1.
-                                          
+            length (int): Official length. Only used if used with len() etc.
+
         Raises:
             AttributeError: May be raised by len(pattern) if input is not as requested above.     
     """
 
-    def __init__(self, pattern=None, length=None):
-        if length is None:
-            if pattern is None:
-                length = 1
-            else:
-                length = len(pattern)
+    def __init__(self, length=1):
         pattern = [0, ]
         super(RandomContent, self).__init__(pattern, length)
 
