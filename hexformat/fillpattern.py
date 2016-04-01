@@ -70,7 +70,9 @@ class FillPattern(object):
               pattern (cls, byte or iterable of bytes): If pattern is already an instance of the same class it is used,
                       either directly or as a length adjusted copy if the length argument differs from its length.
                       Otherwise it must be a byte or iterable of bytes which is simply passed to the class constructor.
-                                              If None then the length of the pattern is used instead.
+                      If None then the length of the pattern is used instead.
+              length (int): Official length of pattern. If None the length of the pattern is used.
+                      If smaller than the pattern length, only the first `length` bytes are used from the pattern.
                                               
             Returns:
               Instance of class based on the given pattern and length.
@@ -81,14 +83,14 @@ class FillPattern(object):
             return cls(pattern, length)
 
     @classmethod
-    def fromnumber(cls, number, width=4, bigendian=True, length=None, signed=False):
-        """Generate instance from integer number.
+    def fromnumber(cls, number, width=4, byteorder='big', length=None, signed=False):
+        """Generate instance from integer number. (Python 3 only)
         
             Args:
-              number (int or long):  a numerical value which will be used for the pattern.
-              width (int or long; optional):  byte width of the number. Usually 1 till 4. If number is narrower than
-                                              this width it is zero padded.
-              bigendian (bool; optional):  If True (default) the number will be turned into a list of bytes from most
+              number (int):  a numerical value which will be used for the pattern.
+              width (int):  byte width of the number. Usually 1 till 4. If number is narrower than this width it is
+                            zero padded.
+              byteorder ('big'|'little'):  If 'big' (default) the number will be turned into a list of bytes from most
                                    to least significant byte ("MSB first", "Motorola" style).
                                    Otherwise the byte order will be from least to most significant byte ("LSB first",
                                    "Intel" style). For any other byte order the method :meth:`frompattern` must be used
@@ -99,12 +101,9 @@ class FillPattern(object):
                                        negative an OverflowError is raised.
                                               
             Returns:
-              New instance of class.
-              
-            Raises:
-              ValueError: If number or width are anything except an int or long or if with is non-positive.
+              New instance of the same class.
         """
-        pattern = number.to_bytes(width, bigendian and 'big' or 'little', signed=signed)
+        pattern = number.to_bytes(width, byteorder, signed=signed)
         return cls(pattern, length)
 
     def __len__(self):
