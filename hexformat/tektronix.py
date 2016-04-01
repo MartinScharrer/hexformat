@@ -21,8 +21,7 @@
 
 import binascii
 
-from hexformat import DecodeError
-from hexformat.base import HexFormat
+from hexformat.base import HexFormat, DecodeError
 from hexformat.multipartbuffer import Buffer
 
 TYPE_SYMBOL = 3

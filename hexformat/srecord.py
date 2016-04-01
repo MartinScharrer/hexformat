@@ -21,9 +21,8 @@
 
 import binascii
 
-from . import DecodeError, EncodeError
-from .base import HexFormat
-from .multipartbuffer import Buffer
+from hexformat.base import DecodeError, EncodeError, HexFormat
+from hexformat.multipartbuffer import Buffer
 
 
 class SRecord(HexFormat):

@@ -27,11 +27,8 @@
     RT_START_LINEAR_ADDRESS (int constant=5): Intel-Hex record type number for start linear address record.
 """
 
-from . import DecodeError, EncodeError
-from .base import HexFormat
-from .multipartbuffer import Buffer
-
-# import bytearray
+from hexformat.base import DecodeError, EncodeError, HexFormat
+from hexformat.multipartbuffer import Buffer
 
 # Intel-Hex Record Types
 RT_DATA = 0
