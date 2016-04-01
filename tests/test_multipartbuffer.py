@@ -20,13 +20,15 @@
 
 import sys
 
-from hexformat import IntelHex, RandomContent
+from hexformat.intelhex import IntelHex
+from hexformat.fillpattern import RandomContent
+
 from hexformat.multipartbuffer import MultiPartBuffer, Buffer
 
 sys.path.append('..')
 
 
-def Xtest1():
+def test1():
     m = MultiPartBuffer()
     assert m._parts == []
     assert m.set(0, "Test") is m  # returns self
@@ -40,7 +42,7 @@ def Xtest1():
     assert m._parts[1][0] == 0x104
 
 
-def Xtest2():
+def test2():
     m = MultiPartBuffer()
     m.fill(0, 0x1000, RandomContent())
     m.fill(0x1000, 0x1000, RandomContent())
@@ -72,11 +74,11 @@ def test_multipartbuffer_eq():
     m1 = MultiPartBuffer()
     m2 = MultiPartBuffer()
     assert m1 == m2
-    m1.fill(0x100, 0x100, "Test")
-    m2.fill(0x100, 0x100, "Test")
+    m1.fill(0x100, 0x100, bytearray(b"Test"))
+    m2.fill(0x100, 0x100, bytearray(b"Test"))
     assert m1 == m2
-    m1.fill(0x0, 0x100, "Test")
-    m2.fill(0x0, 0x100, "Test")
+    m1.fill(0x0, 0x100, bytearray(b"Test"))
+    m2.fill(0x0, 0x100, bytearray(b"Test"))
     assert m1 == m2
     m1.fillgaps()
     m2.fillgaps()
