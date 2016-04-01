@@ -72,6 +72,7 @@ class IntelHex(HexFormat):
     _DEFAULT_EIP = None
     _DEFAULT_CS_IP = None
     _SETTINGS = ['bytesperline', 'cs_ip', 'eip', 'variant']
+    _STANDARD_FORMAT = 'ihex'
 
     def __init__(self, **settings):
         super(IntelHex, self).__init__()
