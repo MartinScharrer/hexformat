@@ -9,7 +9,7 @@ A base class :class:`.MultiPartBuffer` is provided which implements the handling
 This base class allows for the basic operations like reading and writing binary files as well as modifing the binary data.
 The specific classes :class:`.IntelHex`, :class:`.SRecord` and :class:`.HexDump` are derivated from it which implement the parsing and generating of the corresponding HEX formats as well as implementing file format specific features. 
 
-.. -Intel-Hex: http://en.wikipedia.org/wiki/Intel_HEX
+.. _Intel-Hex: http://en.wikipedia.org/wiki/Intel_HEX
 .. _S-Record: http://en.wikipedia.org/wiki/SREC_%28file_format%29
 .. _`hex dump`: http://en.wikipedia.org/wiki/Hex_dump
 

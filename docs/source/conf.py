@@ -54,7 +54,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'hexformat'
-copyright = u'2015, Martin Scharrer'
+copyright = u'2015-2016 by Martin Scharrer'
 author = u'Martin Scharrer'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -293,4 +293,18 @@ texinfo_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'https://docs.python.org/': None}
 
-autodoc_member_order = 'bysource'
+autodoc_member_order = 'source'
+autodoc_default_flags = [ 'members', 'undoc-members', 'show-inheritance']
+# [ 'members', 'undoc-members', 'private-members', 'special-members', 'inherited-members', 'show-inheritance']
+
+# Napoleon settings
+napoleon_google_docstring = True
+napoleon_numpy_docstring = True
+napoleon_include_private_with_doc = False
+napoleon_include_special_with_doc = False
+napoleon_use_admonition_for_examples = False
+napoleon_use_admonition_for_notes = False
+napoleon_use_admonition_for_references = False
+napoleon_use_ivar = False
+napoleon_use_param = True
+napoleon_use_rtype = True
