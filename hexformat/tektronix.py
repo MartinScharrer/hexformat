@@ -164,8 +164,9 @@ class TektronixExtHex(HexFormat):
                 bytesperline = endaddress - address + 1
                 length = 2 * bytesperline + addresslength + 6
             checksum = 0
-            line = "{0:02X}{1:1X}{2:1X}{3:0{2:d}X}{4:s}".format(length, recordtype, addresslength, address,
-                        binascii.hexlify(buffer[offset:offset + bytesperline]).upper().decode())
+            line = "{0:02X}{1:1X}{2:1X}{3:0{2:d}X}{4:s}".format(
+                length, recordtype, addresslength, address,
+                binascii.hexlify(buffer[offset:offset + bytesperline]).upper().decode())
             for char in line:
                 checksum += int(char, 16)
             line = "%" + line[0:3] + "{:02X}".format(checksum) + line[3:] + "\n"
