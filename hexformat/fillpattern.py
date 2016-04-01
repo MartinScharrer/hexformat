@@ -22,7 +22,7 @@
 import copy
 import math
 import sys
-from random import randint
+import random
 
 if sys.version_info < (3,):
     integer_types = (int, long,)
@@ -217,17 +217,13 @@ class RandomContent(FillPattern):
             raise ValueError("can't multiply instance by non-int or non-positive integer")
         return self.__class__(self._length * int(factor))
 
-    def __str__(self):
-        """Return string with random content with the official length of the instance."""
-        return "".join([chr(n) for n in self])
-
     def __iter__(self):
         """Yield random byte values. The number of bytes is the official length of the instance."""
         for n in range(0, self._length):
-            yield randint(0, 255)
+            yield random.randint(0, 255)
 
     def __getitem__(self, i):
         """Return random byte value independent from input value."""
         if isinstance(i, slice):
             return super(RandomContent, self).__getitem__(i)
-        return randint(0, 255)
+        return random.randint(0, 255)

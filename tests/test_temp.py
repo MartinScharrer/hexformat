@@ -43,7 +43,7 @@ def test_createrandom():
     dirname = tempfile.mkdtemp(prefix="test_createrandom_")
     timelimit = time() + 20
     try:
-        for n in range(0, 100):
+        for n in range(0, 10):
             randomsize = random.randint(0, (1 << 16) - 1)
             randomaddr = random.randint(0, (1 << 21) - 1)
             filebase = os.path.join(dirname, "testrun"+str(n))
@@ -52,7 +52,7 @@ def test_createrandom():
                 break
     finally:
         try:
-            pass#shutil.rmtree(dirname)
+            shutil.rmtree(dirname)
         except:
             pass
 

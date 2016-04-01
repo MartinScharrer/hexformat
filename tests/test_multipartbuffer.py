@@ -22,7 +22,7 @@ import sys
 
 from hexformat.intelhex import IntelHex
 from hexformat.fillpattern import RandomContent
-
+from nose.tools import assert_equal
 from hexformat.multipartbuffer import MultiPartBuffer, Buffer
 
 sys.path.append('..')
@@ -30,16 +30,16 @@ sys.path.append('..')
 
 def test1():
     m = MultiPartBuffer()
-    assert m._parts == []
-    assert m.set(0, "Test") is m  # returns self
-    assert m._parts == [[0, Buffer("Test")]]
+    assert_equal(m._parts, [])
+    assert m.set(0, bytearray(10)) is m  # returns self
+    assert_equal(m._parts, [[0, Buffer(bytearray(10))]])
     assert m.fill(0x100, 0x8, [0xAA, 0xBB, 0xCC, 0xDD]) is m  # returns self
-    assert m.get(0x100, 0x8) == Buffer([0xAA, 0xBB, 0xCC, 0xDD, 0xAA, 0xBB, 0xCC, 0xDD])
+    assert_equal(m.get(0x100, 0x8), Buffer([0xAA, 0xBB, 0xCC, 0xDD, 0xAA, 0xBB, 0xCC, 0xDD]))
     assert m.fill(0x200, 0x8) is m  # returns self
-    assert m.get(0x200, 0x8) == Buffer([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF])
-    assert m.delete(0x100, 0x4) == m  # returns self
-    assert len(m.parts()) == 3
-    assert m._parts[1][0] == 0x104
+    assert_equal(m.get(0x200, 0x8), Buffer([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]))
+    assert_equal(m.delete(0x100, 0x4), m)  # returns self
+    assert_equal(len(m.parts()), 3)
+    assert_equal(m._parts[1][0], 0x104)
 
 
 def test2():
@@ -50,18 +50,18 @@ def test2():
     assert m.tobinfile("test2.bin") is m  # retuns self
     n = MultiPartBuffer.frombinfile("test2.bin")
     m.fillgaps()
-    assert m == n
-    assert m._parts == n._parts
+    assert_equal(m, n)
+    assert_equal(m._parts, n._parts)
     ih = IntelHex.frombinfile("test2.bin")
-    assert ih._parts == m._parts
+    assert_equal(ih._parts, m._parts)
     assert ih.toihexfile("test2.hex") is ih  # returns self
     ih2 = IntelHex.fromihexfile("test2.hex")
-    assert ih == ih2
+    assert_equal(ih, ih2)
 
 
 def test_multipartbuffer_init():
     """Init must set _parts to an empty list"""
-    assert MultiPartBuffer()._parts == list()
+    assert_equal(MultiPartBuffer()._parts, list())
 
 
 def test_multipartbuffer_repr():
@@ -73,13 +73,13 @@ def test_multipartbuffer_eq():
     """Instance must be logical equal to other instance with equal data content"""
     m1 = MultiPartBuffer()
     m2 = MultiPartBuffer()
-    assert m1 == m2
+    assert_equal(m1, m2)
     m1.fill(0x100, 0x100, bytearray(b"Test"))
     m2.fill(0x100, 0x100, bytearray(b"Test"))
-    assert m1 == m2
+    assert_equal(m1, m2)
     m1.fill(0x0, 0x100, bytearray(b"Test"))
     m2.fill(0x0, 0x100, bytearray(b"Test"))
-    assert m1 == m2
+    assert_equal(m1, m2)
     m1.fillgaps()
     m2.fillgaps()
-    assert m1 == m2
+    assert_equal(m1, m2)
