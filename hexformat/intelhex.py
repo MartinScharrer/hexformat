@@ -364,7 +364,7 @@ class IntelHex(HexFormat):
            Raises:
              EncodeError: if selected address length is not wide enough to fit all addresses.
         """
-        (bytesperline, variant, cs_ip, eip) = self._parse_settings(**settings)
+        (bytesperline, cs_ip, eip, variant) = self._parse_settings(**settings)
         highaddr = 0
         addresshigh = 0
         for address, buffer in self._parts:

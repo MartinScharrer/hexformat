@@ -45,11 +45,11 @@ class SRecord(HexFormat):
 
     _SRECORD_ADDRESSLENGTH = (2, 2, 3, 4, None, 2, 3, 4, 3, 2)
     _STANDARD_FORMAT = 'srec'
-    _STANDARD_HEADER = Buffer(b'')
-    _STANDARD_STARTADDRESS = 0
-    _STANDARD_ADDRESSLENGTH = None
-    _STANDARD_BYTESPERLINE = 32
-    _STANDARD_WRITE_NUMBER_OF_RECORDS = False
+    _DEFAULT_HEADER = Buffer(b'')
+    _DEFAULT_STARTADDRESS = 0
+    _DEFAULT_ADDRESSLENGTH = None
+    _DEFAULT_BYTESPERLINE = 32
+    _DEFAULT_WRITE_NUMBER_OF_RECORDS = False
     _SETTINGS = ['startaddress', 'addresslength', 'bytesperline', 'header', 'write_number_of_records']
 
     def __init__(self, **settings):
@@ -254,9 +254,9 @@ class SRecord(HexFormat):
            Raises:
              EncodeError: on unsupported record type.
         """
-        endaddress = address + len(buffer) - 1
+        endaddress = address + len(buffer)
         if recordtype == 123:
-            recordtype = cls._minaddresslength(endaddress) - 1
+            recordtype = cls._minaddresslength(endaddress-1) - 1
         try:
             recordtype = int(recordtype)
             addresslength = int(cls._SRECORD_ADDRESSLENGTH[recordtype])
@@ -269,7 +269,7 @@ class SRecord(HexFormat):
         while address < endaddress or numdatarecords == 0:
             numdatarecords += 1
             if address + bytesperline > endaddress:
-                bytesperline = endaddress - address + 1
+                bytesperline = endaddress - address
                 bytecount = bytesperline + addresslength + 1
             linebuffer = bytearray([0, ] * (bytecount + 1))
             linebuffer[0] = bytecount

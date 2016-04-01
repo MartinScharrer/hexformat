@@ -58,6 +58,6 @@ class HexFormat(MultiPartBuffer):
             if value is None:
                 value = getattr(self, sname)
             if value is None:
-                value = getattr(self, '_STANDARD_' + sname.upper())
+                value = getattr(self, '_DEFAULT_' + sname.upper())
             retvals.append(value)
         return retvals
