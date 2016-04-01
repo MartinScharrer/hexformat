@@ -112,3 +112,14 @@ def test_imul():
         fp *= n
         assert len(fp) == n
 
+
+def test_iter():
+    testdata = bytearray((random.randint(0, 255) for n in range(0, 100)))
+    fp = FillPattern(testdata)
+    assert bytearray((b for b in fp)) == testdata
+    assert bytearray((b for b in fp[:])) == testdata
+    fp2 = fp[10:]
+    assert bytearray((b for b in fp2)) == testdata[10:]
+    fp3 = fp2[10:]
+    assert bytearray((b for b in fp3)) == testdata[20:]
+
