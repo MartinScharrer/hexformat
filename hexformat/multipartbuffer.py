@@ -696,55 +696,55 @@ class MultiPartBuffer(object):
             filterfunc(bufferaddr, buffer, bufferstartindex, buffersize)
 
     @classmethod
-    def fromfile(cls, filename, format=None, *args, **kvargs):
+    def fromfile(cls, filename, fformat=None, *args, **kvargs):
         """ """
-        if format is None:
-            format = cls._STANDARD_FORMAT
-        methodname = "from" + format.lower() + "file"
+        if fformat is None:
+            fformat = cls._STANDARD_FORMAT
+        methodname = "from" + fformat.lower() + "file"
         if hasattr(cls, methodname):
             return getattr(cls, methodname)(filename, *args, **kvargs)
         else:
             opt = "r"
-            if format == "bin" or (format is None and cls._STANDARD_FORMAT == "bin"):
+            if fformat == "bin":
                 opt = "rb"
             with open(filename, opt) as fh:
-                return cls.fromfh(fh, *args, format=format, **kvargs)
+                return cls.fromfh(fh, *args, fformat=fformat, **kvargs)
 
     @classmethod
-    def fromfh(cls, fh, format=None, *args, **kvargs):
+    def fromfh(cls, fh, fformat=None, *args, **kvargs):
         """ """
-        if format is None:
-            format = cls._STANDARD_FORMAT
-        methodname = "from" + format.lower() + "fh"
+        if fformat is None:
+            fformat = cls._STANDARD_FORMAT
+        methodname = "from" + fformat.lower() + "fh"
         if hasattr(cls, methodname):
             return getattr(cls, methodname)(fh, *args, **kvargs)
         else:
             raise ValueError
 
-    def tofile(self, filename, format=None, *args, **kvargs):
+    def tofile(self, filename, fformat=None, *args, **kvargs):
         """ """
         opt = "w"
-        if format == "bin" or (format is None and self._STANDARD_FORMAT == "bin"):
+        if fformat == "bin" or (fformat is None and self._STANDARD_FORMAT == "bin"):
             opt = "wb"
         with open(filename, opt) as fh:
-            return self.tofh(fh, *args, format=format, **kvargs)
+            return self.tofh(fh, *args, fformat=fformat, **kvargs)
 
-    def tofh(self, fh, format=None, *args, **kvargs):
+    def tofh(self, fh, fformat=None, *args, **kvargs):
         """ """
-        if format is None:
-            format = self._STANDARD_FORMAT
-        methodname = "to" + format.lower() + "fh"
+        if fformat is None:
+            fformat = self._STANDARD_FORMAT
+        methodname = "to" + fformat.lower() + "fh"
         if hasattr(self, methodname):
             return getattr(self, methodname)(fh, *args, **kvargs)
         else:
             raise ValueError
 
     @classmethod
-    def fromfh(cls, fh, format=None, *args, **kvargs):
+    def fromfh(cls, fh, fformat=None, *args, **kvargs):
         """ """
-        if format is None:
-            format = cls._STANDARD_FORMAT
-        methodname = "load" + format.lower() + "fh"
+        if fformat is None:
+            fformat = cls._STANDARD_FORMAT
+        methodname = "load" + fformat.lower() + "fh"
         self = cls()
         if hasattr(self, methodname):
             getattr(self, methodname)(fh, *args, **kvargs)
