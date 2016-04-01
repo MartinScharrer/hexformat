@@ -2,7 +2,7 @@
 
   License::
 
-    Copyright (C) 2015  Martin Scharrer <martin@scharrer-online.de>
+    Copyright (C) 2015-2016 by Martin Scharrer <martin@scharrer-online.de>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
   Attributes:
     RT_DATA (int constant=0): Intel-Hex record type number for data record.
     RT_END_OF_FILE (int constant=1): Intel-Hex record type number for end of file record.
@@ -27,7 +28,7 @@
 """
 
 from . import DecodeError, EncodeError
-from .main import HexFormat
+from .base import HexFormat
 from .multipartbuffer import Buffer
 
 # import bytearray

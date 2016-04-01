@@ -1,8 +1,8 @@
-""" Provide classto handle Motorola SRecord content.
+""" Provide class to handle Motorola SRecord content.
 
   License::
 
-    Copyright (C) 2015  Martin Scharrer <martin@scharrer-online.de>
+    Copyright (C) 2015-2016 by Martin Scharrer <martin@scharrer-online.de>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 import binascii
 
 from . import DecodeError, EncodeError
-from .main import HexFormat
+from .base import HexFormat
 from .multipartbuffer import Buffer
 
 
