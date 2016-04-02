@@ -58,6 +58,7 @@ class MultiPartBuffer(object):
                                                                                            start, totalsize,
                                                                                            self.usedsize())
 
+    # noinspection PyProtectedMember
     def __eq__(self, other):
         """Compare with other instance for equality."""
         return self._parts == other._parts

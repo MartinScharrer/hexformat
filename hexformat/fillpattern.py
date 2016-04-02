@@ -155,6 +155,7 @@ class FillPattern(object):
             n = (self._offset + i) % plen
             yield self._pattern[n]
 
+    # noinspection PyProtectedMember
     def __getitem__(self, i):
         """Return item at given official index by repeating internal pattern."""
         try:

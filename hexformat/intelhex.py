@@ -400,6 +400,7 @@ class IntelHex(HexFormat):
         fh.write(self._encodeihexline(1))
         return self
 
+    # noinspection PyProtectedMember
     def __eq__(self, other):
         """Compare with other instance for equality.
 
