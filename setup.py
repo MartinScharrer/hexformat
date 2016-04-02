@@ -23,7 +23,7 @@ setup(
     url='https://bitbucket.org/martin_scharrer/hexformat',
     download_url='https://bitbucket.org/martin_scharrer/hexformat/downloads/',
     install_requires=[],
-    tests_require=['nose', ],
+    tests_require=['nose', 'mock'],
     test_suite='nose.collector',
     classifiers=[
         "Development Status :: 3 - Alpha",
