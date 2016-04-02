@@ -147,8 +147,8 @@ def test_encode_all_byteperline():
     """ Test all valid bytesperline settings [0..254-addresslength] """
     # noinspection PyProtectedMember
     def do(recordtype, bytesperline):
-        # noinspection PyUnusedLocal
         addresslen = recordtype + 1
+        # noinspection PyUnusedLocal
         testdata = bytearray((random.randint(0, 0xFF) for m in range(0, bytesperline)))
         fh = FakeFileHandle()
         SRecord._encodesrecline(fh, 0, testdata, offset=0, recordtype=recordtype, bytesperline=bytesperline)
