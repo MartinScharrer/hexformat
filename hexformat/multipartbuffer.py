@@ -439,17 +439,17 @@ class MultiPartBuffer(object):
         return self
 
     def get(self, address, size, fillpattern=None):
-        """Get <size> bytes from <address>. Fill missing bytes with <fillpattern>.
-           Where <fillpattern> can be:
-             1) A byte-sized integer, i.e. in range 0..255.
-             2) A list-like object which has all of the following properties:
-                a) can be converted to a list of bytes
-                d) is indexable
-                c) should be multipliable
-             3) A type which produces a list-like object as mentioned in 2) if
-                instanciated with no argument or with the requested size as only argument.
-             4) An exception class or instance.
-                If given then no filling is performed but the exception is raised if filling would be required.
+        """ Get <size> bytes from <address>. Fill missing bytes with <fillpattern>.
+            Where <fillpattern> can be:
+                1. A byte-sized integer, i.e. in range 0..255.
+                2. A list-like object which has all of the following properties:
+                    - can be converted to a list of bytes
+                    - is indexable
+                    - should be multipliable
+                3. A type which produces a list-like object as mentioned in 2) if
+                   instanciated with no argument or with the requested size as only argument.
+                4. An exception class or instance.
+                   If given then no filling is performed but the exception is raised if filling would be required.
         """
         address, size = self._checkaddrnsize(address, size)
         (index, mod) = self._find(address, size, create=False)

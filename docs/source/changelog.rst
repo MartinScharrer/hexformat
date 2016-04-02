@@ -4,7 +4,7 @@ Changelog
 
 v0.2 - 02.04.2016
 =================
- * Python 3 support.
+ * Ensured compatibility with Python 2.7 and Python 3 (tested with 3.3, 3.4 and 3.5).
  * SRecord encoding fixes: Last byte was dropped if it would be on a line on its own.
  * Several other code fixes.
  * Enhanced unit tests.

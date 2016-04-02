@@ -7,6 +7,7 @@ Contents:
 .. toctree::
    about
    hexformat
+   howto
    changelog
 
 Indices and tables
