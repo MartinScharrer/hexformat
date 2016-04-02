@@ -21,7 +21,7 @@
 
 import copy
 
-from hexformat.fillpattern import FillPattern
+from hexformat.fillpattern import FillPattern, int_to_bytes
 
 MOD_USABLE_BUFFER_FOUND = 0
 MOD_NO_BUFFER_FOUND_NEXT_HIGHER_USED = 1
@@ -179,16 +179,9 @@ class MultiPartBuffer(object):
         nextpart = self._parts.pop(index + 1)
         self._parts[index][1].extend(nextpart[1])
 
-    def setint(self, address, intvalue, datasize, bigendian=True, overwrite=True):
+    def setint(self, address, intvalue, datasize, byteorder='big', signed=False, overwrite=True):
         """Set integer value at given address."""
-        datasize = int(datasize)
-        databytes = bytearray(datasize)
-        order = list(range(0, datasize))
-        if bigendian:
-            order.reverse()
-        for n in order:
-            databytes[n] = intvalue & 0xFF
-            intvalue >>= 8
+        databytes = int_to_bytes(intvalue, datasize, byteorder, signed=signed)
         return self.set(address, databytes, datasize, 0, overwrite)
 
     def set(self, address, newdata, datasize=None, dataoffset=0, overwrite=True):

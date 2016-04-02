@@ -30,6 +30,29 @@ else:
     integer_types = (int,)
 
 
+try:
+    int_to_bytes = int.to_bytes
+except AttributeError:
+    def int_to_bytes(value, length, byteorder, signed=False):
+        length = int(length)
+        databytes = bytearray(length)
+        limit = 2**(length * 8 - 1)
+        if (signed and -limit > value >= limit) or (not signed and 0 >= value >= 2 * limit):
+            raise OverflowError("invalid int")
+        if signed and value < 0:
+            value += 2 * limit
+        for n in range(0, length):
+            databytes[n] = value & 0xFF
+            value >>= 8
+        if byteorder == 'big':
+            databytes.reverse()
+        elif byteorder == 'little':
+            pass
+        else:
+            raise ValueError("byteorder must be either 'little' or 'big'")
+        return databytes
+
+
 class FillPattern(object):
     """General fill pattern class which instances contain a underlying pattern with is automatically repeated if \
        required.
@@ -103,7 +126,7 @@ class FillPattern(object):
             Returns:
               New instance of the same class.
         """
-        pattern = number.to_bytes(width, byteorder, signed=signed)
+        pattern = int_to_bytes(number, width, byteorder, signed=signed)
         return cls(pattern, length)
 
     def __len__(self):
