@@ -4,6 +4,14 @@ hexformat package
 Submodules
 ----------
 
+hexformat.base module
+---------------------
+
+.. automodule:: hexformat.base
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 hexformat.fillpattern module
 ----------------------------
 
@@ -24,14 +32,6 @@ hexformat.intelhex module
 -------------------------
 
 .. automodule:: hexformat.intelhex
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-hexformat.main module
----------------------
-
-.. automodule:: hexformat.main
     :members:
     :undoc-members:
     :show-inheritance:

@@ -25,7 +25,7 @@ Also *intelhex.IntelHex* did not provide a suitable interface for the most often
 
 License
 ~~~~~~~
-This work is free software under the GPL v3 or any later version::
+This work is free software under the GPL v3 or any later version:
 
     Copyright (C) 2015  Martin Scharrer <martin@scharrer-online.de>
 
