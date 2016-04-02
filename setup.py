@@ -12,14 +12,14 @@ def read(fname):
 
 
 setup(
-    name='',
+    name='hexformat',
     description='Library for popular HEX-formats like IntelHex and SRecord',
     long_description=read("README.rst"),
     author='Martin Scharrer',
     author_email='martin@scharrer-online.de',
     license='GPL v3+',
     packages=['hexformat', 'tests'],
-    version='0.1',
+    version='0.2',
     url='https://bitbucket.org/martin_scharrer/hexformat',
     download_url='https://bitbucket.org/martin_scharrer/hexformat/downloads/',
     install_requires=[],

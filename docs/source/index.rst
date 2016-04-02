@@ -5,7 +5,9 @@
 Contents:
 
 .. toctree::
-
+   about
+   hexformat
+   changelog
 
 Indices and tables
 ==================
