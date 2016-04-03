@@ -1,6 +1,6 @@
 from hexformat.fillpattern import RandomContent
 import random
-from nose.tools import assert_equal
+from nose.tools import assert_equal, raises
 import mock
 
 
@@ -52,3 +52,14 @@ def test_slice(randint_function):
     randint_function.side_effect = bytearray(testdata)
     assert_equal(bytearray(fp[1:3]), testdata[:-4])
 
+
+@raises(ValueError)
+def test_imul_error_1():
+    fp = RandomContent()
+    fp * -2
+
+
+@raises(ValueError)
+def test_imul_error_2():
+    fp = RandomContent()
+    fp * 1.4

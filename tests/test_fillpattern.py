@@ -41,18 +41,21 @@ def test_index():
 def test_slice():
     testbytes = bytearray((0xDE, 0xAD, 0xBE, 0xEF))
     fp = FillPattern(testbytes)
-    assert_equal(bytearray(fp[:]), bytearray(fp))
-    assert_equal(bytearray(fp[:]), testbytes)
-    assert_equal(bytearray(fp[1:]), testbytes[1:])
-    assert_equal(bytearray(fp[:-1]), testbytes[:-1])
-    assert_equal(bytearray(fp[1:-2]), testbytes[1:-2])
-    assert_equal(bytearray(fp[1:3]), testbytes[1:3])
+    yield assert_equal, bytearray(fp[:]), bytearray(fp)
+    yield assert_equal, bytearray(fp[:]), testbytes
+    yield assert_equal, bytearray(fp[1:]), testbytes[1:]
+    yield assert_equal, bytearray(fp[:-1]), testbytes[:-1]
+    yield assert_equal, bytearray(fp[1:-2]), testbytes[1:-2]
+    yield assert_equal, bytearray(fp[1:3]), testbytes[1:3]
+    yield assert_equal, bytearray(fp[-2:-1]), testbytes[-2:-1]
+    yield assert_equal, bytearray(fp[8:12][0:4]), testbytes[0:4]
+    yield assert_equal, len(fp[8:12]), 4
 
 
 @raises(KeyError)
 def test_slice_step():
     fp = FillPattern(bytearray(100))
-    fp[::2]
+    return fp[::2]
 
 
 def test_fromnumber_big():
@@ -115,4 +118,33 @@ def test_iter():
     assert_equal(bytearray((b for b in fp2)), testdata[10:])
     fp3 = fp2[10:]
     assert_equal(bytearray((b for b in fp3)), testdata[20:])
+
+
+@raises(ValueError)
+def test_mul_error_1():
+    FillPattern() * -1
+
+
+@raises(ValueError)
+def test_mul_error_2():
+    FillPattern() * 1.5
+
+
+@raises(ValueError)
+def test_imul_error_1():
+    fp = FillPattern()
+    fp *= -2
+
+
+@raises(ValueError)
+def test_imul_error_2():
+    fp = FillPattern()
+    fp *= 1.4
+
+
+@raises(ValueError)
+def test_init_error():
+    FillPattern(256)
+
+
 

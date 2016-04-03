@@ -1,5 +1,5 @@
 from hexformat.fillpattern import int_to_bytes
-from nose.tools import assert_equal
+from nose.tools import assert_equal, raises
 import random
 from nose.plugins.skip import SkipTest
 
@@ -79,3 +79,28 @@ def test_int():
             for i in range(0, 100):
                 yield do2, random.randint(0, maxvalue), n, bo, False
                 yield do2, random.randint(-limit, limit-1), n, bo, True
+
+
+@raises(OverflowError)
+def test_overflow_1():
+    int_to_bytes(-1, 1, 'big', signed=False)
+
+
+@raises(OverflowError)
+def test_overflow_2():
+    int_to_bytes(256, 1, 'big', signed=False)
+
+
+@raises(OverflowError)
+def test_overflow_3():
+    int_to_bytes(128, 1, 'big', signed=True)
+
+
+@raises(OverflowError)
+def test_overflow_4():
+    int_to_bytes(-129, 1, 'big', signed=True)
+
+
+@raises(ValueError)
+def test_valueerror():
+    int_to_bytes(0, 1, 'something else')
