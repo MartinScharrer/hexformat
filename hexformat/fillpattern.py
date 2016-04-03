@@ -37,7 +37,7 @@ except AttributeError:
         length = int(length)
         databytes = bytearray(length)
         limit = 2**(length * 8 - 1)
-        if (signed and -limit > value >= limit) or (not signed and 0 >= value >= 2 * limit):
+        if (signed and not (-limit <= value < limit)) or (not signed and not (0 <= value < 2 * limit)):
             raise OverflowError("invalid int")
         if signed and value < 0:
             value += 2 * limit
@@ -202,7 +202,6 @@ class FillPattern(object):
             other._length = stop - start
             plen = len(self._pattern)
             if other._offset > plen:
-                other._length -= int(math.floor(other._offset / plen))
                 other._offset %= plen
             return other
 
