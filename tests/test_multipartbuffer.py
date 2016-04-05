@@ -22,12 +22,19 @@ import sys
 
 from hexformat.intelhex import IntelHex
 from hexformat.fillpattern import RandomContent
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_list_equal
 from hexformat.multipartbuffer import MultiPartBuffer, Buffer
+import random
 
 sys.path.append('..')
 
 
+def randomdata(length):
+    # noinspection PyUnusedLocal
+    return bytearray((random.randint(0, 255) for n in range(0, length)))
+
+
+# noinspection PyProtectedMember
 def test1():
     m = MultiPartBuffer()
     assert_equal(m._parts, [])
@@ -42,6 +49,7 @@ def test1():
     assert_equal(m._parts[1][0], 0x104)
 
 
+# noinspection PyProtectedMember
 def test2():
     m = MultiPartBuffer()
     m.fill(0, 0x1000, RandomContent())
@@ -59,6 +67,7 @@ def test2():
     assert_equal(ih, ih2)
 
 
+# noinspection PyProtectedMember
 def test_multipartbuffer_init():
     """Init must set _parts to an empty list"""
     assert_equal(MultiPartBuffer()._parts, list())
@@ -83,3 +92,34 @@ def test_multipartbuffer_eq():
     m1.fillgaps()
     m2.fillgaps()
     assert_equal(m1, m2)
+
+
+def test_create():
+    data = [
+        bytearray.fromhex("0123456789"),
+        bytearray.fromhex("DEADBEEF"),
+        bytearray.fromhex("FEEDAFFE"),
+    ]
+    mp = MultiPartBuffer()
+    mp.set(0x200, data[0])
+    assert_list_equal(mp.parts(), [(0x200, len(data[0])), ])
+    mp.set(0x100, data[1])
+    assert_list_equal(mp.parts(), [(0x100, len(data[1])), (0x200, len(data[0]))])
+    mp.set(0x300, data[2])
+    assert_list_equal(mp.parts(), [(0x100, len(data[1])), (0x200, len(data[0])), (0x300, len(data[2]))])
+
+
+# noinspection PyProtectedMember
+def test_insert_borders():
+    data = [
+        randomdata(100),
+        randomdata(100),
+        randomdata(100),
+    ]
+    mp = MultiPartBuffer()
+    mp.set(1000, data[0])
+    assert_list_equal(mp._parts, [[1000, data[0]]])
+    mp.set(900, data[1])
+    assert_list_equal(mp._parts, [[900, data[1]+data[0]]])
+    mp.set(1100, data[2])
+    assert_list_equal(mp._parts, [[900, data[1] + data[0] + data[2]]])

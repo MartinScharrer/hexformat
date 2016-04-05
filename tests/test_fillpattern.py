@@ -110,6 +110,7 @@ def test_imul():
 
 
 def test_iter():
+    # noinspection PyUnusedLocal
     testdata = bytearray((random.randint(0, 255) for n in range(0, 100)))
     fp = FillPattern(testdata)
     assert_equal(bytearray((b for b in fp)), testdata)
@@ -145,6 +146,3 @@ def test_imul_error_2():
 @raises(ValueError)
 def test_init_error():
     FillPattern(256)
-
-
-

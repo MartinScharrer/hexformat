@@ -1,7 +1,6 @@
 from hexformat.srecord import SRecord
 from hexformat.intelhex import IntelHex
 from nose.tools import assert_equal, assert_list_equal, assert_is, raises
-import sys
 
 
 class FakeFileHandle(list):

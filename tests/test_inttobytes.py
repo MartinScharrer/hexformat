@@ -3,12 +3,14 @@ from nose.tools import assert_equal, raises
 import random
 from nose.plugins.skip import SkipTest
 
+
+def skipifnotpython3():
+    pass
+
 try:
     if int_to_bytes is int.to_bytes:
-        raise SkipTest
-
-    def skipifnotpython3():
-        pass
+        def skipifnotpython3():
+            raise SkipTest
 except AttributeError:
     def skipifnotpython3():
         raise SkipTest
@@ -19,6 +21,7 @@ def do(value, length, byteorder, signed, expected):
 
 
 def test_0():
+    skipifnotpython3()
     testvector = (
             (0, 1, 'big', False, "00"),
             (0, 2, 'big', False, "0000"),
@@ -48,6 +51,7 @@ def test_0():
 
 
 def test_signed():
+    skipifnotpython3()
     yield do, -1, 1, 'big', True, "FF"
     yield do, -1, 2, 'big', True, "FFFF"
     yield do, -1, 3, 'big', True, "FFFFFF"
@@ -83,24 +87,29 @@ def test_int():
 
 @raises(OverflowError)
 def test_overflow_1():
+    skipifnotpython3()
     int_to_bytes(-1, 1, 'big', signed=False)
 
 
 @raises(OverflowError)
 def test_overflow_2():
+    skipifnotpython3()
     int_to_bytes(256, 1, 'big', signed=False)
 
 
 @raises(OverflowError)
 def test_overflow_3():
+    skipifnotpython3()
     int_to_bytes(128, 1, 'big', signed=True)
 
 
 @raises(OverflowError)
 def test_overflow_4():
+    skipifnotpython3()
     int_to_bytes(-129, 1, 'big', signed=True)
 
 
 @raises(ValueError)
 def test_valueerror():
+    skipifnotpython3()
     int_to_bytes(0, 1, 'something else')
