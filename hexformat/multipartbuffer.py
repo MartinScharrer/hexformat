@@ -109,8 +109,6 @@ class MultiPartBuffer(object):
                     return index, MOD_USABLE_BUFFER_FOUND
             elif address <= bufend:
                 return index, MOD_USABLE_BUFFER_FOUND
-            else:
-                pass
         # If this line is reached no matching buffer was found and address lies after all buffers
         index = (len(self._parts) - 1)
         if create:
@@ -149,11 +147,7 @@ class MultiPartBuffer(object):
         """
         bufferstart = self._parts[index][0]
         bufferoffset = address - bufferstart
-        if dataoffset == 0 and datasize == len(newdata):
-            data = newdata
-        else:
-            data = newdata[dataoffset:dataoffset + datasize]
-        self._parts[index][1][bufferoffset:bufferoffset + datasize] = data
+        self._parts[index][1][bufferoffset:bufferoffset + datasize] = newdata[dataoffset:dataoffset + datasize]
 
     def _extend(self, index, newdata, datasize, dataoffset):
         """Extend given buffer with the new data.

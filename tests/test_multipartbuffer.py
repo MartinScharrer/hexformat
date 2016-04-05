@@ -123,3 +123,85 @@ def test_insert_borders():
     assert_list_equal(mp._parts, [[900, data[1]+data[0]]])
     mp.set(1100, data[2])
     assert_list_equal(mp._parts, [[900, data[1] + data[0] + data[2]]])
+
+
+# noinspection PyProtectedMember
+def test_insert_overlap():
+    data = [
+        randomdata(100),
+        randomdata(100),
+        randomdata(100),
+    ]
+    mp = MultiPartBuffer()
+    mp.set(1000, data[0])
+    assert_list_equal(mp._parts, [[1000, data[0]]])
+    mp.set(950, data[1])
+    assert_list_equal(mp._parts, [[950, data[1] + data[0][50:]]])
+    mp.set(1080, data[2])
+    assert_list_equal(mp._parts, [[950, data[1] + data[0][50:-20] + data[2]]])
+
+
+def test_get_beforedata():
+    mp = MultiPartBuffer()
+    mp.set(1000, bytearray(10))
+    assert_equal(mp.get(900, 10, 0xFF), bytearray(b"\xFF"*10))
+
+
+def test_get_betweendata():
+    mp = MultiPartBuffer()
+    mp.set(800, bytearray(10))
+    mp.set(1000, bytearray(10))
+    assert_equal(mp.get(1100, 10, 0xFF), bytearray(b"\xFF"*10))
+
+
+def test_setint():
+    mp = MultiPartBuffer()
+    mp.setint(address=0x100, intvalue=0xDEADBEEF, datasize=4, byteorder='big', signed=False, overwrite=True)
+    assert_equal(mp.get(None, None), bytearray.fromhex("DEADBEEF"))
+    mp.setint(address=0x100, intvalue=0xFEEDAFFE, datasize=4, byteorder='big', signed=False, overwrite=False)
+    assert_equal(mp.get(None, None), bytearray.fromhex("DEADBEEF"))
+
+
+def test_crop():
+    testdata = randomdata(100)
+    mp = MultiPartBuffer()
+    mp.set(1000, testdata)
+    mp.crop(1010, 80)
+    assert_equal(mp.get(None, None), testdata[10:-10])
+    mp.crop(1020)
+    assert_equal(mp.get(None, None), testdata[20:-10])
+    mp.crop(None)
+    assert_equal(mp.get(None, None), testdata[20:-10])
+
+
+def test_extract():
+    testdata = randomdata(100)
+    mp = MultiPartBuffer()
+    mp.set(1000, testdata)
+    mp2 = mp.extract(1010, 80)
+    assert_equal(mp.get(None, None), testdata)
+    assert_equal(mp2.get(None, None), testdata[10:-10])
+    mp3 = mp.extract(1020, None, False)
+    assert_equal(mp.get(None, None), testdata[0:20])
+    assert_equal(mp3.get(None, None), testdata[20:])
+
+
+def test_includesgaps():
+    mp = MultiPartBuffer()
+    mp.set(1000, bytearray(100))
+    assert_equal(False, mp.includesgaps(None, None))
+    mp.set(2000, bytearray(100))
+    assert_equal(True, mp.includesgaps(999, 2))
+    assert_equal(True, mp.includesgaps(990, 3000))
+    assert_equal(True, mp.includesgaps(1099, 2))
+    assert_equal(True, mp.includesgaps(1000, 1100))
+    assert_equal(True, mp.includesgaps(2099, 2))
+    assert_equal(False, mp.includesgaps(1010, 10))
+    assert_equal(False, mp.includesgaps(2000, 100))
+
+
+def test_includesgaps_empty():
+    mp = MultiPartBuffer()
+    assert_equal(False, mp.includesgaps(0, 0))
+    assert_equal(True, mp.includesgaps(1, 0))
+    assert_equal(True, mp.includesgaps(0, 1))
