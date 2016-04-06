@@ -22,7 +22,7 @@ import sys
 
 from hexformat.intelhex import IntelHex
 from hexformat.fillpattern import RandomContent
-from nose.tools import assert_equal, assert_list_equal
+from nose.tools import assert_equal, assert_list_equal, assert_sequence_equal, raises
 from hexformat.multipartbuffer import MultiPartBuffer, Buffer
 import random
 
@@ -205,3 +205,45 @@ def test_includesgaps_empty():
     assert_equal(False, mp.includesgaps(0, 0))
     assert_equal(True, mp.includesgaps(1, 0))
     assert_equal(True, mp.includesgaps(0, 1))
+
+
+def test_offset():
+    testdata = randomdata(100)
+    mp = MultiPartBuffer()
+    mp.set(1000, testdata)
+    mp.offset(10)
+    assert_equal(mp.get(1010, 100), testdata)
+    assert_equal(mp.parts(), [(1010, 100), ])
+    mp.offset(-100)
+    assert_equal(mp.get(910, 100), testdata)
+    assert_equal(mp.parts(), [(910, 100), ])
+    mp.offset(None)
+    assert_equal(mp.get(0, 100), testdata)
+    assert_equal(mp.parts(), [(0, 100), ])
+
+
+@raises(ValueError)
+def test_offset():
+    testdata = randomdata(100)
+    mp = MultiPartBuffer()
+    mp.set(100, testdata)
+    mp.offset(-200)
+
+
+def test_getitem():
+    testdata = randomdata(0x100)
+    mp = MultiPartBuffer()
+    mp.set(0x1000, testdata)
+    yield assert_equal, mp[0x1000], testdata[0]
+    yield assert_equal, mp[0x1000], mp.get(0x1000, 0x1)[0]
+    yield assert_equal, len(mp[0x1000:0x1100]), 0x100
+    yield assert_sequence_equal, mp[0x1000:0x1100], mp.get(0x1000, 0x100)
+    yield assert_sequence_equal, mp[0x1000:0x1100], testdata
+
+
+@raises(IndexError)
+def test_getitem_step():
+    testdata = randomdata(0x100)
+    mp = MultiPartBuffer()
+    mp.set(0x1000, testdata)
+    return mp[0x1000:0x1004:2]

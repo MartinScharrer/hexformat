@@ -306,7 +306,12 @@ class MultiPartBuffer(object):
         except TypeError:
             if n.step is not None:
                 raise IndexError("Slice step not supported")
-            return self.get(n.start, n.stop)
+            # _checkaddrnsize is used here while n.stop is not the size but the end address.
+            # However, if None the correct size is returned and if not the value is adjusted later
+            address, size = self._checkaddrnsize(n.start, n.stop)
+            if n.stop is not None:
+                size -= address
+            return self.get(address, size)
 
     def delete(self, address, size=None):
         """Deletes <size> bytes starting from <address>. Does nothing if <size> is non-positive."""

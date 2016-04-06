@@ -65,28 +65,6 @@ if testit:
         yield do, -1, 8, 'little', True, "FFFF FFFF FFFF FFFF"
 
 
-if testit and refavailable:
-
-    def do2(value, length, byteorder, signed):
-        assert_equal(int_to_bytes(value, length, byteorder, signed=signed),
-                     value.to_bytes(length, byteorder, signed=signed))
-
-
-    def test_int():
-        for n in range(1, 17):
-            limit = 2**(n*8-1)
-            maxvalue = 2 * limit - 1
-            for bo in ('big', 'little'):
-                yield do2, maxvalue, n, bo, False
-                yield do2, -limit, n, bo, True
-                yield do2, -limit+1, n, bo, True
-                yield do2, limit - 1, n, bo, True
-                yield do2, limit - 2, n, bo, True
-                for i in range(0, 100):
-                    yield do2, random.randint(0, maxvalue), n, bo, False
-                    yield do2, random.randint(-limit, limit-1), n, bo, True
-
-
     @raises(OverflowError)
     def test_overflow_1():
         int_to_bytes(-1, 1, 'big', signed=False)
@@ -110,3 +88,26 @@ if testit and refavailable:
     @raises(ValueError)
     def test_valueerror():
         int_to_bytes(0, 1, 'something else')
+
+if testit and refavailable:
+
+    def do2(value, length, byteorder, signed):
+        assert_equal(int_to_bytes(value, length, byteorder, signed=signed),
+                     value.to_bytes(length, byteorder, signed=signed))
+
+
+    def test_int():
+        for n in range(1, 17):
+            limit = 2**(n*8-1)
+            maxvalue = 2 * limit - 1
+            for bo in ('big', 'little'):
+                yield do2, maxvalue, n, bo, False
+                yield do2, -limit, n, bo, True
+                yield do2, -limit+1, n, bo, True
+                yield do2, limit - 1, n, bo, True
+                yield do2, limit - 2, n, bo, True
+                for i in range(0, 100):
+                    yield do2, random.randint(0, maxvalue), n, bo, False
+                    yield do2, random.randint(-limit, limit-1), n, bo, True
+
+
