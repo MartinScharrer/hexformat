@@ -297,7 +297,9 @@ class MultiPartBuffer(object):
         if address == start and size == totalsize:
             self.offset(newaddress - address)
         else:
-            raise NotImplementedError("Partial relocation not implemented yet")
+            data = self.get(address, size)
+            self.delete(address, size)
+            self.set(newaddress, data, overwrite=overwrite)
         return self
 
     def __getitem__(self, n):

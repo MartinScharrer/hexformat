@@ -223,7 +223,7 @@ def test_offset():
 
 
 @raises(ValueError)
-def test_offset():
+def test_offset_error():
     testdata = randomdata(100)
     mp = MultiPartBuffer()
     mp.set(100, testdata)
@@ -247,3 +247,71 @@ def test_getitem_step():
     mp = MultiPartBuffer()
     mp.set(0x1000, testdata)
     return mp[0x1000:0x1004:2]
+
+
+def test_start():
+    mp = MultiPartBuffer()
+    yield assert_equal, mp.start(), 0
+    mp.set(0x1000, bytearray(10))
+    yield assert_equal, mp.start(), 0x1000
+    mp.set(0x500, bytearray(10))
+    yield assert_equal, mp.start(), 0x500
+    mp.set(0x1500, bytearray(10))
+    yield assert_equal, mp.start(), 0x500
+
+
+def test_relocate_1():
+    testdata = randomdata(0x100)
+    mp = MultiPartBuffer()
+    mp.set(0x200, testdata)
+    mp.relocate(0x100)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_equal, mp.range(), (0x100, 0x100)
+    yield assert_sequence_equal, mp.get(0x100, 0x100), testdata
+
+
+def test_relocate_2():
+    testdata = randomdata(0x100)
+    mp = MultiPartBuffer()
+    mp.set(0x200, testdata)
+    mp.relocate(0x100, 0x200, 0x100)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_equal, mp.range(), (0x100, 0x100)
+    yield assert_sequence_equal, mp.get(0x100, 0x100), testdata
+
+
+def test_relocate_3():
+    testdata = randomdata(0x100)
+    mp = MultiPartBuffer()
+    mp.set(0x200, testdata)
+    mp.relocate(0x100, 0x220, 0x10)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_equal, mp.range(), (0x100, 0x200)
+    yield assert_list_equal, mp.parts(), [(0x100, 0x10), (0x200, 0x20), (0x230, 0x100-0x30)]
+    yield assert_sequence_equal, mp.get(0x100, 0x10), testdata[0x20:0x30]
+    yield assert_sequence_equal, mp.get(0x200, 0x20), testdata[0x00:0x20]
+    yield assert_sequence_equal, mp.get(0x230, None), testdata[0x30:]
+
+
+def test_relocate_4():
+    testdata = randomdata(0x100)
+    mp = MultiPartBuffer()
+    mp.set(0x100, testdata)
+    mp.relocate(0x100, 0x1F0, 0x10, False)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_equal, mp.range(), (0x100, 0xF0)
+    yield assert_list_equal, mp.parts(), [(0x100, 0xF0), ]
+    yield assert_sequence_equal, mp.get(0x100, 0xF0), testdata[:0xF0]
+    yield assert_sequence_equal, mp.get(None, None), testdata[:0xF0]
+
+
+def test_delete():
+    testdata = randomdata(0x100)
+    mp = MultiPartBuffer()
+    mp.set(0x100, testdata)
+    mp.delete(0xF0, 0x20)
+    yield assert_sequence_equal, mp.get(None, None), testdata[0x10:]
+    mp.delete(0x1F0, 0x20)
+    yield assert_sequence_equal, mp.get(None, None), testdata[0x10:-0x10]
+    mp.delete(0x150, 0x10)
+    yield assert_list_equal, mp.parts(), [(0x110, 0x40), (0x160, 0x90)]
