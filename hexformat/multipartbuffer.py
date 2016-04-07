@@ -612,7 +612,23 @@ class MultiPartBuffer(object):
                If a dict then the keys must be address and the values a buffer.
                If an iterable it must yield (address, data) combinations. 
         """
-        self.add(other, True)
+        return self.add(other, True)
+
+    def __add__(self, other):
+        """Add two instances together and return the sum as new instance.
+
+           Args:
+             other (MultiPartBuffer, dict or iterable): Second summand.
+               If a dict then the keys must be address and the values a buffer.
+               If an iterable it must yield (address, data) combinations.
+
+           Returns:
+             New instance with the data of both sources combined.
+             Overlapping parts will be set to the data of the second summand.
+        """
+        newinst = self.copy()
+        newinst.__iadd__(other)
+        return newinst
 
     def __ior__(self, other):
         """Add content of other instance to itself, keeping existing data if parts overlap.
@@ -622,7 +638,11 @@ class MultiPartBuffer(object):
                If a dict then the keys must be address and the values a buffer.
                If an iterable it must yield (address, data) combinations. 
         """
-        self.add(other, False)
+        return self.add(other, False)
+
+    def __or__(self, other):
+        inst = self.copy()
+        return inst.add(other, False)
 
     def add(self, other, overwrite=True):
         """Add content of other instance to itself, overwriting or keeping existing data if parts overlap.
@@ -645,22 +665,6 @@ class MultiPartBuffer(object):
         except Exception as e:
             raise TypeError(e)
         return self
-
-    def __add__(self, other):
-        """Add two instances together and return the sum as new instance.
-        
-           Args:
-             other (MultiPartBuffer, dict or iterable): Second summand.
-               If a dict then the keys must be address and the values a buffer.
-               If an iterable it must yield (address, data) combinations. 
-           
-           Returns:
-             New instance with the data of both sources combined.
-             Overlapping parts will be set to the data of the second summand.
-        """
-        newinst = self.copy()
-        newinst.__iadd__(other)
-        return sum
 
     def copy(self):
         """Return a deep copy of the instance."""

@@ -260,6 +260,15 @@ def test_start():
     yield assert_equal, mp.start(), 0x500
 
 
+def test_end():
+    mp = MultiPartBuffer()
+    yield assert_equal, -1, mp.end()
+    adr = random.randint(0, 2**32-1)
+    size = random.randint(0, 2**16-1)
+    mp.set(adr, bytearray(size))
+    yield assert_equal, adr+size-1, mp.end()
+
+
 def test_relocate_1():
     testdata = randomdata(0x100)
     mp = MultiPartBuffer()
@@ -315,3 +324,87 @@ def test_delete():
     yield assert_sequence_equal, mp.get(None, None), testdata[0x10:-0x10]
     mp.delete(0x150, 0x10)
     yield assert_list_equal, mp.parts(), [(0x110, 0x40), (0x160, 0x90)]
+
+
+# noinspection PyProtectedMember
+def test_filler_1():
+    mp = MultiPartBuffer()
+    mp._padding = 0xAA
+    yield assert_sequence_equal, b'\x5A' * 10, mp._filler(10, 0x5A)
+    yield assert_sequence_equal, b'\xAA' * 20, mp._filler(20, None)
+
+
+class MyExept(ValueError):
+    pass
+
+
+# noinspection PyProtectedMember
+@raises(MyExept)
+def test_filler_2():
+    mp = MultiPartBuffer()
+    return mp._filler(1, MyExept)
+
+
+# noinspection PyProtectedMember
+def test_copy():
+    mp = MultiPartBuffer()
+    for n in range(0, random.randint(1, 10)):
+        adr = random.randint(0, 2 ** 16 - 1)
+        size = random.randint(0, 2 ** 16 - 1)
+        mp.set(adr, randomdata(size))
+    mp2 = mp.copy()
+    yield assert_equal, mp._parts, mp2._parts
+    yield assert_equal, mp.__dict__, mp2.__dict__
+
+
+# noinspection PyProtectedMember
+def test_loaddict():
+    mp = MultiPartBuffer()
+    mp.loaddict({100: 0xDE, 101: 0xAD, 102: 0xBE, 103: 0xEF, 200: 0x00, 0: 0x11})
+    yield assert_sequence_equal, mp._parts, [[0, bytearray((0x11, ))],
+                                             [100, bytearray.fromhex('DEADBEEF')],
+                                             [200, bytearray((0x00, ))]]
+    mp.loaddict({100: 0xFF, 101: 0xFF, 102: 0x00, 103: 0xAA, 200: 0xBB, 1: 0x22}, False)
+    yield assert_sequence_equal, mp._parts, [[0, bytearray((0x11, 0x22))],
+                                             [100, bytearray.fromhex('DEADBEEF')],
+                                             [200, bytearray((0x00,))]]
+    testdata = randomdata(210)
+    mp.loaddict({n: b for n, b in enumerate(testdata)})
+    yield assert_list_equal, mp._parts, [[0, testdata], ]
+
+
+def test_ior():
+    testdata1 = randomdata(100)
+    testdata2 = randomdata(100)
+    mp1 = MultiPartBuffer().set(100, testdata1)
+    mp2 = MultiPartBuffer().set(180, testdata2)
+    mp1 |= mp2
+    assert_sequence_equal(mp1[:], testdata1 + testdata2[20:])
+
+
+def test_or():
+    testdata1 = randomdata(100)
+    testdata2 = randomdata(100)
+    mp1 = MultiPartBuffer().set(100, testdata1)
+    mp2 = MultiPartBuffer().set(150, testdata2)
+    mp = mp1 | mp2
+    assert_sequence_equal(mp[:], testdata1 + testdata2[50:])
+
+
+def test_iand():
+    testdata1 = randomdata(100)
+    testdata2 = randomdata(100)
+    mp1 = MultiPartBuffer().set(100, testdata1)
+    mp2 = MultiPartBuffer().set(180, testdata2)
+    mp1 += mp2
+    assert_sequence_equal(mp1[:], testdata1[:-20] + testdata2)
+
+
+def test_and():
+    testdata1 = randomdata(100)
+    testdata2 = randomdata(100)
+    mp1 = MultiPartBuffer().set(100, testdata1)
+    mp2 = MultiPartBuffer().set(150, testdata2)
+    mp = mp1 + mp2
+    testdata = testdata1[0:50] + testdata2
+    yield assert_sequence_equal, mp[:], testdata
