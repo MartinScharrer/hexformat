@@ -22,7 +22,7 @@ import sys
 
 from hexformat.intelhex import IntelHex
 from hexformat.fillpattern import RandomContent
-from nose.tools import assert_equal, assert_list_equal, assert_sequence_equal, raises
+from nose.tools import assert_is, assert_equal, assert_list_equal, assert_sequence_equal, raises
 from hexformat.multipartbuffer import MultiPartBuffer, Buffer
 import random
 
@@ -408,3 +408,65 @@ def test_and():
     mp = mp1 + mp2
     testdata = testdata1[0:50] + testdata2
     yield assert_sequence_equal, mp[:], testdata
+
+
+def test_unfill_empty():
+    mp = MultiPartBuffer()
+    assert_is(mp.unfill(), mp)
+    assert_list_equal(mp.parts(), [])
+
+
+def test_unfill_1():
+    mp = MultiPartBuffer()
+    mp.set(100, bytearray(100))
+    mp.set(300, bytearray(100))
+    mp2 = mp.copy()
+    fillpattern = randomdata(10)
+    mp.fill(fillpattern=fillpattern)
+    mp.unfill(unfillpattern=fillpattern)
+    assert_equal(mp, mp2)
+
+
+def test_unfill_2():
+    mp = MultiPartBuffer()
+    mp.set(100, bytearray(100))
+    mp.set(300, bytearray(100))
+    fillpattern = bytearray.fromhex("DEADBEEF")
+    mp2 = mp.copy()
+    mp.set(200, fillpattern*25)
+    mp.unfill(None, None, fillpattern)
+    assert_equal(mp, mp2)
+
+
+def test_unfill_beyond():
+    mp = MultiPartBuffer()
+    mp.set(100, bytearray(100))
+    mp2 = mp.copy()
+    ret = mp.unfill(1000, 100)
+    assert_is(mp, ret)
+    assert_equal(mp, mp2)
+
+
+def test_unfill_before():
+    mp = MultiPartBuffer()
+    mp.set(120, bytearray(90))
+    mp2 = mp.copy()
+    mp.set(100, bytearray.fromhex("FF")*20)
+    ret = mp.unfill(90, 100)
+    assert_is(mp, ret)
+    assert_equal(mp, mp2)
+
+
+def test_unfill_3():
+    mp = MultiPartBuffer()
+    fillpattern = bytearray.fromhex("A1")*10
+    testdata1 = randomdata(50)
+    testdata2 = randomdata(50)
+    mp.set(100, testdata1)
+    mp.set(550, testdata2)
+    mp2 = mp.copy()
+    mp.set(150, fillpattern*5)
+    mp.set(500, fillpattern*5)
+    ret = mp.unfill(unfillpattern=fillpattern, mingapsize=10)
+    assert_is(mp, ret)
+    assert_equal(mp, mp2)

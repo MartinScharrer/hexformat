@@ -406,19 +406,17 @@ class MultiPartBuffer(object):
         ufvlen = len(unfillpattern)
         address, size = self._checkaddrnsize(address, size)
         (index, mod) = self._find(address, size, create=False)
-        if mod == MOD_BEYOND_END_LAST_BUFFER_USED:
+        if mod != MOD_USABLE_BUFFER_FOUND:
             return self
-        elif mod == MOD_NO_BUFFER_FOUND_NEXT_HIGHER_USED:
-            start = self._parts[index][0]
-            dist = start - address
-            size -= dist
-            index = 0
         uflist = list()
         while index < len(self._parts) and size > 0:
             bufferstart, buffer = self._parts[index]
             buffersize = len(buffer)
-            maxpos = min(buffersize, size)
             startpos = address - bufferstart
+            if startpos < 0:
+                size += startpos
+                startpos = 0
+            maxpos = min(buffersize, size)
             pos = startpos
             try:
                 while pos < maxpos:
@@ -427,13 +425,13 @@ class MultiPartBuffer(object):
                     while buffer.startswith(unfillpattern, pos, maxpos):
                         pos += ufvlen
                     ufsize = pos - delstartpos
-                    # always delete at part boundaries
-                    if ufsize >= mingapsize or pos == buffersize or delstartpos == startpos:
+                    if ufsize >= mingapsize:
                         uflist.append((bufferstart + delstartpos, ufsize))
             except ValueError:
                 pass
             index += 1
             size -= maxpos
+            address += buffersize
 
         for deladdr, delsize in uflist:
             self.delete(deladdr, delsize)
