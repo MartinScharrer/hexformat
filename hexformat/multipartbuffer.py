@@ -425,7 +425,8 @@ class MultiPartBuffer(object):
                     while buffer.startswith(unfillpattern, pos, maxpos):
                         pos += ufvlen
                     ufsize = pos - delstartpos
-                    if ufsize >= mingapsize:
+                    # always delete at part boundaries
+                    if ufsize >= mingapsize or pos == buffersize or delstartpos == startpos:
                         uflist.append((bufferstart + delstartpos, ufsize))
             except ValueError:
                 pass
