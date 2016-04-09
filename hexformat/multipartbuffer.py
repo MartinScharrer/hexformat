@@ -114,7 +114,7 @@ class MultiPartBuffer(object):
                         return index, MOD_USABLE_BUFFER_FOUND
                     else:
                         return index, MOD_NO_BUFFER_FOUND_NEXT_HIGHER_USED
-                if dataend >= bufstart:
+                else:
                     return index, MOD_USABLE_BUFFER_FOUND
             elif address <= bufend:
                 return index, MOD_USABLE_BUFFER_FOUND
@@ -526,11 +526,11 @@ class MultiPartBuffer(object):
             return self._parts[0][0]
 
     def end(self):
-        """Get end address, i.e. the address of the very last byte of data.
-           An empty buffer will return -1.
+        """Get end address, i.e. the address one after the very last byte of data.
+           An empty buffer will return 0.
         """
         (start, totalsize) = self.range()
-        return start + totalsize - 1
+        return start + totalsize
 
     def usedsize(self):
         """Returns used data size, i.e. without the size of any gaps"""
@@ -571,12 +571,11 @@ class MultiPartBuffer(object):
     def fillend(self, endaddress, fillpattern=None):
         """Fill the data range after the buffer up to the given address.
         """
-        if len(self._parts) > 0:
-            (startaddress, totalsize) = self.range()
-            startaddress += totalsize
-            size = endaddress - startaddress
-            if size > 0:
-                self.fill(startaddress, size, fillpattern)
+        (startaddress, totalsize) = self.range()
+        startaddress += totalsize
+        size = endaddress - startaddress
+        if size > 0:
+            self.fill(startaddress, size, fillpattern)
         return self
 
     def tobinfile(self, filename, address=None, size=None, fillpattern=None):

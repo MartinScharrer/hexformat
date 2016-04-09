@@ -156,6 +156,13 @@ def test_get_betweendata():
     assert_equal(mp.get(1100, 10, 0xFF), bytearray(b"\xFF"*10))
 
 
+def test_get_3():
+    testdata = randomdata(100)
+    mp = MultiPartBuffer()
+    mp.set(1000, testdata)
+    assert_sequence_equal(mp.get(None, 80), testdata[0:80])
+
+
 def test_setint():
     mp = MultiPartBuffer()
     mp.setint(address=0x100, intvalue=0xDEADBEEF, datasize=4, byteorder='big', signed=False, overwrite=True)
@@ -264,11 +271,11 @@ def test_start():
 
 def test_end():
     mp = MultiPartBuffer()
-    yield assert_equal, -1, mp.end()
+    yield assert_equal, 0, mp.end()
     adr = random.randint(0, 2**32-1)
     size = random.randint(0, 2**16-1)
     mp.set(adr, bytearray(size))
-    yield assert_equal, adr+size-1, mp.end()
+    yield assert_equal, adr+size, mp.end()
 
 
 def test_relocate_1():
@@ -795,7 +802,7 @@ def test_add_dict_buffer_overwrite():
 def test_add_dict_buffer_nooverwrite():
     testdata1 = randomdata(0x100)
     testdata2 = randomdata(0x100)
-    testdict = {(0x80+n): testdata2[n:n+0x10] for n in range(0, 0x100, 0x10)}
+    testdict = {(0x80+n): [b for b in testdata2[n:n+0x10]] for n in range(0, 0x100, 0x10)}
     mp1 = MultiPartBuffer().set(0x00, testdata1)
     mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=False)
     mp1.add(testdict, overwrite=False)
@@ -825,7 +832,7 @@ def test_add_list_byte_overwrite():
 def test_add_list_byte_nooverwrite():
     testdata1 = randomdata(0x100)
     testdata2 = randomdata(0x100)
-    testlist = [(n, byte)  for n, byte in enumerate(testdata2, start=0x80)]
+    testlist = [(n, byte) for n, byte in enumerate(testdata2, start=0x80)]
     mp1 = MultiPartBuffer().set(0x00, testdata1)
     mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=False)
     mp1.add(testlist, overwrite=False)
@@ -855,8 +862,102 @@ def test_add_list_buffer_overwrite():
 def test_add_list_buffer_nooverwrite():
     testdata1 = randomdata(0x100)
     testdata2 = randomdata(0x100)
-    testlist = [((0x80+n), testdata2[n:n+0x10]) for n in range(0, 0x100, 0x10)]
+    testlist = [((0x80+n), [b for b in testdata2[n:n+0x10]]) for n in range(0, 0x100, 0x10)]
     mp1 = MultiPartBuffer().set(0x00, testdata1)
     mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=False)
     mp1.add(testlist, overwrite=False)
     assert_equal(mp1, mpb)
+
+
+@raises(TypeError)
+def test_add_failure():
+    mp = MultiPartBuffer()
+    mp.add(set(range(0,10)))
+
+
+def test_fillfront_0():
+    testdata = randomdata(0x100)
+    mp = MultiPartBuffer().set(0x20, testdata)
+    ret = mp.fillfront()
+    assert_is(mp, ret)
+    assert_equal(mp.start(), 0)
+    assert_sequence_equal(mp.get(None, None), (bytearray.fromhex("FF"*0x20)) + testdata)
+
+
+def test_fillfront_1():
+    testdata = randomdata(0x100)
+    mp = MultiPartBuffer().set(0x20, testdata)
+    ret = mp.fillfront(fillpattern=0xA1)
+    assert_is(mp, ret)
+    assert_equal(mp.start(), 0)
+    assert_sequence_equal(mp.get(None, None), (bytearray.fromhex("A1"*0x20)) + testdata)
+
+
+def test_fillfront_2():
+    testdata = randomdata(0x100)
+    mp = MultiPartBuffer().set(0x20, testdata)
+    ret = mp.fillfront(0x20, 0xAA)
+    assert_is(mp, ret)
+    assert_equal(mp.start(), 0x20)
+    assert_sequence_equal(mp.get(None, None), testdata)
+
+
+def test_fillfront_3():
+    testdata = randomdata(0x100)
+    mp = MultiPartBuffer().set(0x20, testdata)
+    ret = mp.fillfront(0x30, 0xAA)
+    assert_is(mp, ret)
+    assert_equal(mp.start(), 0x20)
+    assert_sequence_equal(mp.get(None, None), testdata)
+
+
+def test_fillfront_4():
+    mp = MultiPartBuffer()
+    ret = mp.fillfront()
+    assert_is(mp, ret)
+    assert_equal(mp.start(), 0)
+    assert_equal(mp.end(), 0)
+
+
+def test_fillend_1():
+    testdata = randomdata(0x100)
+    mp = MultiPartBuffer().set(0x20, testdata)
+    ret = mp.fillend(0x200)
+    assert_is(mp, ret)
+    assert_equal(mp.end(), 0x200)
+    assert_sequence_equal(mp.get(None, None), testdata + (bytearray.fromhex("FF"*(0x100-0x20))))
+
+
+def test_fillend_2():
+    testdata = randomdata(0x100)
+    mp = MultiPartBuffer().set(0x20, testdata)
+    ret = mp.fillend(0x200, 0x5A)
+    assert_is(mp, ret)
+    assert_equal(mp.end(), 0x200)
+    assert_sequence_equal(mp.get(None, None), testdata + (bytearray.fromhex("5A"*(0x100-0x20))))
+
+
+def test_fillend_3():
+    testdata = randomdata(0x100)
+    mp = MultiPartBuffer().set(0x20, testdata)
+    ret = mp.fillend(0x30, 0xAA)
+    assert_is(mp, ret)
+    assert_equal(mp.start(), 0x20)
+    assert_sequence_equal(mp.get(None, None), testdata)
+
+
+def test_fillend_4():
+    mp = MultiPartBuffer()
+    ret = mp.fillend(0x100, 0x2E)
+    assert_is(mp, ret)
+    assert_equal(mp.start(), 0)
+    assert_equal(mp.end(), 0x100)
+    assert_sequence_equal(mp.get(None, None), (bytearray.fromhex("2E" * 0x100)))
+
+
+def test_todict():
+    testdata = randomdata(100)
+    mp = MultiPartBuffer().set(1000, testdata)
+    d1 = {n: b for n, b in enumerate(testdata, 1000)}
+    d2 = mp.todict()
+    assert_equal(d1, d2)
