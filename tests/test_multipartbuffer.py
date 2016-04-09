@@ -24,6 +24,8 @@ from hexformat.intelhex import IntelHex
 from hexformat.fillpattern import RandomContent
 from nose.tools import assert_is, assert_equal, assert_list_equal, assert_sequence_equal, raises
 from hexformat.multipartbuffer import MultiPartBuffer, Buffer
+import tempfile
+import os
 import random
 
 sys.path.append('..')
@@ -470,3 +472,391 @@ def test_unfill_3():
     ret = mp.unfill(unfillpattern=fillpattern, mingapsize=10)
     assert_is(mp, ret)
     assert_equal(mp, mp2)
+
+
+def test_loadbinfile():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+
+    mp = MultiPartBuffer()
+    mp.loadbinfile(filename)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    mp = MultiPartBuffer()
+    mp.loadbinfile(filename, address=0x100)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    mp = MultiPartBuffer()
+    mp.loadbinfile(filename, address=0x1000, size=512)
+    yield assert_equal, mp.start(), 0x1000
+    yield assert_sequence_equal, mp.get(None, None), testdata[0:512]
+
+    mp = MultiPartBuffer()
+    mp.loadbinfile(filename, offset=100)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata[100:]
+
+
+def test_loadbinfh():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+
+    mp = MultiPartBuffer()
+    with open(filename, "rb") as fh:
+        mp.loadbinfh(fh)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    mp = MultiPartBuffer()
+    with open(filename, "rb") as fh:
+        mp.loadbinfh(fh, address=0x100)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    mp = MultiPartBuffer()
+    with open(filename, "rb") as fh:
+        mp.loadbinfh(fh, address=0x1000, size=512)
+    yield assert_equal, mp.start(), 0x1000
+    yield assert_sequence_equal, mp.get(None, None), testdata[0:512]
+
+    mp = MultiPartBuffer()
+    with open(filename, "rb") as fh:
+        mp.loadbinfh(fh, offset=100)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata[100:]
+
+
+def test_frombinfile():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+
+    mp = MultiPartBuffer.frombinfile(filename)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    mp = MultiPartBuffer.frombinfile(filename, address=0x100)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    mp = MultiPartBuffer.frombinfile(filename, address=0x1000, size=512)
+    yield assert_equal, mp.start(), 0x1000
+    yield assert_sequence_equal, mp.get(None, None), testdata[0:512]
+
+    mp = MultiPartBuffer.frombinfile(filename, offset=100)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata[100:]
+
+
+def test_frombinfh():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer.frombinfh(fh)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer.frombinfh(fh, address=0x100)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer.frombinfh(fh, address=0x1000, size=512)
+    yield assert_equal, mp.start(), 0x1000
+    yield assert_sequence_equal, mp.get(None, None), testdata[0:512]
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer.frombinfh(fh, offset=100)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata[100:]
+
+
+def test_fromfile_1():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+
+    mp = MultiPartBuffer.fromfile(filename)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    mp = MultiPartBuffer.fromfile(filename, address=0x100)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    mp = MultiPartBuffer.fromfile(filename, address=0x1000, size=512)
+    yield assert_equal, mp.start(), 0x1000
+    yield assert_sequence_equal, mp.get(None, None), testdata[0:512]
+
+    mp = MultiPartBuffer.fromfile(filename, offset=100)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata[100:]
+
+
+def test_fromfile_2():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+
+    mp = MultiPartBuffer.fromfile(filename, 'bin')
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    mp = MultiPartBuffer.fromfile(filename, 'bin', address=0x100)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    mp = MultiPartBuffer.fromfile(filename, 'bin', address=0x1000, size=512)
+    yield assert_equal, mp.start(), 0x1000
+    yield assert_sequence_equal, mp.get(None, None), testdata[0:512]
+
+    mp = MultiPartBuffer.fromfile(filename, 'bin', offset=100)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata[100:]
+
+
+@raises(ValueError)
+def test_fromfile_failure():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+    MultiPartBuffer.fromfile(filename, 'invalid')
+
+
+def test_fromfh_1():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer.fromfh(fh)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer.fromfh(fh, address=0x100)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer.fromfh(fh, address=0x1000, size=512)
+    yield assert_equal, mp.start(), 0x1000
+    yield assert_sequence_equal, mp.get(None, None), testdata[0:512]
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer.fromfh(fh, offset=100)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata[100:]
+
+
+def test_fromfh_2():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer.fromfh(fh, 'bin')
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer.fromfh(fh, 'bin', address=0x100)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer.fromfh(fh, 'bin', address=0x1000, size=512)
+    yield assert_equal, mp.start(), 0x1000
+    yield assert_sequence_equal, mp.get(None, None), testdata[0:512]
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer.fromfh(fh, 'bin', offset=100)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata[100:]
+
+
+@raises(ValueError)
+def test_fromfh_failure():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+
+    with open(filename, "rb") as fh:
+        MultiPartBuffer.fromfh(fh, 'invalid')
+
+
+def test_add_mp():
+    testdata1 = randomdata(0x100)
+    testdata2 = randomdata(0x100)
+    mp1 = MultiPartBuffer().set(0x0000, testdata1)
+    mp2 = MultiPartBuffer().set(0x1000, testdata2)
+    mpb = MultiPartBuffer().set(0x0000, testdata1).set(0x1000, testdata2)
+    mp1.add(mp2)
+    assert_equal(mp1, mpb)
+
+
+def test_add_mp_nooverwrite():
+    testdata1 = randomdata(0x100)
+    testdata2 = randomdata(0x100)
+    mp1 = MultiPartBuffer().set(0x00, testdata1)
+    mp2 = MultiPartBuffer().set(0x80, testdata2)
+    mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=False)
+    mp1.add(mp2, overwrite=False)
+    assert_equal(mp1, mpb)
+
+
+def test_add_mp_overwrite():
+    testdata1 = randomdata(0x100)
+    testdata2 = randomdata(0x100)
+    mp1 = MultiPartBuffer().set(0x00, testdata1)
+    mp2 = MultiPartBuffer().set(0x80, testdata2)
+    mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=True)
+    mp1.add(mp2, overwrite=True)
+    assert_equal(mp1, mpb)
+
+
+def test_add_dict_byte():
+    testdata1 = randomdata(0x100)
+    testdata2 = randomdata(0x100)
+    testdict = {n: byte for n, byte in enumerate(testdata2, start=0x1000)}
+    mp1 = MultiPartBuffer().set(0x0000, testdata1)
+    mpb = MultiPartBuffer().set(0x0000, testdata1).set(0x1000, testdata2)
+    mp1.add(testdict)
+    assert_equal(mp1, mpb)
+
+
+def test_add_dict_byte_overwrite():
+    testdata1 = randomdata(0x100)
+    testdata2 = randomdata(0x100)
+    testdict = {n: byte for n, byte in enumerate(testdata2, start=0x80)}
+    mp1 = MultiPartBuffer().set(0x00, testdata1)
+    mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=True)
+    mp1.add(testdict, overwrite=True)
+    assert_equal(mp1, mpb)
+
+
+def test_add_dict_byte_nooverwrite():
+    testdata1 = randomdata(0x100)
+    testdata2 = randomdata(0x100)
+    testdict = {n: byte for n, byte in enumerate(testdata2, start=0x80)}
+    mp1 = MultiPartBuffer().set(0x00, testdata1)
+    mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=False)
+    mp1.add(testdict, overwrite=False)
+    assert_equal(mp1, mpb)
+
+
+def test_add_dict_buffer():
+    testdata1 = randomdata(0x100)
+    testdata2 = randomdata(0x100)
+    testdict = {(0x1000+n): testdata2[n:n+0x10] for n in range(0, 0x100, 0x10)}
+    mp1 = MultiPartBuffer().set(0x0000, testdata1)
+    mpb = MultiPartBuffer().set(0x0000, testdata1).set(0x1000, testdata2)
+    mp1.add(testdict)
+    assert_equal(mp1, mpb)
+
+
+def test_add_dict_buffer_overwrite():
+    testdata1 = randomdata(0x100)
+    testdata2 = randomdata(0x100)
+    testdict = {(0x80+n): testdata2[n:n+0x10] for n in range(0, 0x100, 0x10)}
+    mp1 = MultiPartBuffer().set(0x00, testdata1)
+    mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=True)
+    mp1.add(testdict, overwrite=True)
+    assert_equal(mp1, mpb)
+
+
+def test_add_dict_buffer_nooverwrite():
+    testdata1 = randomdata(0x100)
+    testdata2 = randomdata(0x100)
+    testdict = {(0x80+n): testdata2[n:n+0x10] for n in range(0, 0x100, 0x10)}
+    mp1 = MultiPartBuffer().set(0x00, testdata1)
+    mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=False)
+    mp1.add(testdict, overwrite=False)
+    assert_equal(mp1, mpb)
+
+
+def test_add_list_byte():
+    testdata1 = randomdata(0x100)
+    testdata2 = randomdata(0x100)
+    testlist = [(n, byte) for n, byte in enumerate(testdata2, start=0x1000)]
+    mp1 = MultiPartBuffer().set(0x0000, testdata1)
+    mpb = MultiPartBuffer().set(0x0000, testdata1).set(0x1000, testdata2)
+    mp1.add(testlist)
+    assert_equal(mp1, mpb)
+
+
+def test_add_list_byte_overwrite():
+    testdata1 = randomdata(0x100)
+    testdata2 = randomdata(0x100)
+    testlist = [(n, byte) for n, byte in enumerate(testdata2, start=0x80)]
+    mp1 = MultiPartBuffer().set(0x00, testdata1)
+    mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=True)
+    mp1.add(testlist, overwrite=True)
+    assert_equal(mp1, mpb)
+
+
+def test_add_list_byte_nooverwrite():
+    testdata1 = randomdata(0x100)
+    testdata2 = randomdata(0x100)
+    testlist = [(n, byte)  for n, byte in enumerate(testdata2, start=0x80)]
+    mp1 = MultiPartBuffer().set(0x00, testdata1)
+    mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=False)
+    mp1.add(testlist, overwrite=False)
+    assert_equal(mp1, mpb)
+
+
+def test_add_list_buffer():
+    testdata1 = randomdata(0x100)
+    testdata2 = randomdata(0x100)
+    testlist = [((0x1000+n), testdata2[n:n+0x10]) for n in range(0, 0x100, 0x10)]
+    mp1 = MultiPartBuffer().set(0x0000, testdata1)
+    mpb = MultiPartBuffer().set(0x0000, testdata1).set(0x1000, testdata2)
+    mp1.add(testlist)
+    assert_equal(mp1, mpb)
+
+
+def test_add_list_buffer_overwrite():
+    testdata1 = randomdata(0x100)
+    testdata2 = randomdata(0x100)
+    testlist = [((0x80+n), testdata2[n:n+0x10]) for n in range(0, 0x100, 0x10)]
+    mp1 = MultiPartBuffer().set(0x00, testdata1)
+    mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=True)
+    mp1.add(testlist, overwrite=True)
+    assert_equal(mp1, mpb)
+
+
+def test_add_list_buffer_nooverwrite():
+    testdata1 = randomdata(0x100)
+    testdata2 = randomdata(0x100)
+    testlist = [((0x80+n), testdata2[n:n+0x10]) for n in range(0, 0x100, 0x10)]
+    mp1 = MultiPartBuffer().set(0x00, testdata1)
+    mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=False)
+    mp1.add(testlist, overwrite=False)
+    assert_equal(mp1, mpb)

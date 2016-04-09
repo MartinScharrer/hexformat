@@ -20,7 +20,7 @@
 """
 
 import copy
-
+import collections
 from hexformat.fillpattern import FillPattern, int_to_bytes
 
 MOD_USABLE_BUFFER_FOUND = 0
@@ -31,6 +31,15 @@ MOD_BEYOND_END_LAST_BUFFER_USED = -1
 class Buffer(bytearray):
     """Buffer class to abstract real buffer class."""
     pass
+
+
+def ensurebuffer(buforint):
+    if isinstance(buforint, bytearray):
+        return buforint
+    elif isinstance(buforint, collections.Sequence):
+        return bytearray(buforint)
+    else:
+        return bytearray((buforint,))
 
 
 class MultiPartBuffer(object):
@@ -660,7 +669,7 @@ class MultiPartBuffer(object):
             source = other
         try:
             for address, buffer in source:
-                self.set(address, buffer, overwrite=overwrite)
+                self.set(address, ensurebuffer(buffer), overwrite=overwrite)
         except Exception as e:
             raise TypeError(e)
         return self
@@ -702,22 +711,8 @@ class MultiPartBuffer(object):
         if hasattr(cls, methodname):
             return getattr(cls, methodname)(filename, *args, **kvargs)
         else:
-            opt = "r"
-            if fformat == "bin":
-                opt = "rb"
-            with open(filename, opt) as fh:
+            with open(filename, "r") as fh:
                 return cls.fromfh(fh, *args, fformat=fformat, **kvargs)
-
-    @classmethod
-    def fromfh(cls, fh, fformat=None, *args, **kvargs):
-        """ """
-        if fformat is None:
-            fformat = cls._STANDARD_FORMAT
-        methodname = "from" + fformat.lower() + "fh"
-        if hasattr(cls, methodname):
-            return getattr(cls, methodname)(fh, *args, **kvargs)
-        else:
-            raise ValueError
 
     def tofile(self, filename, fformat=None, *args, **kvargs):
         """ """
@@ -725,7 +720,8 @@ class MultiPartBuffer(object):
         if fformat == "bin" or (fformat is None and self._STANDARD_FORMAT == "bin"):
             opt = "wb"
         with open(filename, opt) as fh:
-            return self.tofh(fh, *args, fformat=fformat, **kvargs)
+            self.tofh(fh, *args, fformat=fformat, **kvargs)
+            return self
 
     def tofh(self, fh, fformat=None, *args, **kvargs):
         """ """
@@ -733,7 +729,8 @@ class MultiPartBuffer(object):
             fformat = self._STANDARD_FORMAT
         methodname = "to" + fformat.lower() + "fh"
         if hasattr(self, methodname):
-            return getattr(self, methodname)(fh, *args, **kvargs)
+            getattr(self, methodname)(fh, *args, **kvargs)
+            return self
         else:
             raise ValueError
 
