@@ -22,7 +22,7 @@ import sys
 
 from hexformat.intelhex import IntelHex
 from hexformat.fillpattern import RandomContent
-from nose.tools import assert_is, assert_equal, assert_list_equal, assert_sequence_equal, raises
+from nose.tools import assert_is, assert_equal, assert_list_equal, assert_sequence_equal, raises, assert_less_equal
 from hexformat.multipartbuffer import MultiPartBuffer, Buffer
 import tempfile
 import os
@@ -1229,3 +1229,133 @@ def test_tobinfh_6():
     assert_sequence_equal(bytearray(), readdata)
 
 
+def test_filter_nonpositivesize():
+    mp = MultiPartBuffer().set(123, bytearray(456))
+
+    def nevercalled():
+        raise Exception
+    assert_is(mp, mp.filter(nevercalled, size=0))
+    assert_is(mp, mp.filter(nevercalled, size=-1))
+    assert_is(mp, mp.filter(nevercalled, address=0, size=0))
+    assert_is(mp, mp.filter(nevercalled, address=1000, size=0))
+
+
+def test_filter_outsiderange():
+    mp = MultiPartBuffer().set(123, bytearray(456))
+
+    def nevercalled():
+        raise Exception
+    assert_is(mp, mp.filter(nevercalled, address=100, size=10))
+    assert_is(mp, mp.filter(nevercalled, address=900, size=10))
+
+
+def test_filter_fill_1():
+    testdata1 = randomdata(100)
+    testdata2 = randomdata(100)
+    mp = MultiPartBuffer().set(100, testdata1).set(300, testdata2)
+    filler = bytearray((0xFF,))
+    called = 0
+
+    def filterfunc(bufferaddr, buffer, bufferstartindex, bufferendindex):
+        nonlocal called
+        called += 1
+        assert_equal(called, 1)
+        assert_equal(bufferaddr, 100)
+        assert_sequence_equal(buffer, testdata1 + bytearray(filler*100) + testdata2)
+        assert_equal(bufferstartindex, 0)
+        assert_equal(bufferendindex, 300)
+
+    assert_is(mp, mp.filter(filterfunc, fillpattern=filler))
+
+
+def test_filter_fill_2():
+    testdata1 = randomdata(100)
+    testdata2 = randomdata(100)
+    mp = MultiPartBuffer().set(100, testdata1).set(300, testdata2)
+    filler = bytearray((0xFF,))
+    called = 0
+
+    def filterfunc(bufferaddr, buffer, bufferstartindex, bufferendindex):
+        nonlocal called
+        called += 1
+        assert_equal(called, 1)
+        assert_equal(bufferaddr, 100)
+        assert_sequence_equal(buffer, testdata1 + bytearray(filler*100) + testdata2)
+        assert_equal(bufferstartindex, 50)
+        assert_equal(bufferendindex, 250)
+        assert_sequence_equal(buffer[bufferstartindex:bufferendindex],
+                              testdata1[50:] + bytearray(filler * 100) + testdata2[:50])
+
+    assert_is(mp, mp.filter(filterfunc, address=150, size=200, fillpattern=filler))
+
+
+def test_filter_overlap_1():
+    testdata1 = randomdata(100)
+    testdata2 = randomdata(100)
+    mp = MultiPartBuffer().set(100, testdata1).set(300, testdata2)
+    filler = bytearray((0xFF,))
+    called = 0
+
+    def filterfunc(bufferaddr, buffer, bufferstartindex, bufferendindex):
+        nonlocal called
+        called += 1
+        assert_equal(called, 1)
+        assert_equal(bufferaddr, 100)
+        assert_sequence_equal(buffer, testdata1)
+        assert_equal(bufferstartindex, 50)
+        assert_equal(bufferendindex, 100)
+        assert_sequence_equal(buffer[bufferstartindex:bufferendindex], testdata1[50:])
+
+    assert_is(mp, mp.filter(filterfunc, address=150, size=100))
+
+
+def test_filter_overlap_2():
+    testdata1 = randomdata(100)
+    testdata2 = randomdata(100)
+    mp = MultiPartBuffer().set(100, testdata1).set(300, testdata2)
+    called = 0
+
+    def filterfunc(bufferaddr, buffer, bufferstartindex, bufferendindex):
+        nonlocal called
+        called += 1
+        assert_less_equal(called, 2)
+        if called == 1:
+            assert_equal(bufferaddr, 100)
+            assert_sequence_equal(buffer, testdata1)
+            assert_equal(bufferstartindex, 50)
+            assert_equal(bufferendindex, 100)
+            assert_sequence_equal(buffer[bufferstartindex:bufferendindex], testdata1[50:])
+        else:
+            assert_equal(bufferaddr, 300)
+            assert_sequence_equal(buffer, testdata2)
+            assert_equal(bufferstartindex, 0)
+            assert_equal(bufferendindex, 50)
+            assert_sequence_equal(buffer[bufferstartindex:bufferendindex], testdata2[:50])
+
+    assert_is(mp, mp.filter(filterfunc, address=150, size=200))
+
+
+def test_filter_overlap_3():
+    testdata1 = randomdata(100)
+    testdata2 = randomdata(100)
+    mp = MultiPartBuffer().set(100, testdata1).set(300, testdata2).set(500, bytearray(100))
+    called = 0
+
+    def filterfunc(bufferaddr, buffer, bufferstartindex, bufferendindex):
+        nonlocal called
+        called += 1
+        assert_less_equal(called, 2)
+        if called == 1:
+            assert_equal(bufferaddr, 100)
+            assert_sequence_equal(buffer, testdata1)
+            assert_equal(bufferstartindex, 50)
+            assert_equal(bufferendindex, 100)
+            assert_sequence_equal(buffer[bufferstartindex:bufferendindex], testdata1[50:])
+        else:
+            assert_equal(bufferaddr, 300)
+            assert_sequence_equal(buffer, testdata2)
+            assert_equal(bufferstartindex, 0)
+            assert_equal(bufferendindex, 100)
+            assert_sequence_equal(buffer[bufferstartindex:bufferendindex], testdata2)
+
+    assert_is(mp, mp.filter(filterfunc, address=150, size=300))

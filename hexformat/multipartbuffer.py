@@ -687,7 +687,7 @@ class MultiPartBuffer(object):
         if fillpattern is not None:
             self.fill(address, size, fillpattern)
         (startindex, mod1) = self._find(address, size, create=False)
-        if mod1 == MOD_NO_BUFFER_FOUND_NEXT_HIGHER_USED:  # range not included (was not filled)
+        if mod1 != MOD_USABLE_BUFFER_FOUND:  # range not included (was not filled)
             return self
         endaddress = address + size
         (lastindex, mod2) = self._find(endaddress - 1, 0, create=False)
@@ -695,8 +695,9 @@ class MultiPartBuffer(object):
             lastindex -= 1
         for bufferaddr, buffer in self._parts[startindex:lastindex + 1]:
             bufferstartindex = max(address - bufferaddr, 0)
-            buffersize = min(len(buffer) - bufferstartindex, endaddress - bufferaddr)
-            filterfunc(bufferaddr, buffer, bufferstartindex, buffersize)
+            bufferendindex = min(len(buffer), endaddress - bufferaddr)
+            filterfunc(bufferaddr, buffer, bufferstartindex, bufferendindex)
+        return self
 
     @classmethod
     def fromfile(cls, filename, fformat=None, *args, **kvargs):
