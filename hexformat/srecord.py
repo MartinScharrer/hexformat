@@ -105,7 +105,7 @@ class SRecord(HexFormat):
         if bytesperline is not None:
             bytesperline = int(bytesperline)
             if bytesperline < 1 or bytesperline > 253:
-                raise ValueError("bytesperline must be between 0 and 253")
+                raise ValueError("bytesperline must be between 1 and 253")
         return bytesperline
 
     @property
@@ -119,7 +119,7 @@ class SRecord(HexFormat):
     @staticmethod
     def _parse_header(header):
         if header is not None:
-            header = Buffer(header)
+            header = Buffer(iter(header))
         return header
 
     @property
