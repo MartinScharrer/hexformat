@@ -1078,3 +1078,154 @@ def test_todict():
     d2 = mp.todict()
     assert_equal(d1, d2)
 
+
+def test_tobinfile_1():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    mp = MultiPartBuffer().set(100, testdata)
+    ret = mp.tobinfile(filename)
+    assert_is(ret, mp)
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(testdata, readdata)
+
+
+def test_tobinfile_2():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    mp = MultiPartBuffer().set(1000, testdata)
+    ret = mp.tobinfile(filename, address=1000)
+    assert_is(ret, mp)
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(testdata, readdata)
+
+
+def test_tobinfile_3():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    mp = MultiPartBuffer().set(1000, testdata)
+    ret = mp.tobinfile(filename, size=1024)
+    assert_is(ret, mp)
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(testdata, readdata)
+
+
+def test_tobinfile_4():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    mp = MultiPartBuffer().set(1000, testdata)
+    ret = mp.tobinfile(filename, address=1000, size=1024)
+    assert_is(ret, mp)
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(testdata, readdata)
+
+
+def test_tobinfile_5():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    mp = MultiPartBuffer().set(0, testdata)
+    ret = mp.tobinfile(filename, address=-1, size=1024)
+    assert_is(ret, mp)
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(testdata, readdata)
+
+
+def test_tobinfile_6():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    mp = MultiPartBuffer().set(0, testdata)
+    ret = mp.tobinfile(filename, address=12000)
+    assert_is(ret, mp)
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(bytearray(), readdata)
+
+
+def test_tobinfh_1():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    mp = MultiPartBuffer().set(100, testdata)
+    with open(filename, "wb") as fh:
+        ret = mp.tobinfh(fh)
+    assert_is(ret, mp)
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(testdata, readdata)
+
+
+def test_tobinfh_2():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    mp = MultiPartBuffer().set(1000, testdata)
+    with open(filename, "wb") as fh:
+        ret = mp.tobinfh(fh, address=1000)
+    assert_is(ret, mp)
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(testdata, readdata)
+
+
+def test_tobinfh_3():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    mp = MultiPartBuffer().set(1000, testdata)
+    with open(filename, "wb") as fh:
+        ret = mp.tobinfh(fh, size=1024)
+    assert_is(ret, mp)
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(testdata, readdata)
+
+
+def test_tobinfh_4():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    mp = MultiPartBuffer().set(1000, testdata)
+    with open(filename, "wb") as fh:
+        ret = mp.tobinfh(fh, address=1000, size=1024)
+    assert_is(ret, mp)
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(testdata, readdata)
+
+
+def test_tobinfh_5():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    mp = MultiPartBuffer().set(0, testdata)
+    with open(filename, "wb") as fh:
+        ret = mp.tobinfh(fh, address=-1, size=1024)
+    assert_is(ret, mp)
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(testdata, readdata)
+
+
+def test_tobinfh_6():
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    filename = os.path.join(dirname, "testdata.bin")
+    testdata = randomdata(1024)
+    mp = MultiPartBuffer().set(0, testdata)
+    with open(filename, "wb") as fh:
+        ret = mp.tobinfh(fh, address=12000)
+    assert_is(ret, mp)
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(bytearray(), readdata)
+
+
