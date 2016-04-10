@@ -225,14 +225,17 @@ class SRecord(HexFormat):
            Raises:
              ValueError: If addresslength is not 2, 3 or 4.
         """
-        if addresslength == 2:
-            return ((address >> 8) & 0xFF), (address & 0xFF)
-        elif addresslength == 3:
-            return ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF)
-        elif addresslength == 4:
-            return ((address >> 24) & 0xFF), ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF)
-        else:
+        if not (2 <= addresslength <= 4):
             raise ValueError("Invalid address length (%s). Valid values are 2, 3 or 4." % (str(addresslength),))
+        try:
+            return address.to_bytes(addresslength, 'big')
+        except AttributeError:
+            if addresslength == 2:
+                return ((address >> 8) & 0xFF), (address & 0xFF)
+            elif addresslength == 3:
+                return ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF)
+            else:
+                return ((address >> 24) & 0xFF), ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF)
 
     @classmethod
     def _encodesrecline(cls, fh, address, buffer, offset=0, recordtype=123, bytesperline=32):

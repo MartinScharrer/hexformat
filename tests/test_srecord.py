@@ -206,7 +206,7 @@ def test_header_setter_invalid():
 @raises(TypeError)
 def test_header_setter_invalid_4():
     srec = SRecord()
-    srec.header = dict(a=1)
+    srec.header = object()
 
 
 # noinspection PyProtectedMember
@@ -242,7 +242,7 @@ def test__minaddresslength():
     # noinspection PyProtectedMember
     def compare(num):
         minlen = SRecord._minaddresslength(num)
-        m = int(("0000" + hex(num)[2:])[-2 * minlen:], 16)
+        m = int(("0000" + hex(num)[2:].replace('L', ''))[-2 * minlen:], 16)
         assert_equal(num, m)
 
     for s in range(1, 32):
@@ -260,7 +260,7 @@ def test__s123addr():
     # noinspection PyProtectedMember
     def compare(al, val):
         retdata = bytearray(iter(SRecord._s123addr(al, val)))
-        compdata = bytearray.fromhex((("00" * al) + hex(val)[2:])[-2*al:])
+        compdata = bytearray.fromhex((("00" * al) + hex(val)[2:].replace('L', ''))[-2*al:])
         assert_sequence_equal(retdata, compdata)
 
     for adrlen in (2, 3, 4):
