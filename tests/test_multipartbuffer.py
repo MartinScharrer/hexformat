@@ -36,6 +36,10 @@ def randomdata(length):
     return bytearray((random.randint(0, 255) for n in range(0, length)))
 
 
+def filldata(length, data=0xFF):
+    return bytearray((data,)) * length
+
+
 # noinspection PyProtectedMember
 def test1():
     m = MultiPartBuffer()
@@ -423,6 +427,48 @@ def test_unfill_empty():
     mp = MultiPartBuffer()
     assert_is(mp.unfill(), mp)
     assert_list_equal(mp.parts(), [])
+
+
+def test_unfill_mingapsize():
+    mp = MultiPartBuffer()
+    mp.set(100, bytearray(100))
+    mp.set(210, bytearray(100))
+    fillpattern = randomdata(1)
+    mp.fill(fillpattern=fillpattern)
+    mp2 = mp.copy()
+    mp.unfill(unfillpattern=fillpattern, mingapsize=16)
+    assert_equal(mp, mp2)
+
+
+def test_unfill_multiple():
+    mp = MultiPartBuffer()
+    fillbyte = randomdata(1)[0]
+    mp.set(1000, bytearray(1000))
+    mp.set(1100, filldata(100, fillbyte))
+    mp.set(1500, filldata(100, fillbyte))
+    mp.set(1800, filldata(100, fillbyte))
+    mp.unfill(unfillpattern=fillbyte)
+    assert_list_equal(mp.parts(), [(1000, 100), (1200, 300), (1600, 200), (1900, 100)])
+
+
+def test_unfill_end():
+    mp = MultiPartBuffer()
+    fillpattern = randomdata(1)
+    mp.set(100, bytearray(100))
+    mp2 = mp.copy()
+    mp.set(200, fillpattern * 100)
+    mp.unfill(unfillpattern=fillpattern)
+    assert_equal(mp, mp2)
+
+
+def test_unfill_start():
+    mp = MultiPartBuffer()
+    fillpattern = randomdata(1)
+    mp.set(200, bytearray(100))
+    mp2 = mp.copy()
+    mp.set(100, fillpattern * 100)
+    mp.unfill(unfillpattern=fillpattern)
+    assert_equal(mp, mp2)
 
 
 def test_unfill_1():
@@ -961,3 +1007,4 @@ def test_todict():
     d1 = {n: b for n, b in enumerate(testdata, 1000)}
     d2 = mp.todict()
     assert_equal(d1, d2)
+

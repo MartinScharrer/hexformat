@@ -360,11 +360,8 @@ class MultiPartBuffer(object):
                 size = -trailing
                 address = bufferstart + buffersize
                 gap = nextbufferstart - address
-                if gap < size:
-                    address += gap
-                    size -= gap
-                else:
-                    break
+                address += gap
+                size -= gap
         return self
 
     def _filler(self, size, fillpattern):
