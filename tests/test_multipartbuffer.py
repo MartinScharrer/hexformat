@@ -150,14 +150,35 @@ def test_insert_overlap():
 def test_get_beforedata():
     mp = MultiPartBuffer()
     mp.set(1000, bytearray(10))
-    assert_equal(mp.get(900, 10, 0xFF), bytearray(b"\xFF"*10))
+    assert_sequence_equal(mp.get(900, 10, 0xFF), bytearray(b"\xFF"*10))
 
 
 def test_get_betweendata():
     mp = MultiPartBuffer()
     mp.set(800, bytearray(10))
     mp.set(1000, bytearray(10))
-    assert_equal(mp.get(1100, 10, 0xFF), bytearray(b"\xFF"*10))
+    assert_sequence_equal(mp.get(1100, 10, 0xFF), bytearray(b"\xFF"*10))
+
+
+def test_get_overlapstart():
+    mp = MultiPartBuffer()
+    testdata = randomdata(10)
+    mp.set(1000, testdata)
+    assert_sequence_equal(mp.get(990, 15, 0xFF), bytearray(b"\xFF"*10) + testdata[0:5])
+
+
+def test_get_overlapend():
+    mp = MultiPartBuffer()
+    testdata = randomdata(10)
+    mp.set(1000, testdata)
+    assert_sequence_equal(mp.get(1005, 15, 0xFF), testdata[5:] + bytearray(b"\xFF"*10))
+
+
+def test_get_overlapboth():
+    mp = MultiPartBuffer()
+    testdata = randomdata(10)
+    mp.set(1000, testdata)
+    assert_sequence_equal(mp.get(990, 30, 0xFF), bytearray(b"\xFF"*10) + testdata + bytearray(b"\xFF"*10))
 
 
 def test_get_3():
@@ -167,12 +188,30 @@ def test_get_3():
     assert_sequence_equal(mp.get(None, 80), testdata[0:80])
 
 
+def test_get_zerosize():
+    adr = 1000
+    length = 100
+    end = adr + length
+    testdata = randomdata(length)
+    mp = MultiPartBuffer()
+    mp.set(adr, testdata)
+    assert_sequence_equal(mp.get(None, 0), bytearray())
+    assert_sequence_equal(mp.get(adr-1, 0), bytearray())
+    assert_sequence_equal(mp.get(adr, 0), bytearray())
+    assert_sequence_equal(mp.get(adr + 1, 0), bytearray())
+    assert_sequence_equal(mp.get(adr - 1, 0), bytearray())
+    assert_sequence_equal(mp.get(end, 0), bytearray())
+    assert_sequence_equal(mp.get(end + 1, 0), bytearray())
+    assert_sequence_equal(mp.get(end - 1, 0), bytearray())
+    assert_sequence_equal(mp.get(end - 2, 0), bytearray())
+
+
 def test_setint():
     mp = MultiPartBuffer()
     mp.setint(address=0x100, intvalue=0xDEADBEEF, datasize=4, byteorder='big', signed=False, overwrite=True)
-    assert_equal(mp.get(None, None), bytearray.fromhex("DEADBEEF"))
+    assert_sequence_equal(mp.get(None, None), bytearray.fromhex("DEADBEEF"))
     mp.setint(address=0x100, intvalue=0xFEEDAFFE, datasize=4, byteorder='big', signed=False, overwrite=False)
-    assert_equal(mp.get(None, None), bytearray.fromhex("DEADBEEF"))
+    assert_sequence_equal(mp.get(None, None), bytearray.fromhex("DEADBEEF"))
 
 
 def test_crop():
@@ -180,11 +219,11 @@ def test_crop():
     mp = MultiPartBuffer()
     mp.set(1000, testdata)
     mp.crop(1010, 80)
-    assert_equal(mp.get(None, None), testdata[10:-10])
+    assert_sequence_equal(mp.get(None, None), testdata[10:-10])
     mp.crop(1020)
-    assert_equal(mp.get(None, None), testdata[20:-10])
+    assert_sequence_equal(mp.get(None, None), testdata[20:-10])
     mp.crop(None)
-    assert_equal(mp.get(None, None), testdata[20:-10])
+    assert_sequence_equal(mp.get(None, None), testdata[20:-10])
 
 
 def test_extract():
@@ -192,11 +231,11 @@ def test_extract():
     mp = MultiPartBuffer()
     mp.set(1000, testdata)
     mp2 = mp.extract(1010, 80)
-    assert_equal(mp.get(None, None), testdata)
-    assert_equal(mp2.get(None, None), testdata[10:-10])
+    assert_sequence_equal(mp.get(None, None), testdata)
+    assert_sequence_equal(mp2.get(None, None), testdata[10:-10])
     mp3 = mp.extract(1020, None, False)
-    assert_equal(mp.get(None, None), testdata[0:20])
-    assert_equal(mp3.get(None, None), testdata[20:])
+    assert_sequence_equal(mp.get(None, None), testdata[0:20])
+    assert_sequence_equal(mp3.get(None, None), testdata[20:])
 
 
 def test_includesgaps():
@@ -225,14 +264,14 @@ def test_offset():
     mp = MultiPartBuffer()
     mp.set(1000, testdata)
     mp.offset(10)
-    assert_equal(mp.get(1010, 100), testdata)
-    assert_equal(mp.parts(), [(1010, 100), ])
+    assert_sequence_equal(mp.get(1010, 100), testdata)
+    assert_list_equal(mp.parts(), [(1010, 100), ])
     mp.offset(-100)
-    assert_equal(mp.get(910, 100), testdata)
-    assert_equal(mp.parts(), [(910, 100), ])
+    assert_sequence_equal(mp.get(910, 100), testdata)
+    assert_list_equal(mp.parts(), [(910, 100), ])
     mp.offset(None)
-    assert_equal(mp.get(0, 100), testdata)
-    assert_equal(mp.parts(), [(0, 100), ])
+    assert_sequence_equal(mp.get(0, 100), testdata)
+    assert_list_equal(mp.parts(), [(0, 100), ])
 
 
 @raises(ValueError)
@@ -328,6 +367,37 @@ def test_relocate_4():
 
 
 def test_delete():
+    testdata = randomdata(0x100)
+    mp = MultiPartBuffer()
+    mp.set(0x100, testdata)
+    mp.delete(0xF0, 0x20)
+    yield assert_sequence_equal, mp.get(None, None), testdata[0x10:]
+    mp.delete(0x1F0, 0x20)
+    yield assert_sequence_equal, mp.get(None, None), testdata[0x10:-0x10]
+    mp.delete(0x150, 0x10)
+    yield assert_list_equal, mp.parts(), [(0x110, 0x40), (0x160, 0x90)]
+
+
+def test_delete_all():
+    testdata = bytearray(100)
+    mp = MultiPartBuffer()
+    mp.set(10000, testdata)
+    mp.delete(9999, 102)
+    yield assert_list_equal, mp.parts(), []
+
+
+# noinspection PyProtectedMember
+def test_delete_2():
+    testdata1 = randomdata(100)
+    testdata2 = randomdata(100)
+    mp = MultiPartBuffer()
+    mp.set(200, testdata1)
+    mp.set(400, testdata2)
+    mp.delete(100, 350)
+    yield assert_list_equal, mp._parts, [[450, testdata2[50:]], ]
+
+
+def test_delete_overlap():
     testdata = randomdata(0x100)
     mp = MultiPartBuffer()
     mp.set(0x100, testdata)
@@ -918,7 +988,7 @@ def test_add_list_buffer_nooverwrite():
 @raises(TypeError)
 def test_add_failure():
     mp = MultiPartBuffer()
-    mp.add(set(range(0,10)))
+    mp.add(set(range(0, 10)))
 
 
 def test_fillfront_0():
