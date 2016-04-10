@@ -168,6 +168,7 @@ def test_bytesperline_setter_invalid_4():
 # noinspection PyProtectedMember
 def test_header_getter():
     srec = SRecord()
+    # noinspection PyUnusedLocal
     for n in (b"", b"Test", b"Long string Long string Long string Long string Long string Long string ",
               "Some string which will be encoded".encode(),
               bytearray((random.randint(0, 255) for r in range(0, random.randint(0, 253))))):
@@ -179,6 +180,7 @@ def test_header_getter():
 # noinspection PyProtectedMember
 def test_header_setter():
     srec = SRecord()
+    # noinspection PyUnusedLocal
     for n in (b"", b"Test", b"Long string Long string Long string Long string Long string Long string ",
               "Some string which will be encoded".encode(),
               bytearray((random.randint(0, 255) for r in range(0, random.randint(0, 253))))):
@@ -239,9 +241,9 @@ def test__minaddresslength():
 
     # noinspection PyProtectedMember
     def compare(num):
-        minlen = SRecord._minaddresslength(n)
-        m = int(("0000" + hex(n)[2:])[-2 * minlen:], 16)
-        assert_equal(n, m)
+        minlen = SRecord._minaddresslength(num)
+        m = int(("0000" + hex(num)[2:])[-2 * minlen:], 16)
+        assert_equal(num, m)
 
     for s in range(1, 32):
         n = 1 << s
@@ -250,4 +252,25 @@ def test__minaddresslength():
         compare(n+1)
 
     assert_raises(ValueError, SRecord._minaddresslength, 2**32)
+
+
+# noinspection PyProtectedMember
+def test__s123addr():
+
+    # noinspection PyProtectedMember
+    def compare(al, val):
+        retdata = bytearray(iter(SRecord._s123addr(al, val)))
+        compdata = bytearray.fromhex((("00" * al) + hex(val)[2:])[-2*al:])
+        assert_sequence_equal(retdata, compdata)
+
+    for adrlen in (2, 3, 4):
+        for s in range(1, 8*adrlen):
+            n = 1 << s
+            compare(adrlen, n)
+            compare(adrlen, n-1)
+            compare(adrlen, n+1)
+
+    assert_raises(ValueError, SRecord._s123addr, 0, 0)
+    assert_raises(ValueError, SRecord._s123addr, 1, 0)
+    assert_raises(ValueError, SRecord._s123addr, 5, 0)
 
