@@ -718,7 +718,7 @@ class MultiPartBuffer(object):
             opt = "wb"
         with open(filename, opt) as fh:
             self.tofh(fh, *args, fformat=fformat, **kvargs)
-            return self
+        return self
 
     def tofh(self, fh, fformat=None, *args, **kvargs):
         """ """
@@ -727,9 +727,9 @@ class MultiPartBuffer(object):
         methodname = "to" + fformat.lower() + "fh"
         if hasattr(self, methodname):
             getattr(self, methodname)(fh, *args, **kvargs)
-            return self
         else:
             raise ValueError
+        return self
 
     @classmethod
     def fromfh(cls, fh, fformat=None, *args, **kvargs):
@@ -740,9 +740,9 @@ class MultiPartBuffer(object):
         self = cls()
         if hasattr(self, methodname):
             getattr(self, methodname)(fh, *args, **kvargs)
-            return self
         else:
             raise ValueError
+        return self
 
     @classmethod
     def frombinfile(cls, filename, address=0, size=-1, offset=0):

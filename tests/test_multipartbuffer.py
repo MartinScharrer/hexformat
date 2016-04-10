@@ -27,8 +27,29 @@ from hexformat.multipartbuffer import MultiPartBuffer, Buffer
 import tempfile
 import os
 import random
+import shutil
 
 sys.path.append('..')
+
+callcount = 0
+dirname = ""
+filename = ""
+
+
+def setup():
+    global dirname
+    global filename
+    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
+    sys.stderr.write("Tempdir: {:s}\n".format(dirname))
+    filename = os.path.join(dirname, "testdata.bin")
+
+
+def teardown():
+    # noinspection PyBroadException
+    try:
+        shutil.rmtree(dirname)
+    except:
+        pass
 
 
 def randomdata(length):
@@ -598,8 +619,6 @@ def test_unfill_3():
 
 
 def test_loadbinfile():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     with open(filename, "wb") as fh:
         fh.write(testdata)
@@ -626,8 +645,6 @@ def test_loadbinfile():
 
 
 def test_loadbinfh():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     with open(filename, "wb") as fh:
         fh.write(testdata)
@@ -658,8 +675,6 @@ def test_loadbinfh():
 
 
 def test_frombinfile():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     with open(filename, "wb") as fh:
         fh.write(testdata)
@@ -682,8 +697,6 @@ def test_frombinfile():
 
 
 def test_frombinfh():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     with open(filename, "wb") as fh:
         fh.write(testdata)
@@ -710,8 +723,6 @@ def test_frombinfh():
 
 
 def test_fromfile_1():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     with open(filename, "wb") as fh:
         fh.write(testdata)
@@ -734,8 +745,6 @@ def test_fromfile_1():
 
 
 def test_fromfile_2():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     with open(filename, "wb") as fh:
         fh.write(testdata)
@@ -759,8 +768,6 @@ def test_fromfile_2():
 
 @raises(ValueError)
 def test_fromfile_failure():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1)
     with open(filename, "wb") as fh:
         fh.write(testdata)
@@ -768,8 +775,6 @@ def test_fromfile_failure():
 
 
 def test_fromfh_1():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     with open(filename, "wb") as fh:
         fh.write(testdata)
@@ -796,8 +801,6 @@ def test_fromfh_1():
 
 
 def test_fromfh_2():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     with open(filename, "wb") as fh:
         fh.write(testdata)
@@ -825,8 +828,6 @@ def test_fromfh_2():
 
 @raises(ValueError)
 def test_fromfh_failure():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1)
     with open(filename, "wb") as fh:
         fh.write(testdata)
@@ -1080,8 +1081,6 @@ def test_todict():
 
 
 def test_tobinfile_1():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     mp = MultiPartBuffer().set(100, testdata)
     ret = mp.tobinfile(filename)
@@ -1092,8 +1091,6 @@ def test_tobinfile_1():
 
 
 def test_tobinfile_2():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     mp = MultiPartBuffer().set(1000, testdata)
     ret = mp.tobinfile(filename, address=1000)
@@ -1104,8 +1101,6 @@ def test_tobinfile_2():
 
 
 def test_tobinfile_3():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     mp = MultiPartBuffer().set(1000, testdata)
     ret = mp.tobinfile(filename, size=1024)
@@ -1116,8 +1111,6 @@ def test_tobinfile_3():
 
 
 def test_tobinfile_4():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     mp = MultiPartBuffer().set(1000, testdata)
     ret = mp.tobinfile(filename, address=1000, size=1024)
@@ -1128,8 +1121,6 @@ def test_tobinfile_4():
 
 
 def test_tobinfile_5():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     mp = MultiPartBuffer().set(0, testdata)
     ret = mp.tobinfile(filename, address=-1, size=1024)
@@ -1140,8 +1131,6 @@ def test_tobinfile_5():
 
 
 def test_tobinfile_6():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     mp = MultiPartBuffer().set(0, testdata)
     ret = mp.tobinfile(filename, address=12000)
@@ -1152,8 +1141,6 @@ def test_tobinfile_6():
 
 
 def test_tobinfh_1():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     mp = MultiPartBuffer().set(100, testdata)
     with open(filename, "wb") as fh:
@@ -1165,8 +1152,6 @@ def test_tobinfh_1():
 
 
 def test_tobinfh_2():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     mp = MultiPartBuffer().set(1000, testdata)
     with open(filename, "wb") as fh:
@@ -1178,8 +1163,6 @@ def test_tobinfh_2():
 
 
 def test_tobinfh_3():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     mp = MultiPartBuffer().set(1000, testdata)
     with open(filename, "wb") as fh:
@@ -1191,8 +1174,6 @@ def test_tobinfh_3():
 
 
 def test_tobinfh_4():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     mp = MultiPartBuffer().set(1000, testdata)
     with open(filename, "wb") as fh:
@@ -1204,8 +1185,6 @@ def test_tobinfh_4():
 
 
 def test_tobinfh_5():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     mp = MultiPartBuffer().set(0, testdata)
     with open(filename, "wb") as fh:
@@ -1217,8 +1196,6 @@ def test_tobinfh_5():
 
 
 def test_tobinfh_6():
-    dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-    filename = os.path.join(dirname, "testdata.bin")
     testdata = randomdata(1024)
     mp = MultiPartBuffer().set(0, testdata)
     with open(filename, "wb") as fh:
@@ -1254,12 +1231,13 @@ def test_filter_fill_1():
     testdata2 = randomdata(100)
     mp = MultiPartBuffer().set(100, testdata1).set(300, testdata2)
     filler = bytearray((0xFF,))
-    called = 0
+    global callcount
+    callcount = 0
 
     def filterfunc(bufferaddr, buffer, bufferstartindex, bufferendindex):
-        nonlocal called
-        called += 1
-        assert_equal(called, 1)
+        global callcount
+        callcount += 1
+        assert_equal(callcount, 1)
         assert_equal(bufferaddr, 100)
         assert_sequence_equal(buffer, testdata1 + bytearray(filler*100) + testdata2)
         assert_equal(bufferstartindex, 0)
@@ -1273,12 +1251,13 @@ def test_filter_fill_2():
     testdata2 = randomdata(100)
     mp = MultiPartBuffer().set(100, testdata1).set(300, testdata2)
     filler = bytearray((0xFF,))
-    called = 0
+    global callcount
+    callcount = 0
 
     def filterfunc(bufferaddr, buffer, bufferstartindex, bufferendindex):
-        nonlocal called
-        called += 1
-        assert_equal(called, 1)
+        global callcount
+        callcount += 1
+        assert_equal(callcount, 1)
         assert_equal(bufferaddr, 100)
         assert_sequence_equal(buffer, testdata1 + bytearray(filler*100) + testdata2)
         assert_equal(bufferstartindex, 50)
@@ -1293,13 +1272,13 @@ def test_filter_overlap_1():
     testdata1 = randomdata(100)
     testdata2 = randomdata(100)
     mp = MultiPartBuffer().set(100, testdata1).set(300, testdata2)
-    filler = bytearray((0xFF,))
-    called = 0
+    global callcount
+    callcount = 0
 
     def filterfunc(bufferaddr, buffer, bufferstartindex, bufferendindex):
-        nonlocal called
-        called += 1
-        assert_equal(called, 1)
+        global callcount
+        callcount += 1
+        assert_equal(callcount, 1)
         assert_equal(bufferaddr, 100)
         assert_sequence_equal(buffer, testdata1)
         assert_equal(bufferstartindex, 50)
@@ -1313,13 +1292,14 @@ def test_filter_overlap_2():
     testdata1 = randomdata(100)
     testdata2 = randomdata(100)
     mp = MultiPartBuffer().set(100, testdata1).set(300, testdata2)
-    called = 0
+    global callcount
+    callcount = 0
 
     def filterfunc(bufferaddr, buffer, bufferstartindex, bufferendindex):
-        nonlocal called
-        called += 1
-        assert_less_equal(called, 2)
-        if called == 1:
+        global callcount
+        callcount += 1
+        assert_less_equal(callcount, 2)
+        if callcount == 1:
             assert_equal(bufferaddr, 100)
             assert_sequence_equal(buffer, testdata1)
             assert_equal(bufferstartindex, 50)
@@ -1339,13 +1319,14 @@ def test_filter_overlap_3():
     testdata1 = randomdata(100)
     testdata2 = randomdata(100)
     mp = MultiPartBuffer().set(100, testdata1).set(300, testdata2).set(500, bytearray(100))
-    called = 0
+    global callcount
+    callcount = 0
 
     def filterfunc(bufferaddr, buffer, bufferstartindex, bufferendindex):
-        nonlocal called
-        called += 1
-        assert_less_equal(called, 2)
-        if called == 1:
+        global callcount
+        callcount += 1
+        assert_less_equal(callcount, 2)
+        if callcount == 1:
             assert_equal(bufferaddr, 100)
             assert_sequence_equal(buffer, testdata1)
             assert_equal(bufferstartindex, 50)
@@ -1359,3 +1340,57 @@ def test_filter_overlap_3():
             assert_sequence_equal(buffer[bufferstartindex:bufferendindex], testdata2)
 
     assert_is(mp, mp.filter(filterfunc, address=150, size=300))
+
+
+@raises(ValueError)
+def test_tofile_failure():
+    testdata = randomdata(1)
+    mp = MultiPartBuffer().set(0, testdata)
+    mp.tofile(filename, 'invalid')
+
+
+@raises(ValueError)
+def test_tofh_failure():
+    testdata = randomdata(1)
+    mp = MultiPartBuffer().set(0, testdata)
+    with open(filename, "wb") as fh:
+        mp.tofh(fh, 'invalid')
+
+
+def test_tofh():
+    testdata = randomdata(100)
+    mp = MultiPartBuffer().set(0, testdata)
+    with open(filename, "wb") as fh:
+        mp.tofh(fh)
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(readdata, testdata)
+
+
+def test_tofh_bin():
+    testdata = randomdata(100)
+    mp = MultiPartBuffer().set(0, testdata)
+    with open(filename, "wb") as fh:
+        mp.tofh(fh, 'bin')
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(readdata, testdata)
+
+
+def test_tofile():
+    testdata = randomdata(100)
+    mp = MultiPartBuffer().set(0, testdata)
+    mp.tofile(filename)
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(readdata, testdata)
+
+
+def test_tofile_bin():
+    testdata = randomdata(100)
+    mp = MultiPartBuffer().set(0, testdata)
+    mp.tofile(filename, 'bin')
+    with open(filename, "rb") as fh:
+        readdata = fh.read()
+    assert_sequence_equal(readdata, testdata)
+
