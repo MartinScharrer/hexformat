@@ -14,6 +14,7 @@ def createrandom(randomsize, randomaddr, filebase):
     srecfilename = filebase + '.srec'
 
     # create random bin file
+    # noinspection PyUnusedLocal
     randomdata = bytearray((random.randint(0, 255) for n in range(0, randomsize)))
     assert len(randomdata) == randomsize
     with open(binfilename, "wb") as fh:
@@ -51,6 +52,7 @@ def test_createrandom():
             if time() >= timelimit:
                 break
     finally:
+        # noinspection PyBroadException
         try:
             shutil.rmtree(dirname)
         except:

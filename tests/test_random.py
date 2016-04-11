@@ -63,6 +63,7 @@ def test_random1_srec():
     assert srec37 == srec19
 
 
+# noinspection PyProtectedMember
 def test_random1_srecihex():
     srec = SRecord.fromsrecfile("tests/random1.s37")
     ih = IntelHex.fromihexfile("tests/random1.hex")

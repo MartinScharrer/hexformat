@@ -1,6 +1,44 @@
 from hexformat.srecord import SRecord
-from nose.tools import assert_sequence_equal, assert_equal, assert_is, raises, assert_raises
+from nose.tools import assert_sequence_equal, assert_equal, assert_is, assert_raises, assert_dict_equal, assert_true
+from nose.tools import raises, assert_is_instance
+from mock import patch
+from .test_multipartbuffer import randomdata
 import random
+import tempfile
+import sys
+import os
+import shutil
+
+dirname = ""
+testfilename = ""
+
+
+def setup():
+    global dirname
+    global testfilename
+    dirname = tempfile.mkdtemp(prefix="test_srecord_")
+    sys.stderr.write("Tempdir: {:s}\n".format(dirname))
+    testfilename = os.path.join(dirname, "testdata.srec")
+
+
+def teardown():
+    # noinspection PyBroadException
+    try:
+        shutil.rmtree(dirname)
+    except:
+        pass
+
+
+def randomstr(length):
+    # noinspection PyUnusedLocal
+    return bytearray((random.randint(ord('a'), ord('z')) for n in range(0, length))).decode()
+
+
+def randomdict(number=None):
+    if number is None:
+        number = random.randint(1, 16)
+    # noinspection PyUnusedLocal
+    return {randomstr(random.randint(1, 16)): randomdata(random.randint(1, 16)) for n in range(0, number)}
 
 
 # noinspection PyProtectedMember
@@ -274,3 +312,91 @@ def test__s123addr():
     assert_raises(ValueError, SRecord._s123addr, 1, 0)
     assert_raises(ValueError, SRecord._s123addr, 5, 0)
 
+
+def test_tosrecfile_interface():
+    testdict = randomdict()
+
+    def tosrecfh_replacement(self, fh, **settings):
+        assert_dict_equal(settings, testdict)
+        assert_equal(fh.name, testfilename)
+        if sys.version_info >= (3,):
+            assert_true(fh.writable())
+        assert_true(hasattr(fh, "write"))
+        assert_true(hasattr(fh, "encoding"))  # is text file
+        assert_equal(fh.tell(), 0)
+        return self
+
+    @patch('hexformat.srecord.SRecord.tosrecfh', tosrecfh_replacement)
+    def do():
+        srec = SRecord()
+        ret = srec.tosrecfile(testfilename, **testdict)
+        assert_is(ret, srec)
+
+    do()
+
+
+def test_fromsrecfile_interface():
+    test_raise_error_on_miscount = random.randint(0, 1024)
+
+    # noinspection PyDecorator
+    @classmethod
+    def fromsrecfh_replacement(cls, fh, raise_error_on_miscount=True):
+        assert_equal(raise_error_on_miscount, test_raise_error_on_miscount)
+        assert_equal(fh.name, testfilename)
+        if sys.version_info >= (3,):
+            assert_true(fh.readable())
+        assert_true(hasattr(fh, "read"))
+        assert_true(hasattr(fh, "encoding"))  # is text file
+        assert_equal(fh.tell(), 0)
+        return cls()
+
+    @patch('hexformat.srecord.SRecord.fromsrecfh', fromsrecfh_replacement)
+    def do():
+        srec = SRecord.fromsrecfile(testfilename, test_raise_error_on_miscount)
+        assert_is_instance(srec, SRecord)
+
+    do()
+
+
+def test_fromsrecfh_interface():
+    testfh = object()
+    test_raise_error_on_miscount = random.randint(0, 1024)
+
+    def loadsrecfh_replacement(self, fh, raise_error_on_miscount=True):
+        assert_equal(raise_error_on_miscount, test_raise_error_on_miscount)
+        assert_is(fh, testfh)
+        return self
+
+    @patch('hexformat.srecord.SRecord.loadsrecfh', loadsrecfh_replacement)
+    def do():
+        srec = SRecord.fromsrecfh(testfh, test_raise_error_on_miscount)
+        assert_is_instance(srec, SRecord)
+
+    do()
+
+
+def test_loadsrecfile_interface():
+    test_overwrite_metadata = random.randint(0, 1024)
+    test_overwrite_data = random.randint(0, 1024)
+    test_raise_error_on_miscount = random.randint(0, 1024)
+
+    def loadsrecfile_replacement(self, fh, overwrite_metadata=False, overwrite_data=True, raise_error_on_miscount=True):
+        assert_equal(overwrite_metadata, test_overwrite_metadata)
+        assert_equal(overwrite_data, test_overwrite_data)
+        assert_equal(raise_error_on_miscount, test_raise_error_on_miscount)
+        assert_equal(fh.name, testfilename)
+        if sys.version_info >= (3,):
+            assert_true(fh.readable())
+        assert_true(hasattr(fh, "read"))
+        assert_true(hasattr(fh, "encoding"))  # is text file
+        assert_equal(fh.tell(), 0)
+        return self
+
+    @patch('hexformat.srecord.SRecord.loadsrecfh', loadsrecfile_replacement)
+    def do():
+        srec = SRecord()
+        ret = srec.loadsrecfile(testfilename, test_overwrite_metadata,
+                                test_overwrite_data, test_raise_error_on_miscount)
+        assert_is(ret, srec)
+
+    do()
