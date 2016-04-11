@@ -319,34 +319,38 @@ class SRecord(HexFormat):
         return recordtype, address, data, datasize, crccorrect
 
     @classmethod
-    def fromsrecfile(cls, filename):
+    def fromsrecfile(cls, filename, raise_error_on_miscount=True):
         """Generates SRecord instance from S-Record file.
 
            Opens filename for reading and calls :meth:`fromsrecfh` with the file handle.
 
            Args:
              filename (str): Name of S-Record file.
+             raise_error_on_miscount (bool): If True a DecodeError is raised if the number of records read differs from
+                                             stored number of records.
 
            Returns:
              New instance of class with loaded data.
         """
         with open(filename, "r") as fh:
-            return cls.fromsrecfh(fh)
+            return cls.fromsrecfh(fh, raise_error_on_miscount)
 
     @classmethod
-    def fromsrecfh(cls, fh):
+    def fromsrecfh(cls, fh, raise_error_on_miscount=True):
         """Generates SRecord instance from file handle which must point to S-Record lines.
 
            Creates new instance and calls :meth:`loadsrecfh` on it.
 
            Args:
              fh (file handle or compatible): Source of S-Record lines.
+             raise_error_on_miscount (bool): If True a DecodeError is raised if the number of records read differs from
+                                             stored number of records.
 
            Returns:
              New instance of class with loaded data.
         """
         self = cls()
-        self.loadsrecfh(fh)
+        self.loadsrecfh(fh, raise_error_on_miscount=raise_error_on_miscount)
         return self
 
     def loadsrecfile(self, filename, overwrite_metadata=False, overwrite_data=True, raise_error_on_miscount=True):
