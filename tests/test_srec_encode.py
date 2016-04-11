@@ -14,7 +14,7 @@ def test_encode_bytesperline():
     testaddr = 0x0000
     testdata = bytearray.fromhex("7C0802A6900100049421FFF07C6C1B787C8C23783C60000038630000")
     fh = FakeFileHandle()
-    SRecord._encodesrecline(fh, testaddr, testdata, offset=0, recordtype=1, bytesperline=32)
+    SRecord._encodesrecline(fh, 1, testaddr, testdata, bytesperline=32)
     assert_equal(testlines, fh)
 
 
@@ -24,7 +24,7 @@ def test_encode_bytesperlineminusone():
     testaddr = 0x0000
     testdata = bytearray.fromhex("7A2924CCF93992EBA363D902D6A1DFF23FF7640A434C887B9D788E0B499EDF")
     fh = FakeFileHandle()
-    SRecord._encodesrecline(fh, testaddr, testdata, offset=0, recordtype=1, bytesperline=32)
+    SRecord._encodesrecline(fh, 1, testaddr, testdata, bytesperline=32)
     assert_equal(testlines, fh)
 
 
@@ -35,7 +35,7 @@ def test_encode_bytesperlineplusone():
     testaddr = 0x0000
     testdata = bytearray.fromhex("92DC615BBFC97CA260C8193A8D9EBA2986A0328851C66834A50058C707CD5AC733")
     fh = FakeFileHandle()
-    SRecord._encodesrecline(fh, testaddr, testdata, offset=0, recordtype=1, bytesperline=32)
+    SRecord._encodesrecline(fh, 1, testaddr, testdata, bytesperline=32)
     assert_list_equal(testlines, fh)
 
 
@@ -45,7 +45,7 @@ def test_encode_s0_1():
     testaddr = 0x0000
     testdata = bytearray.fromhex("00486578766965772056312E3038")
     fh = FakeFileHandle()
-    SRecord._encodesrecline(fh, testaddr, testdata, offset=0, recordtype=0, bytesperline=32)
+    SRecord._encodesrecline(fh, 0, testaddr, testdata, bytesperline=32)
     assert_list_equal(testlines, fh)
 
 
@@ -55,7 +55,7 @@ def test_encode_s0_2():
     testaddr = 0x0000
     testdata = bytearray.fromhex("68656C6C6F20202020200000")
     fh = FakeFileHandle()
-    SRecord._encodesrecline(fh, testaddr, testdata, offset=0, recordtype=0, bytesperline=32)
+    SRecord._encodesrecline(fh, 0, testaddr, testdata, bytesperline=32)
     assert_list_equal(testlines, fh)
 
 
@@ -65,7 +65,7 @@ def test_encode_s5():
     testaddr = 0x0003
     testdata = bytearray()
     fh = FakeFileHandle()
-    SRecord._encodesrecline(fh, testaddr, testdata, offset=0, recordtype=5, bytesperline=32)
+    SRecord._encodesrecline(fh, 5, testaddr, testdata, bytesperline=32)
     assert_list_equal(testlines, fh)
 
 
@@ -75,7 +75,7 @@ def test_encode_s9_1():
     testaddr = 0x0000
     testdata = bytearray()
     fh = FakeFileHandle()
-    SRecord._encodesrecline(fh, testaddr, testdata, offset=0, recordtype=9, bytesperline=32)
+    SRecord._encodesrecline(fh, 9, testaddr, testdata, bytesperline=32)
     assert_list_equal(testlines, fh)
 
 
@@ -85,7 +85,7 @@ def test_encode_s9_2():
     testaddr = 0xFFFF
     testdata = bytearray()
     fh = FakeFileHandle()
-    SRecord._encodesrecline(fh, testaddr, testdata, offset=0, recordtype=9, bytesperline=32)
+    SRecord._encodesrecline(fh, 9, testaddr, testdata, bytesperline=32)
     assert_list_equal(testlines, fh)
 
 
@@ -103,7 +103,7 @@ def test_encode_s3():
                                  "051F620F1A79CBB7BC002CF22F7A84D405BF9C17E56EE76A8AE0AD0B0E5A6898"
                                  "69876F23")
     fh = FakeFileHandle()
-    SRecord._encodesrecline(fh, testaddr, testdata, offset=0, recordtype=3, bytesperline=32)
+    SRecord._encodesrecline(fh, 3, testaddr, testdata, 32)
     assert_list_equal(testlines, fh)
 
 
@@ -121,7 +121,7 @@ def test_encode_s2():
                                  "051F620F1A79CBB7BC002CF22F7A84D405BF9C17E56EE76A8AE0AD0B0E5A6898"
                                  "69876F23")
     fh = FakeFileHandle()
-    SRecord._encodesrecline(fh, testaddr, testdata, offset=0, recordtype=2, bytesperline=32)
+    SRecord._encodesrecline(fh, 2, testaddr, testdata, 32)
     assert_list_equal(testlines, fh)
 
 
@@ -139,7 +139,7 @@ def test_encode_s1():
                                  "0F562090C3D708DB1F4B4F5DD7A9E2DDE4161FD727FE952A4F640B11FC76C454"
                                  "246502C0")
     fh = FakeFileHandle()
-    SRecord._encodesrecline(fh, testaddr, testdata, offset=0, recordtype=1, bytesperline=32)
+    SRecord._encodesrecline(fh, 1, testaddr, testdata, 32)
     assert_list_equal(testlines, fh)
 
 
@@ -151,7 +151,7 @@ def test_encode_all_byteperline():
         # noinspection PyUnusedLocal
         testdata = bytearray((random.randint(0, 0xFF) for m in range(0, bytesperline)))
         fh = FakeFileHandle()
-        SRecord._encodesrecline(fh, 0, testdata, offset=0, recordtype=recordtype, bytesperline=bytesperline)
+        SRecord._encodesrecline(fh, recordtype, 0, testdata, bytesperline)
         assert_equal(len(fh), 1)
         assert_equal(bytearray.fromhex(fh[0][4+2*addresslen:-3]), testdata)
 

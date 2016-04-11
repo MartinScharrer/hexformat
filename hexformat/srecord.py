@@ -25,6 +25,31 @@ from hexformat.base import DecodeError, EncodeError, HexFormat
 from hexformat.multipartbuffer import Buffer
 
 
+BYTESPERLINE_MAX = 253
+
+
+# noinspection PyPep8Naming
+class RECORD_TYPE(object):
+    S0 = 0
+    S1 = 1
+    S2 = 2
+    S3 = 3
+    S5 = 5
+    S6 = 6
+    S7 = 7
+    S8 = 8
+    S9 = 9
+    HEADER = S0
+    DATA_16 = S1
+    DATA_24 = S2
+    DATA_32 = S3
+    COUNT_16 = S5
+    COUNT_24 = S6
+    FOOTER_32 = S7
+    FOOTER_24 = S8
+    FOOTER_16 = S9
+
+
 class SRecord(HexFormat):
     """Motorola `S-Record`_ hex file representation class.
 
@@ -119,7 +144,7 @@ class SRecord(HexFormat):
     @staticmethod
     def _parse_header(header):
         if header is not None:
-            header = Buffer(iter(header))
+            header = Buffer(iter(header))[0:BYTESPERLINE_MAX]
         return header
 
     @property
@@ -148,6 +173,7 @@ class SRecord(HexFormat):
         with open(filename, "w") as fh:
             return self.tosrecfh(fh, **settings)
 
+    # noinspection PyIncorrectDocstring
     def tosrecfh(self, fh, **settings):
         """Writes content as S-Record file to given file handle.
 
@@ -174,17 +200,16 @@ class SRecord(HexFormat):
         recordtype_end = 10 - recordtype
         numdatarecords = 0
 
-        self._encodesrecline(fh, 0, header, recordtype=0, bytesperline=len(header))
+        self._encodesrecline(fh, RECORD_TYPE.HEADER, 0, header, BYTESPERLINE_MAX)
         for address, buffer in self._parts:
-            numdatarecords += self._encodesrecline(fh, address, buffer, recordtype=recordtype,
-                                                   bytesperline=bytesperline)
+            numdatarecords += self._encodesrecline(fh, recordtype, address, buffer, bytesperline)
         if write_number_of_records:
             if numdatarecords <= 0xFFFF:
-                self._encodesrecline(fh, numdatarecords, Buffer(), recordtype=5, bytesperline=253)
+                self._encodesrecline(fh, RECORD_TYPE.COUNT_16, numdatarecords, Buffer(), BYTESPERLINE_MAX)
             elif numdatarecords <= 0xFFFFFF:
-                self._encodesrecline(fh, numdatarecords, Buffer(), recordtype=6, bytesperline=253)
+                self._encodesrecline(fh, RECORD_TYPE.COUNT_24, numdatarecords, Buffer(), BYTESPERLINE_MAX)
 
-        self._encodesrecline(fh, startaddress, Buffer(), recordtype=recordtype_end, bytesperline=253)
+        self._encodesrecline(fh, recordtype_end, startaddress, Buffer(), BYTESPERLINE_MAX)
         return self
 
     @staticmethod
@@ -238,7 +263,7 @@ class SRecord(HexFormat):
                 return ((address >> 24) & 0xFF), ((address >> 16) & 0xFF), ((address >> 8) & 0xFF), (address & 0xFF)
 
     @classmethod
-    def _encodesrecline(cls, fh, address, buffer, offset=0, recordtype=123, bytesperline=32):
+    def _encodesrecline(cls, fh, recordtype, address, buffer, bytesperline=32):
         """Encode given data to a S-Record line.
 
            One or more S-Record lines are encoded from the given address and buffer and written to the given
@@ -246,28 +271,26 @@ class SRecord(HexFormat):
 
            Args:
              fh (file handle or compatible): Destination of S-Record lines.
+             recordtype (int: 0..3, 5..9): S-Record record type. If equal to 123 the a record type 1, 2 or 3 is
+                                           determined by the minimum address byte width.
              address (int): Address of first byte in buffer data.
              buffer (Buffer): Buffer with data to be encoded.
-             offset (int): Reading start index of buffer.
-             recordtype (int: 0..9 or 123): S-Record record type. If equal to 123 the a record type 1, 2 or 3 is
-                                            determined by the minimum address byte width.
              bytesperline (int): Number of bytes to be written on a single line.
 
            Raises:
              EncodeError: on unsupported record type.
         """
         endaddress = address + len(buffer)
-        if recordtype == 123:
-            recordtype = cls._minaddresslength(endaddress-1) - 1
         try:
             recordtype = int(recordtype)
             addresslength = int(cls._SRECORD_ADDRESSLENGTH[recordtype])
-        except (IndexError, TypeError):
+        except (IndexError, TypeError, ValueError):
             raise EncodeError("Unsupported record type.")
 
         bytesperline = max(1, min(bytesperline, 254 - addresslength))
         bytecount = bytesperline + addresslength + 1
         numdatarecords = 0
+        pos = 0
         while address < endaddress or numdatarecords == 0:
             numdatarecords += 1
             if address + bytesperline > endaddress:
@@ -276,11 +299,11 @@ class SRecord(HexFormat):
             linebuffer = bytearray([0, ] * (bytecount + 1))
             linebuffer[0] = bytecount
             linebuffer[1:addresslength + 1] = cls._s123addr(addresslength, address)
-            linebuffer[addresslength + 1:bytecount] = buffer[offset:offset + bytesperline]
+            linebuffer[addresslength + 1:bytecount] = buffer[pos:pos + bytesperline]
             linebuffer[bytecount] = ((~sum(linebuffer)) & 0xFF)
             line = "".join(["S", str(recordtype), binascii.hexlify(linebuffer).upper().decode(), "\n"])
             fh.write(line)
-            offset += bytesperline
+            pos += bytesperline
             address += bytesperline
         return numdatarecords
 

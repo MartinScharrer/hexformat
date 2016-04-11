@@ -1,4 +1,5 @@
 from hexformat.srecord import SRecord
+from hexformat.base import EncodeError
 from nose.tools import assert_sequence_equal, assert_equal, assert_is, assert_raises, assert_dict_equal, assert_true
 from nose.tools import raises, assert_is_instance
 from mock import patch
@@ -207,7 +208,7 @@ def test_bytesperline_setter_invalid_4():
 def test_header_getter():
     srec = SRecord()
     # noinspection PyUnusedLocal
-    for n in (b"", b"Test", b"Long string Long string Long string Long string Long string Long string ",
+    for n in (b"", b"Test", b"Long string " * 10, randomdata(253),
               "Some string which will be encoded".encode(),
               bytearray((random.randint(0, 255) for r in range(0, random.randint(0, 253))))):
         srec._header = n
@@ -219,7 +220,7 @@ def test_header_getter():
 def test_header_setter():
     srec = SRecord()
     # noinspection PyUnusedLocal
-    for n in (b"", b"Test", b"Long string Long string Long string Long string Long string Long string ",
+    for n in (b"", b"Test", b"Long string " * 10, randomdata(253),
               "Some string which will be encoded".encode(),
               bytearray((random.randint(0, 255) for r in range(0, random.randint(0, 253))))):
         srec.header = n
@@ -233,6 +234,15 @@ def test_header_setter_none():
     srec.header = None
     assert_is(srec.header, None)
     assert_is(srec.header, srec._header)
+
+
+# noinspection PyProtectedMember
+def test_header_setter_large():
+    testdata = randomdata(254)
+    srec = SRecord()
+    srec.header = testdata
+    assert_equal(srec.header, testdata[0:253])
+    assert_equal(srec.header, srec._header)
 
 
 @raises(TypeError)
@@ -400,3 +410,16 @@ def test_loadsrecfile_interface():
         assert_is(ret, srec)
 
     do()
+
+
+def test_encodesrecline_failure():
+
+    # noinspection PyProtectedMember
+    @raises(EncodeError)
+    def do(recordtype):
+        SRecord._encodesrecline(None, recordtype, 0, bytearray())
+
+    yield do, 4
+    yield do, 10
+    yield do, 11
+    yield do, "invalid"
