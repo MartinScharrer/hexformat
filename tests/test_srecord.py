@@ -1,7 +1,7 @@
 from hexformat.srecord import SRecord
-from hexformat.base import EncodeError
+from hexformat.base import EncodeError, DecodeError
 from nose.tools import assert_sequence_equal, assert_equal, assert_is, assert_raises, assert_dict_equal, assert_true
-from nose.tools import raises, assert_is_instance
+from nose.tools import raises, assert_is_instance, assert_list_equal, assert_false, assert_tuple_equal
 from mock import patch
 from .test_multipartbuffer import randomdata
 import random
@@ -12,6 +12,11 @@ import shutil
 
 dirname = ""
 testfilename = ""
+
+
+class FakeFileHandle(list):
+    def write(self, line):
+        self.append(line)
 
 
 def setup():
@@ -423,3 +428,118 @@ def test_encodesrecline_failure():
     yield do, 10
     yield do, 11
     yield do, "invalid"
+
+
+def test_tosrecfh_addresslength2():
+    srec = SRecord().set(0x8CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
+    expected = [
+        "S00700005465737458\n",
+        "S1138CE0FACEDEEDCAFEBEEF1234567890ABCDEF6D\n",
+        "S903FFFFFE\n",
+    ]
+    fh = FakeFileHandle()
+    srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFF, addresslength=2, write_number_of_records=False)
+    assert_list_equal(fh, expected)
+    fh = FakeFileHandle()
+    srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFF, write_number_of_records=False)
+    assert_list_equal(fh, expected)
+
+
+def test_tosrecfh_addresslength3():
+    srec = SRecord().set(0xFF8CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
+    expected = [
+        "S00700005465737458\n",
+        "S214FF8CE0FACEDEEDCAFEBEEF1234567890ABCDEF6D\n",
+        "S804FFFFFFFE\n",
+    ]
+    fh = FakeFileHandle()
+    srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFFFF, addresslength=3, write_number_of_records=False)
+    yield assert_list_equal, fh, expected
+    fh = FakeFileHandle()
+    srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFFFF, write_number_of_records=False)
+    yield assert_list_equal, fh, expected
+
+
+def test_tosrecfh_addresslength4():
+    srec = SRecord().set(0xFF008CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
+    expected = [
+        "S00700005465737458\n",
+        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+        "S705FFFFFFFFFE\n",
+    ]
+    fh = FakeFileHandle()
+    srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFFFFFF, addresslength=4, write_number_of_records=False)
+    yield assert_list_equal, fh, expected
+    fh = FakeFileHandle()
+    srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFFFFFF, write_number_of_records=False)
+    yield assert_list_equal, fh, expected
+
+
+def test_tosrecfh_write_number_of_records():
+    srec = SRecord().set(0xFF008CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
+    expected = [
+        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+        "S5030001FB\n",
+        "S70500000000FA\n",
+    ]
+    fh = FakeFileHandle()
+    srec.tosrecfh(fh, write_number_of_records=True)
+    yield assert_list_equal, fh, expected
+
+
+def test_tosrecfh_write_number_of_records_s5():
+    srec = SRecord().fill(0x0, 0xFFFF)
+    fh = FakeFileHandle()
+    expected = "S503FFFFFE\n"
+    srec.tosrecfh(fh, bytesperline=1, write_number_of_records=True)
+    assert_equal(fh[-2], expected)
+
+
+def test_tosrecfh_write_number_of_records_s6():
+    srec = SRecord().fill(0x0, 0x10000)
+    fh = FakeFileHandle()
+    expected = "S604010000FA\n"
+    srec.tosrecfh(fh, bytesperline=1, write_number_of_records=True)
+    assert_equal(fh[-2], expected)
+
+if 0:
+    def test_tosrecfh_write_number_of_records_too_large():
+        srec = SRecord().fill(0x0, 0x1000000)
+        fh = FakeFileHandle()
+        srec.tosrecfh(fh, bytesperline=1, addresslength=3, write_number_of_records=True, header=b'Test')
+        assert_false(fh[-2].startswith('S3'))
+        assert_equal(len(fh), 0x1000002)
+
+
+# noinspection PyProtectedMember
+@raises(DecodeError)
+def test_parsesrecline_failure1():
+    return SRecord._parsesrecline(":0000000000000")
+
+
+# noinspection PyProtectedMember
+@raises(DecodeError)
+def test_parsesrecline_failure2():
+    return SRecord._parsesrecline("s000000000000")
+
+
+# noinspection PyProtectedMember
+@raises(DecodeError)
+def test_parsesrecline_failure4():
+    """ Missing hexdigit """
+    return SRecord._parsesrecline("S101000")
+
+
+# noinspection PyProtectedMember
+@raises(DecodeError)
+def test_parsesrecline_failure5():
+    return SRecord._parsesrecline("S10800")
+
+
+# noinspection PyProtectedMember
+def test_parsesrecline_ok():
+    testaddress = 0xFF008CE0
+    testdata = bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF")
+    yield assert_tuple_equal, SRecord._parsesrecline("S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C"), (3, testaddress, testdata, len(testdata), True)
+
+

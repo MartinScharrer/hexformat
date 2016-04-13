@@ -200,7 +200,8 @@ class SRecord(HexFormat):
         recordtype_end = 10 - recordtype
         numdatarecords = 0
 
-        self._encodesrecline(fh, RECORD_TYPE.HEADER, 0, header, BYTESPERLINE_MAX)
+        if header:
+            self._encodesrecline(fh, RECORD_TYPE.HEADER, 0, header, BYTESPERLINE_MAX)
         for address, buffer in self._parts:
             numdatarecords += self._encodesrecline(fh, recordtype, address, buffer, bytesperline)
         if write_number_of_records:
