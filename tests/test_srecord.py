@@ -18,6 +18,12 @@ class FakeFileHandle(list):
     def write(self, line):
         self.append(line)
 
+    def readline(self):
+        try:
+            return self.pop(0)
+        except IndexError:
+            return ''
+
 
 def setup():
     global dirname
@@ -424,7 +430,6 @@ def test_encodesrecline_failure():
     def do(recordtype):
         SRecord._encodesrecline(None, recordtype, 0, bytearray())
 
-    yield do, 4
     yield do, 10
     yield do, 11
     yield do, "invalid"
@@ -502,13 +507,15 @@ def test_tosrecfh_write_number_of_records_s6():
     srec.tosrecfh(fh, bytesperline=1, write_number_of_records=True)
     assert_equal(fh[-2], expected)
 
-if 0:
-    def test_tosrecfh_write_number_of_records_too_large():
-        srec = SRecord().fill(0x0, 0x1000000)
-        fh = FakeFileHandle()
-        srec.tosrecfh(fh, bytesperline=1, addresslength=3, write_number_of_records=True, header=b'Test')
-        assert_false(fh[-2].startswith('S3'))
-        assert_equal(len(fh), 0x1000002)
+
+def test_tosrecfh_write_number_of_records_too_large():
+    srec = SRecord().fill(0x0, 0x1000000)
+    fh = FakeFileHandle()
+    srec.tosrecfh(fh, bytesperline=1, addresslength=3, write_number_of_records=True, header=b'Test')
+    assert_false(fh[-2].startswith('S3'))
+    assert_equal(len(fh), 0x1000002)
+
+test_tosrecfh_write_number_of_records_too_large.slow = 1
 
 
 # noinspection PyProtectedMember
@@ -537,9 +544,134 @@ def test_parsesrecline_failure5():
 
 
 # noinspection PyProtectedMember
+@raises(DecodeError)
+def test_parsesrecline_failure6():
+    return SRecord._parsesrecline("SX0800")
+
+
+# noinspection PyProtectedMember
 def test_parsesrecline_ok():
     testaddress = 0xFF008CE0
     testdata = bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF")
     yield assert_tuple_equal, SRecord._parsesrecline("S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C"), (3, testaddress, testdata, len(testdata), True)
+
+
+def test_loadsrecfh_1():
+    expectedsrec = SRecord(bytesperline=32, addresslength=2, write_number_of_records=True, header=b"some").set(
+        0xFF008CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
+    fh = FakeFileHandle((
+        "S00700005465737458\n",
+        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+        "S5030001FB\n",
+        "S70500000000FA\n",
+    ))
+    srec = SRecord(bytesperline=32, addresslength=2, write_number_of_records=True, header=b"some")
+    srec.loadsrecfh(fh, overwrite_metadata=False)
+    yield assert_equal, srec, expectedsrec
+    yield assert_equal, srec.bytesperline, expectedsrec.bytesperline
+    yield assert_equal, srec.write_number_of_records, expectedsrec.write_number_of_records
+    yield assert_equal, srec.header, expectedsrec.header
+
+
+def test_loadsrecfh_2():
+    expectedsrec = SRecord(bytesperline=32, addresslength=2, header=b"some").set(
+        0xFF008CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
+    fh = FakeFileHandle((
+        "S00700005465737458\n",
+        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+        "S5030001FB\n",
+        "S70500000000FA\n",
+    ))
+    srec = SRecord(bytesperline=32, addresslength=2, header=b"some")
+    srec.loadsrecfh(fh, overwrite_metadata=False)
+    yield assert_equal, srec, expectedsrec
+    yield assert_equal, srec.bytesperline, expectedsrec.bytesperline
+    yield assert_true, srec.write_number_of_records
+    yield assert_equal, srec.header, expectedsrec.header
+
+
+@raises(DecodeError)
+def test_loadsrecfh_countmissmatch_1():
+    fh = FakeFileHandle((
+        "S00700005465737458\n",
+        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+        "S5030002FA\n",
+        "S70500000000FA\n",
+    ))
+    srec = SRecord()
+    srec.loadsrecfh(fh)
+
+
+@raises(DecodeError)
+def test_loadsrecfh_countmissmatch_s5_true():
+    fh = FakeFileHandle((
+        "S00700005465737458\n",
+        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+        "S5030002FA\n",
+        "S70500000000FA\n",
+    ))
+    srec = SRecord()
+    srec.loadsrecfh(fh, raise_error_on_miscount=True)
+
+
+def test_loadsrecfh_countmissmatch_s5_false():
+    fh = FakeFileHandle((
+        "S00700005465737458\n",
+        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+        "S5030002FA\n",
+        "S70500000000FA\n",
+    ))
+    srec = SRecord()
+    srec.loadsrecfh(fh, raise_error_on_miscount=False)
+
+
+@raises(DecodeError)
+def test_loadsrecfh_countmissmatch_s6_true():
+    fh = FakeFileHandle((
+        "S00700005465737458\n",
+        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+        "S604000002F8\n",
+        "S70500000000FA\n",
+    ))
+    srec = SRecord()
+    srec.loadsrecfh(fh, raise_error_on_miscount=True)
+
+
+def test_loadsrecfh_countmissmatch_s6_false():
+    fh = FakeFileHandle((
+        "S00700005465737458\n",
+        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+        "S604000002F8\n",
+        "S70500000000FA\n",
+    ))
+    srec = SRecord()
+    srec.loadsrecfh(fh, raise_error_on_miscount=False)
+
+
+def test_loadsrecfh_startaddress_1():
+    fh = FakeFileHandle((
+        "S705000001FFFA\n",
+    ))
+    srec = SRecord()
+    srec.loadsrecfh(fh)
+    yield assert_equal, srec.startaddress, 0x1FF
+
+
+def test_loadsrecfh_startaddress_2():
+    fh = FakeFileHandle((
+        "S705000001FFFA\n",
+    ))
+    srec = SRecord(startaddress=0xDEADBEEF)
+    srec.loadsrecfh(fh)
+    yield assert_equal, srec.startaddress, 0xDEADBEEF
+
+
+@raises(DecodeError)
+def test_loadsrecfh_invalid_recordtype():
+    fh = FakeFileHandle((
+        "S405000301FFFA\n",
+    ))
+    srec = SRecord(startaddress=0xDEADBEEF)
+    srec.loadsrecfh(fh)
 
 

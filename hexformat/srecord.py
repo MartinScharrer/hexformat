@@ -67,7 +67,7 @@ class SRecord(HexFormat):
        .. _`S-Record`: http://en.wikipedia.org/wiki/SREC_%28file_format%29
     """
 
-    _SRECORD_ADDRESSLENGTH = (2, 2, 3, 4, None, 2, 3, 4, 3, 2)
+    _SRECORD_ADDRESSLENGTH = (2, 2, 3, 4, 2, 2, 3, 4, 3, 2)
     _STANDARD_FORMAT = 'srec'
     _DEFAULT_HEADER = Buffer(b'')
     _DEFAULT_STARTADDRESS = 0
