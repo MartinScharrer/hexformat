@@ -1,5 +1,43 @@
 from hexformat.intelhex import IntelHex
-from nose.tools import raises, assert_equal, assert_sequence_equal, assert_is
+from nose.tools import raises, assert_equal, assert_sequence_equal, assert_is, assert_true, assert_dict_equal, assert_is_instance
+from mock import patch
+import random
+import tempfile
+import os
+import sys
+import shutil
+from .test_multipartbuffer import randomdata
+from .test_srecord import randomdict, randomstr
+
+dirname = ""
+testfilename = ""
+
+
+class FakeFileHandle(list):
+    def write(self, line):
+        self.append(line)
+
+    def readline(self):
+        try:
+            return self.pop(0)
+        except IndexError:
+            return ''
+
+
+def setup():
+    global dirname
+    global testfilename
+    dirname = tempfile.mkdtemp(prefix="test_intelhex_")
+    sys.stderr.write("Tempdir: {:s}\n".format(dirname))
+    testfilename = os.path.join(dirname, "testdata.hex")
+
+
+def teardown():
+    # noinspection PyBroadException
+    try:
+        shutil.rmtree(dirname)
+    except:
+        pass
 
 
 # noinspection PyProtectedMember
@@ -222,3 +260,88 @@ def test_eip_setter_invalid_3():
 def test_eip_setter_invalid_4():
     ih = IntelHex()
     ih.eip = set()
+
+
+def test_toihexfile_interface():
+    testdict = randomdict()
+
+    def toihexfh_replacement(self, fh, **settings):
+        assert_dict_equal(settings, testdict)
+        assert_equal(fh.name, testfilename)
+        if sys.version_info >= (3,):
+            assert_true(fh.writable())
+        assert_true(hasattr(fh, "write"))
+        assert_true(hasattr(fh, "encoding"))  # is text file
+        assert_equal(fh.tell(), 0)
+        return self
+
+    @patch('hexformat.intelhex.IntelHex.toihexfh', toihexfh_replacement)
+    def do():
+        ihex = IntelHex()
+        ret = ihex.toihexfile(testfilename, **testdict)
+        assert_is(ret, ihex)
+
+    do()
+
+
+def test_fromihexfile_interface():
+    test_ignore_checksum_errors = random.randint(0, 1024)
+
+    # noinspection PyDecorator
+    @classmethod
+    def fromihexfh_replacement(cls, fh, ignore_checksum_errors=False):
+        assert_equal(ignore_checksum_errors, test_ignore_checksum_errors)
+        assert_equal(fh.name, testfilename)
+        if sys.version_info >= (3,):
+            assert_true(fh.readable())
+        assert_true(hasattr(fh, "read"))
+        assert_true(hasattr(fh, "encoding"))  # is text file
+        assert_equal(fh.tell(), 0)
+        return cls()
+
+    @patch('hexformat.intelhex.IntelHex.fromihexfh', fromihexfh_replacement)
+    def do():
+        ih = IntelHex.fromihexfile(testfilename, test_ignore_checksum_errors)
+        assert_is_instance(ih, IntelHex)
+
+    do()
+
+
+def test_fromihexfh_interface():
+    testfh = object()
+    test_ignore_checksum_errors = random.randint(0, 1024)
+
+    def loadihexfh_replacement(self, fh, ignore_checksum_errors=False):
+        assert_equal(ignore_checksum_errors, test_ignore_checksum_errors)
+        assert_is(fh, testfh)
+        return self
+
+    @patch('hexformat.intelhex.IntelHex.loadihexfh', loadihexfh_replacement)
+    def do():
+        ih = IntelHex.fromihexfh(testfh, test_ignore_checksum_errors)
+        assert_is_instance(ih, IntelHex)
+
+    do()
+
+
+def test_loadihexfile_interface():
+    test_ignore_checksum_errors = random.randint(0, 1024)
+
+    def loadihexfile_replacement(self, fh, ignore_checksum_errors=False):
+        assert_equal(ignore_checksum_errors, test_ignore_checksum_errors)
+        assert_equal(fh.name, testfilename)
+        if sys.version_info >= (3,):
+            assert_true(fh.readable())
+        assert_true(hasattr(fh, "read"))
+        assert_true(hasattr(fh, "encoding"))  # is text file
+        assert_equal(fh.tell(), 0)
+        return self
+
+    @patch('hexformat.intelhex.IntelHex.loadihexfh', loadihexfile_replacement)
+    def do():
+        ih = IntelHex()
+        ret = ih.loadihexfile(testfilename, test_ignore_checksum_errors)
+        assert_is(ret, ih)
+
+    do()
+
