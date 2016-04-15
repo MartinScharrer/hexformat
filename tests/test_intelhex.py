@@ -1,5 +1,6 @@
 from hexformat.intelhex import IntelHex
-from nose.tools import raises, assert_equal, assert_sequence_equal, assert_is, assert_true, assert_dict_equal, assert_is_instance
+from nose.tools import raises, assert_equal, assert_sequence_equal, assert_is, assert_true, assert_dict_equal
+from nose.tools import assert_is_instance, assert_not_equal
 from mock import patch
 import random
 import tempfile
@@ -345,3 +346,35 @@ def test_loadihexfile_interface():
 
     do()
 
+
+def test_eq():
+    testdata1 = randomdata(random.randint(10, 2**16))
+    testaddr1 = random.randint(0, 2**32-1)
+    testdata2 = randomdata(random.randint(10, 2**16))
+    testaddr2 = random.randint(0, 2**32-1)
+    testdata3 = randomdata(random.randint(10, 2**16))
+    testaddr3 = random.randint(0, 2**32-1)
+    testeid = random.randint(0, 2**32-1)
+    testcsip = random.randint(0, 2**32-1)
+
+    ih1 = IntelHex()
+    ih1.set(testaddr1, testdata1)
+    ih1.set(testaddr2, testdata2)
+    ih1.set(testaddr3, testdata3)
+    ih1.eip = testeid
+    ih1.cs_ip = testcsip
+
+    ih2 = IntelHex()
+    ih2.set(testaddr1, testdata1)
+    ih2.set(testaddr2, testdata2)
+    ih2.set(testaddr3, testdata3)
+    ih2.eip = testeid
+    ih2.cs_ip = testcsip
+
+    assert_equal(ih1, ih2)
+    assert_equal(ih1, ih1.copy())
+    ih3 = ih2.copy()
+    ih3.eip -= 1
+    assert_not_equal(ih1, ih3)
+    ih2.cs_ip += 1
+    assert_not_equal(ih1, ih2)
