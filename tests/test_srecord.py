@@ -168,7 +168,7 @@ def test_addresslength_setter_invalid_4():
 # noinspection PyProtectedMember
 def test_bytesperline_getter():
     srec = SRecord()
-    for n in range(0, 254):
+    for n in range(1, 254):
         srec._bytesperline = n
         assert_equal(srec._bytesperline, n)
         assert_equal(srec._bytesperline, srec.bytesperline)
