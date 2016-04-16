@@ -1,5 +1,5 @@
 from hexformat.intelhex import IntelHex
-from nose.tools import raises, assert_equal, assert_is, assert_true, assert_dict_equal
+from nose.tools import raises, assert_equal, assert_is, assert_true, assert_dict_equal, assert_list_equal
 from nose.tools import assert_is_instance, assert_not_equal, assert_raises, assert_sequence_equal
 from mock import patch
 import random
@@ -701,4 +701,118 @@ def test_loadihexfh_r5_2():
     assert_sequence_equal(ih[:], testdata)
     assert_equal(ih.variant, 16)
     assert_equal(ih.eip, 0x2BC0F010)
+
+
+def test_toihexfh_eip_1():
+    testlist = [":04000005A5880123A6\n", ":00000001FF\n"]
+    ih = IntelHex()
+    ih.eip = 0xA5880123
+    fh = FakeFileHandle()
+    ih.toihexfh(fh, variant=32)
+    assert_list_equal(fh, testlist)
+
+
+def test_toihexfh_eip_2():
+    testlist = [":00000001FF\n", ]
+    ih = IntelHex()
+    ih.eip = 0xA5880123
+    fh = FakeFileHandle()
+    ih.toihexfh(fh, variant=16)
+    assert_list_equal(fh, testlist)
+
+
+def test_toihexfh_eip_3():
+    testlist = [":00000001FF\n", ]
+    ih = IntelHex()
+    ih.eip = None
+    fh = FakeFileHandle()
+    ih.toihexfh(fh, variant=32)
+    assert_list_equal(fh, testlist)
+
+
+def test_toihexfh_csip_1():
+    testlist = [":04000003A5880123A8\n", ":00000001FF\n"]
+    ih = IntelHex()
+    ih.cs_ip = 0xA5880123
+    fh = FakeFileHandle()
+    ih.toihexfh(fh, variant=16)
+    assert_list_equal(fh, testlist)
+
+
+def test_toihexfh_csip_2():
+    testlist = [":00000001FF\n", ]
+    ih = IntelHex()
+    ih.cs_ip = 0xA5880123
+    fh = FakeFileHandle()
+    ih.toihexfh(fh, variant=32)
+    assert_list_equal(fh, testlist)
+
+
+def test_toihexfh_csip_3():
+    testlist = [":00000001FF\n", ]
+    ih = IntelHex()
+    ih.cs_ip = None
+    fh = FakeFileHandle()
+    ih.toihexfh(fh, variant=16)
+    assert_list_equal(fh, testlist)
+
+
+@raises(EncodeError)
+def test_toihexfh_address_too_large_32():
+    ih = IntelHex()
+    ih.set(0x100000000, bytearray(1))
+    fh = FakeFileHandle()
+    ih.toihexfh(fh, variant=32)
+
+
+@raises(EncodeError)
+def test_toihexfh_address_too_large_16():
+    ih = IntelHex()
+    ih.set(0x100000, bytearray(1))
+    fh = FakeFileHandle()
+    ih.toihexfh(fh, variant=16)
+
+
+@raises(EncodeError)
+def test_toihexfh_address_too_large_8():
+    ih = IntelHex()
+    ih.set(0x10000, bytearray(1))
+    fh = FakeFileHandle()
+    ih.toihexfh(fh, variant=8)
+
+
+def test_toihexfh_address_max_32():
+    testlist = [":02000004FFFFFC\n", ":01FFFF00AA57\n", ":00000001FF\n"]
+    ih = IntelHex()
+    ih.set(0xFFFFFFFF, bytearray((0xAA,)))
+    fh = FakeFileHandle()
+    ih.toihexfh(fh, variant=32)
+    assert_list_equal(fh, testlist)
+
+
+def test_toihexfh_address_max_16():
+    testlist = [":02000002FFF00D\n", ":0100FF00AA56\n", ":00000001FF\n"]
+    ih = IntelHex()
+    ih.set(0xFFFFF, bytearray((0xAA,)))
+    fh = FakeFileHandle()
+    ih.toihexfh(fh, variant=16)
+    assert_list_equal(fh, testlist)
+
+
+def test_toihexfh_address_max_8():
+    testlist = [":01FFFF00AA57\n", ":00000001FF\n"]
+    ih = IntelHex()
+    ih.set(0xFFFF, bytearray((0xAA,)))
+    fh = FakeFileHandle()
+    ih.toihexfh(fh, variant=8)
+    assert_list_equal(fh, testlist)
+
+
+def test_toihexfh_address_section_16():
+    testlist = [":01FFFF00AA57\n", ":00000001FF\n"]
+    ih = IntelHex()
+    ih.set(0x0FFFF, bytearray((0xAA,)))
+    fh = FakeFileHandle()
+    ih.toihexfh(fh, variant=16)
+    assert_list_equal(fh, testlist)
 
