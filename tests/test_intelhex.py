@@ -1,5 +1,5 @@
 from hexformat.intelhex import IntelHex
-from nose.tools import raises, assert_equal, assert_sequence_equal, assert_is, assert_true, assert_dict_equal
+from nose.tools import raises, assert_equal, assert_is, assert_true, assert_dict_equal
 from nose.tools import assert_is_instance, assert_not_equal
 from mock import patch
 import random
@@ -8,7 +8,7 @@ import os
 import sys
 import shutil
 from .test_multipartbuffer import randomdata
-from .test_srecord import randomdict, randomstr
+from .test_srecord import randomdict
 from hexformat.base import DecodeError
 
 dirname = ""
@@ -458,3 +458,29 @@ def test_parseihexline_r0_wrongcrc():
     assert_equal(bytecount, testbytecount)
     assert_equal(checksumcorrect, testchecksumcorrect)
 
+
+try:
+    # noinspection PyStatementEffect
+    bytearray.hex
+except AttributeError:
+    pass
+else:
+    # noinspection PyProtectedMember
+    def test_parseihexline_r0_random():
+        for r in range(0, 10):
+            testbytecount = random.randint(1, 255)
+            testaddress = random.randint(0, 0xFFFF)
+            testrecordtype = 0x00
+            testdata = randomdata(testbytecount)
+            allbytes = bytearray((testbytecount, (testaddress >> 8) & 0xFF, testaddress & 0xFF, testrecordtype))
+            allbytes += testdata
+            allbytes += bytearray(1)
+            testline = ":" + allbytes.hex().upper()
+            sys.stdout.write(testline)
+
+            ih = IntelHex()
+            (recordtype, address, data, bytecount, checksumcorrect) = ih._parseihexline(testline)
+            assert_equal(recordtype, testrecordtype)
+            assert_equal(address, testaddress)
+            assert_equal(data, testdata)
+            assert_equal(bytecount, testbytecount)
