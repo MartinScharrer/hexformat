@@ -373,10 +373,10 @@ class IntelHex(HexFormat):
             datalength = len(buffer)
             while pos < datalength:
                 if variant == 32:
-                    addresslow = address & 0x0000FFFF
-                    addresshigh = address & 0xFFFF0000
                     if address > 0xFFFFFFFF:
                         raise EncodeError("Address to large for format.")
+                    addresslow = address & 0x0000FFFF
+                    addresshigh = address & 0xFFFF0000
                 elif variant == 16:
                     if address > 0xFFFFF:
                         raise EncodeError("Address to large for format.")
@@ -384,9 +384,9 @@ class IntelHex(HexFormat):
                         addresshigh = address & 0xFFF00
                     addresslow = address - addresshigh
                 else:
-                    addresslow = address
                     if address > 0xFFFF:
                         raise EncodeError("Address to large for format.")
+                    addresslow = address
                 if addresshigh != highaddr:
                     highaddr = addresshigh
                     if variant == 32:
