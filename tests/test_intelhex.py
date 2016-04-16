@@ -9,6 +9,7 @@ import sys
 import shutil
 from .test_multipartbuffer import randomdata
 from .test_srecord import randomdict, randomstr
+from hexformat.base import DecodeError
 
 dirname = ""
 testfilename = ""
@@ -378,3 +379,82 @@ def test_eq():
     assert_not_equal(ih1, ih3)
     ih2.cs_ip += 1
     assert_not_equal(ih1, ih2)
+
+
+# noinspection PyProtectedMember
+@raises(ValueError)
+def test_parseihexline_failure_startchar():
+    ih = IntelHex()
+    return ih._parseihexline("S020000000")
+
+
+# noinspection PyProtectedMember
+@raises(ValueError)
+def test_parseihexline_failure_hexmiscount():
+    ih = IntelHex()
+    return ih._parseihexline(":000102030")
+
+
+# noinspection PyProtectedMember
+@raises(DecodeError)
+def test_parseihexline_failure_bytecount_high():
+    ih = IntelHex()
+    return ih._parseihexline(":04000000FFFFFF00")
+
+
+# noinspection PyProtectedMember
+@raises(DecodeError)
+def test_parseihexline_failure_bytecount_low():
+    ih = IntelHex()
+    return ih._parseihexline(":02000000FFFFFF00")
+
+
+# noinspection PyProtectedMember
+@raises(DecodeError)
+def test_parseihexline_failure_recordtype():
+    ih = IntelHex()
+    return ih._parseihexline(":030000ABFFFFFF00")
+
+
+# noinspection PyProtectedMember
+@raises(DecodeError)
+def test_parseihexline_failure_recordtype_bytecount_mismatch():
+    ih = IntelHex()
+    return ih._parseihexline(":03000003FFFFFF00")
+
+
+# noinspection PyProtectedMember
+def test_parseihexline_r0():
+    testline = ":10010000214601360121470136007EFE09D2190140\n"
+    testbytecount = 0x10
+    testaddress = 0x0100
+    testrecordtype = 0x00
+    testdata = bytearray.fromhex("214601360121470136007EFE09D21901")
+    testchecksumcorrect = True
+
+    ih = IntelHex()
+    (recordtype, address, data, bytecount, checksumcorrect) = ih._parseihexline(testline)
+    assert_equal(recordtype, testrecordtype)
+    assert_equal(address, testaddress)
+    assert_equal(data, testdata)
+    assert_equal(bytecount, testbytecount)
+    assert_equal(checksumcorrect, testchecksumcorrect)
+
+
+# noinspection PyProtectedMember
+def test_parseihexline_r0_wrongcrc():
+    testline = ":10010000214601360121470136007EFE09D21901F3\n"
+    testbytecount = 0x10
+    testaddress = 0x0100
+    testrecordtype = 0x00
+    testdata = bytearray.fromhex("214601360121470136007EFE09D21901")
+    testchecksumcorrect = False
+
+    ih = IntelHex()
+    (recordtype, address, data, bytecount, checksumcorrect) = ih._parseihexline(testline)
+    assert_equal(recordtype, testrecordtype)
+    assert_equal(address, testaddress)
+    assert_equal(data, testdata)
+    assert_equal(bytecount, testbytecount)
+    assert_equal(checksumcorrect, testchecksumcorrect)
+
