@@ -1,6 +1,6 @@
 from hexformat.intelhex import IntelHex
 from nose.tools import raises, assert_equal, assert_is, assert_true, assert_dict_equal
-from nose.tools import assert_is_instance, assert_not_equal, assert_raises
+from nose.tools import assert_is_instance, assert_not_equal, assert_raises, assert_sequence_equal
 from mock import patch
 import random
 import tempfile
@@ -502,7 +502,7 @@ def test_encodeihexline_recordtype_valid():
         if l is None:
             l = random.randint(0, 200)
         ih = IntelHex()
-        ih._encodeihexline(rt, data=bytearray(l))
+        ih._encodeihexline(rt, 0, bytearray(l))
 
 
 # noinspection PyProtectedMember
@@ -521,3 +521,184 @@ def test_encodeihexline_recordtype_datalength_mismatch():
         if l > 1:
             yield assert_raises, EncodeError, ih._encodeihexline, rt, 0, bytearray(l - 1)
         yield assert_raises, EncodeError, ih._encodeihexline, rt, 0, bytearray(l + 1)
+
+
+# noinspection PyProtectedMember
+@raises(DecodeError)
+def test_loadihexfh_unsupported_record_type():
+    ih = IntelHex()
+    ih._DATALENGTH = list(ih._DATALENGTH) + [0, ]  # Add other record type to reach last clause
+    fh = FakeFileHandle((":00000006FA\n",))
+    ih.loadihexfh(fh)
+
+
+@raises(DecodeError)
+def test_loadihexfh_checksum_error():
+    ih = IntelHex()
+    fh = FakeFileHandle((":00000001FE\n",))
+    ih.loadihexfh(fh)
+
+
+def test_loadihexfh_empty():
+    ih = IntelHex()
+    fh = FakeFileHandle()
+    ret = ih.loadihexfh(fh)
+    assert_is(ret, ih)
+    assert_equal(ih.usedsize(), 0)
+
+
+def test_loadihexfh_r0_1():
+    ih = IntelHex()
+    testdata = bytearray.fromhex("0123456789ABCDEF")
+    testaddr = 0xDEAD
+    fh = FakeFileHandle((':08DEAD000123456789ABCDEFAD', ))
+    ret = ih.loadihexfh(fh)
+    assert_is(ret, ih)
+    assert_equal(ih.usedsize(), 8)
+    assert_equal(ih.start(), testaddr)
+    assert_sequence_equal(ih[:], testdata)
+    assert_equal(ih.bytesperline, 8)
+
+
+def test_loadihexfh_r0_2():
+    ih = IntelHex()
+    ih.settings(bytesperline=32)
+    testdata = bytearray.fromhex("0123456789ABCDEF")
+    testaddr = 0xDEAD
+    fh = FakeFileHandle((':08DEAD000123456789ABCDEFAD', ))
+    ret = ih.loadihexfh(fh)
+    assert_is(ret, ih)
+    assert_equal(ih.usedsize(), 8)
+    assert_equal(ih.start(), testaddr)
+    assert_sequence_equal(ih[:], testdata)
+    assert_equal(ih.bytesperline, 32)
+
+
+def test_loadihexfh_r1_1():
+    ih = IntelHex()
+    fh = FakeFileHandle((':00000001FF', ))
+    ret = ih.loadihexfh(fh)
+    assert_is(ret, ih)
+    assert_equal(ih.usedsize(), 0)
+
+
+def test_loadihexfh_r1_2():
+    ih = IntelHex()
+    fh = FakeFileHandle((':00000001FF', ':00000001FF'))
+    ret = ih.loadihexfh(fh)
+    assert_is(ret, ih)
+    assert_equal(ih.usedsize(), 0)
+    assert_equal(len(fh), 1)
+
+
+def test_loadihexfh_r2_1():
+    ih = IntelHex()
+    fh = FakeFileHandle((':020000022BC011', ':08DEAD000123456789ABCDEFAD'))
+    testdata = bytearray.fromhex("0123456789ABCDEF")
+    testaddr = 0x2BC0 * 16 + 0xDEAD
+    ret = ih.loadihexfh(fh)
+    assert_is(ret, ih)
+    assert_equal(ih.usedsize(), 8)
+    assert_equal(ih.start(), testaddr)
+    assert_sequence_equal(ih[:], testdata)
+    assert_equal(ih.variant, 16)
+
+
+def test_loadihexfh_r2_2():
+    ih = IntelHex()
+    ih.variant = 32
+    fh = FakeFileHandle((':020000022BC011', ':08DEAD000123456789ABCDEFAD'))
+    testdata = bytearray.fromhex("0123456789ABCDEF")
+    testaddr = 0x2BC0 * 16 + 0xDEAD
+    ret = ih.loadihexfh(fh)
+    assert_is(ret, ih)
+    assert_equal(ih.usedsize(), 8)
+    assert_equal(ih.start(), testaddr)
+    assert_sequence_equal(ih[:], testdata)
+    assert_equal(ih.variant, 32)
+
+
+def test_loadihexfh_r3_1():
+    ih = IntelHex()
+    fh = FakeFileHandle((':040000032BC0F0100E', ':08DEAD000123456789ABCDEFAD'))
+    testdata = bytearray.fromhex("0123456789ABCDEF")
+    testaddr = 0xDEAD
+    ret = ih.loadihexfh(fh)
+    assert_is(ret, ih)
+    assert_equal(ih.usedsize(), 8)
+    assert_equal(ih.start(), testaddr)
+    assert_sequence_equal(ih[:], testdata)
+    assert_equal(ih.variant, 16)
+    assert_equal(ih.cs_ip, 0x2BC0F010)
+
+
+def test_loadihexfh_r3_2():
+    ih = IntelHex()
+    ih.variant = 32
+    fh = FakeFileHandle((':040000032BC0F0100E', ':08DEAD000123456789ABCDEFAD'))
+    testdata = bytearray.fromhex("0123456789ABCDEF")
+    testaddr = 0xDEAD
+    ret = ih.loadihexfh(fh)
+    assert_is(ret, ih)
+    assert_equal(ih.usedsize(), 8)
+    assert_equal(ih.start(), testaddr)
+    assert_sequence_equal(ih[:], testdata)
+    assert_equal(ih.variant, 32)
+    assert_equal(ih.cs_ip, 0x2BC0F010)
+
+
+def test_loadihexfh_r4_1():
+    ih = IntelHex()
+    fh = FakeFileHandle((':020000042BC00F', ':08DEAD000123456789ABCDEFAD'))
+    testdata = bytearray.fromhex("0123456789ABCDEF")
+    testaddr = 0x2BC0DEAD
+    ret = ih.loadihexfh(fh)
+    assert_is(ret, ih)
+    assert_equal(ih.usedsize(), 8)
+    assert_equal(ih.start(), testaddr)
+    assert_sequence_equal(ih[:], testdata)
+    assert_equal(ih.variant, 32)
+
+
+def test_loadihexfh_r4_2():
+    ih = IntelHex()
+    ih.variant = 16
+    fh = FakeFileHandle((':020000042BC00F', ':08DEAD000123456789ABCDEFAD'))
+    testdata = bytearray.fromhex("0123456789ABCDEF")
+    testaddr = 0x2BC0DEAD
+    ret = ih.loadihexfh(fh)
+    assert_is(ret, ih)
+    assert_equal(ih.usedsize(), 8)
+    assert_equal(ih.start(), testaddr)
+    assert_sequence_equal(ih[:], testdata)
+    assert_equal(ih.variant, 16)
+
+
+def test_loadihexfh_r5_1():
+    ih = IntelHex()
+    fh = FakeFileHandle((':040000052BC0F0100C', ':08DEAD000123456789ABCDEFAD'))
+    testdata = bytearray.fromhex("0123456789ABCDEF")
+    testaddr = 0xDEAD
+    ret = ih.loadihexfh(fh)
+    assert_is(ret, ih)
+    assert_equal(ih.usedsize(), 8)
+    assert_equal(ih.start(), testaddr)
+    assert_sequence_equal(ih[:], testdata)
+    assert_equal(ih.variant, 32)
+    assert_equal(ih.eip, 0x2BC0F010)
+
+
+def test_loadihexfh_r5_2():
+    ih = IntelHex()
+    ih.variant = 16
+    fh = FakeFileHandle((':040000052BC0F0100C', ':08DEAD000123456789ABCDEFAD'))
+    testdata = bytearray.fromhex("0123456789ABCDEF")
+    testaddr = 0xDEAD
+    ret = ih.loadihexfh(fh)
+    assert_is(ret, ih)
+    assert_equal(ih.usedsize(), 8)
+    assert_equal(ih.start(), testaddr)
+    assert_sequence_equal(ih[:], testdata)
+    assert_equal(ih.variant, 16)
+    assert_equal(ih.eip, 0x2BC0F010)
+
