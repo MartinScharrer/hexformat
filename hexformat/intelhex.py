@@ -92,7 +92,7 @@ class IntelHex(HexFormat):
         if bytesperline is not None:
             bytesperline = int(bytesperline)
             if bytesperline < 1 or bytesperline > 255:
-                raise ValueError("bytesperline must be between 0 and 255")
+                raise ValueError("bytesperline must be between 1 and 255")
         return bytesperline
 
     @property
@@ -108,7 +108,7 @@ class IntelHex(HexFormat):
             if variant in self._VARIANTS:
                 variant = self._VARIANTS[variant]
             else:
-                raise ValueError("variant must be one of " + ", ".join(self._VARIANTS.keys()))
+                raise ValueError("variant must be one of " + ", ".join((str(k) for k in self._VARIANTS.keys())))
         return variant
 
     @property
@@ -122,9 +122,9 @@ class IntelHex(HexFormat):
     @staticmethod
     def _parse_cs_ip(cs_ip):
         if cs_ip is not None:
-            if cs_ip > 0xFFFFFFFF:
+            cs_ip = int(cs_ip)
+            if cs_ip < 0 or cs_ip > 0xFFFFFFFF:
                 raise ValueError("cs_ip value must not be larger than 32 bit.")
-            cs_ip = bytearray.fromhex("{:08x}".format(cs_ip))
         return cs_ip
 
     @property
@@ -138,9 +138,9 @@ class IntelHex(HexFormat):
     @staticmethod
     def _parse_eip(eip):
         if eip is not None:
-            if eip > 0xFFFFFFFF:
+            eip = int(eip)
+            if eip < 0 or eip > 0xFFFFFFFF:
                 raise ValueError("eip value must not be larger than 32 bit.")
-            eip = bytearray.fromhex("{:08x}".format(eip))
         return eip
 
     """Parses settings and returns tuple with all settings. Default values are substituted if needed.
@@ -310,7 +310,7 @@ class IntelHex(HexFormat):
                 if self._variant is None:
                     self._variant = 16
             elif recordtype == 3:
-                self._cs_ip = data
+                self._cs_ip = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
                 if self._variant is None:
                     self._variant = 16
             elif recordtype == 4:
@@ -318,7 +318,7 @@ class IntelHex(HexFormat):
                 if self._variant is None:
                     self._variant = 32
             elif recordtype == 5:
-                self._eip = data
+                self._eip = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3]
                 if self._variant is None:
                     self._variant = 32
             else:
@@ -394,9 +394,9 @@ class IntelHex(HexFormat):
                 address += bytesperline
                 pos = endpos
         if variant == 32 and eip is not None:
-            fh.write(self._encodeihexline(5, 0, eip))
+            fh.write(self._encodeihexline(5, 0, [eip >> 24, (eip >> 16) & 0xFF, (eip >> 8) & 0xFF, eip & 0xFF]))
         elif variant == 16 and cs_ip is not None:
-            fh.write(self._encodeihexline(3, 0, cs_ip))
+            fh.write(self._encodeihexline(3, 0, [cs_ip >> 24, (cs_ip >> 16) & 0xFF, (cs_ip >> 8) & 0xFF, cs_ip & 0xFF]))
         fh.write(self._encodeihexline(1))
         return self
 
