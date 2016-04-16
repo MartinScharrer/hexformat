@@ -1,6 +1,6 @@
 from hexformat.intelhex import IntelHex
 from nose.tools import raises, assert_equal, assert_is, assert_true, assert_dict_equal
-from nose.tools import assert_is_instance, assert_not_equal
+from nose.tools import assert_is_instance, assert_not_equal, assert_raises
 from mock import patch
 import random
 import tempfile
@@ -9,7 +9,7 @@ import sys
 import shutil
 from .test_multipartbuffer import randomdata
 from .test_srecord import randomdict
-from hexformat.base import DecodeError
+from hexformat.base import DecodeError, EncodeError
 
 dirname = ""
 testfilename = ""
@@ -484,3 +484,40 @@ else:
             assert_equal(address, testaddress)
             assert_equal(data, testdata)
             assert_equal(bytecount, testbytecount)
+
+
+RECORDTYPE_LENGTH = {
+    0: None,
+    1: 0,
+    2: 2,
+    3: 4,
+    4: 2,
+    5: 4,
+}
+
+
+# noinspection PyProtectedMember
+def test_encodeihexline_recordtype_valid():
+    for rt, l in RECORDTYPE_LENGTH.items():
+        if l is None:
+            l = random.randint(0, 200)
+        ih = IntelHex()
+        ih._encodeihexline(rt, data=bytearray(l))
+
+
+# noinspection PyProtectedMember
+def test_encodeihexline_recordtype_invalid():
+    ih = IntelHex()
+    for n in list(range(6, 256)) + list(range(-128, -1)):
+        yield assert_raises, EncodeError, ih._encodeihexline, n, 0, bytearray(2)
+
+
+# noinspection PyProtectedMember
+def test_encodeihexline_recordtype_datalength_mismatch():
+    for rt, l in RECORDTYPE_LENGTH.items():
+        if l is None:
+            continue
+        ih = IntelHex()
+        if l > 1:
+            yield assert_raises, EncodeError, ih._encodeihexline, rt, 0, bytearray(l - 1)
+        yield assert_raises, EncodeError, ih._encodeihexline, rt, 0, bytearray(l + 1)

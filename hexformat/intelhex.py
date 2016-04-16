@@ -191,7 +191,7 @@ class IntelHex(HexFormat):
         try:
             supposed_datalength = self._DATALENGTH[recordtype]
         except IndexError:
-            raise DecodeError("Unknown record type.")
+            raise DecodeError("Unsupported record type.")
         if supposed_datalength is not None and supposed_datalength != bytecount:
             raise DecodeError("Data length does not correspond to record type.")
         data = databytes[4:-1]
@@ -219,11 +219,14 @@ class IntelHex(HexFormat):
         linetempl = ":{:02X}{:04X}{:02X}{:s}{:02X}\n"
         bytecount = len(data)
         try:
+            recordtype = int(recordtype)
+            if recordtype < 0:
+                raise IndexError
             supposed_datalength = self._DATALENGTH[recordtype]
-        except IndexError:
-            raise DecodeError("Unknown record type.")
+        except (TypeError, IndexError):
+            raise EncodeError("Unsupported record type.")
         if supposed_datalength is not None and supposed_datalength != bytecount:
-            raise DecodeError("Data length does not correspond to record type.")
+            raise EncodeError("Data length does not correspond to record type.")
         address16bit &= 0xFFFF
         datastr = "".join("{:02X}".format(byte) for byte in data)
         checksum = bytecount + sum(data) + (address16bit >> 8) + (address16bit & 0xFF) + recordtype
