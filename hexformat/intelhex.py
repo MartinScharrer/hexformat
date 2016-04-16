@@ -197,7 +197,7 @@ class IntelHex(HexFormat):
         data = databytes[4:-1]
         return recordtype, address, data, bytecount, checksumcorrect
 
-    def _encodeihexline(self, recordtype, address16bit=0, data=bytearray()):
+    def _encodeihexline(self, recordtype, address16bit, data):
         """Encode given data to Intel-Hex format.
 
            One or more Intel-Hex lines are encoded from the given address and buffer and written to the given
@@ -307,7 +307,8 @@ class IntelHex(HexFormat):
                 if self._bytesperline is None:
                     self._bytesperline = datasize
             elif recordtype == 1:
-                break
+                # End of file
+                return self
             elif recordtype == 2:
                 highaddr = (data[0] << 12) | (data[1] << 4)
                 if self._variant is None:
@@ -400,7 +401,7 @@ class IntelHex(HexFormat):
             fh.write(self._encodeihexline(5, 0, [eip >> 24, (eip >> 16) & 0xFF, (eip >> 8) & 0xFF, eip & 0xFF]))
         elif variant == 16 and cs_ip is not None:
             fh.write(self._encodeihexline(3, 0, [cs_ip >> 24, (cs_ip >> 16) & 0xFF, (cs_ip >> 8) & 0xFF, cs_ip & 0xFF]))
-        fh.write(self._encodeihexline(1))
+        fh.write(self._encodeihexline(1, 0, bytearray()))
         return self
 
     # noinspection PyProtectedMember
