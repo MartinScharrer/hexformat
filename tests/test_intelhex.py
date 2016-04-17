@@ -816,3 +816,13 @@ def test_toihexfh_address_section_16():
     ih.toihexfh(fh, variant=16)
     assert_list_equal(fh, testlist)
 
+
+# noinspection PyProtectedMember
+def test_toihexfh_segment_wrap():
+    fh = FakeFileHandle([":02000002E0001C\n", ":02FFFF00DEAD75\n", ":00000001FF\n"])
+    testih = IntelHex()
+    testih.set(0xEFFFF, (0xDE,))
+    testih.set(0xE0000, (0xAD,))
+    ih = IntelHex.fromfh(fh)
+    yield assert_list_equal, ih._parts, testih._parts
+    yield assert_equal, ih, testih

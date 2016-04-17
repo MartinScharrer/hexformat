@@ -297,20 +297,31 @@ class IntelHex(HexFormat):
              DecodeError: on unsupported record type.
         """
         highaddr = 0
+        segmaddr = None
         line = fh.readline()
         while line != '':
             (recordtype, lowaddress, data, datasize, checksumcorrect) = self._parseihexline(line)
             if not checksumcorrect and not ignore_checksum_errors:
                 raise DecodeError("Checksum mismatch.")
             if recordtype == 0:
-                self.set((highaddr + lowaddress), data, datasize)
+                if highaddr is not None:
+                    self.set((highaddr + lowaddress), data, datasize)
+                else:
+                    if (lowaddress + datasize) <= 0x10000:
+                        self.set((segmaddr + lowaddress), data, datasize)
+                    else:  # wrap on segment boundary:
+                        fit = 0x10000 - lowaddress
+                        self.set((segmaddr + lowaddress), data, fit)
+                        self.set(segmaddr, data[fit:])
+
                 if self._bytesperline is None:
                     self._bytesperline = datasize
             elif recordtype == 1:
                 # End of file
                 return self
             elif recordtype == 2:
-                highaddr = (data[0] << 12) | (data[1] << 4)
+                segmaddr = (data[0] << 12) | (data[1] << 4)
+                highaddr = None
                 if self._variant is None:
                     self._variant = 16
             elif recordtype == 3:
@@ -319,6 +330,7 @@ class IntelHex(HexFormat):
                     self._variant = 16
             elif recordtype == 4:
                 highaddr = (data[0] << 24) | (data[1] << 16)
+                segmaddr = None
                 if self._variant is None:
                     self._variant = 32
             elif recordtype == 5:
