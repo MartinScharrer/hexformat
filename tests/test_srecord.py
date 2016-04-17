@@ -56,7 +56,7 @@ def randomdict(number=None):
 # noinspection PyProtectedMember
 def test_startaddress_getter():
     srec = SRecord()
-    for n in (0, 1, 2**16-1, 2**16, 2**16+1, 2**24-1, 2**24, 2**24+1, 2**32-2, 2**32-1):
+    for n in (0, 1, 2 ** 16 - 1, 2 ** 16, 2 ** 16 + 1, 2 ** 24 - 1, 2 ** 24, 2 ** 24 + 1, 2 ** 32 - 2, 2 ** 32 - 1):
         srec._startaddress = n
         assert_equal(srec._startaddress, n)
         assert_equal(srec._startaddress, srec.startaddress)
@@ -69,11 +69,11 @@ def test_startaddress_getter():
 # noinspection PyProtectedMember
 def test_startaddress_setter():
     srec = SRecord()
-    for n in (0, 1, 2**16-1, 2**16, 2**16+1, 2**24-1, 2**24, 2**24+1, 2**32-2, 2**32-1):
+    for n in (0, 1, 2 ** 16 - 1, 2 ** 16, 2 ** 16 + 1, 2 ** 24 - 1, 2 ** 24, 2 ** 24 + 1, 2 ** 32 - 2, 2 ** 32 - 1):
         srec.startaddress = n
         assert_equal(n, srec.startaddress)
         assert_equal(srec._startaddress, srec.startaddress)
-        r = random.randint(0, 2**32-1)
+        r = random.randint(0, 2 ** 32 - 1)
         srec.startaddress = r
         assert_equal(r, srec.startaddress)
         assert_equal(srec._startaddress, srec.startaddress)
@@ -96,7 +96,7 @@ def test_startaddress_setter_invalid():
 @raises(ValueError)
 def test_startaddress_setter_invalid_2():
     srec = SRecord()
-    srec.startaddress = 2**32
+    srec.startaddress = 2 ** 32
 
 
 @raises(ValueError, TypeError)
@@ -114,7 +114,7 @@ def test_startaddress_setter_invalid_4():
 # noinspection PyProtectedMember
 def test_addresslength_getter():
     srec = SRecord()
-    for n in (0, 1, 2**16-1, 2**16, 2**16+1, 2**24-1, 2**24, 2**24+1, 2**32-2, 2**32-1):
+    for n in (0, 1, 2 ** 16 - 1, 2 ** 16, 2 ** 16 + 1, 2 ** 24 - 1, 2 ** 24, 2 ** 24 + 1, 2 ** 32 - 2, 2 ** 32 - 1):
         srec._addresslength = n
         assert_equal(srec._addresslength, n)
         assert_equal(srec._addresslength, srec.addresslength)
@@ -271,7 +271,7 @@ def test_header_setter_invalid_4():
 # noinspection PyProtectedMember
 def test_write_number_of_records_getter():
     srec = SRecord()
-    for n in (True, False, 0, 1, 2, -1, 2**32, -2**32):
+    for n in (True, False, 0, 1, 2, -1, 2 ** 32, -2 ** 32):
         srec._write_number_of_records = bool(n)
         assert_equal(bool(n), srec.write_number_of_records)
         assert_equal(srec._write_number_of_records, srec.write_number_of_records)
@@ -280,7 +280,7 @@ def test_write_number_of_records_getter():
 # noinspection PyProtectedMember
 def test_write_number_of_records_setter():
     srec = SRecord()
-    for n in (True, False, 0, 1, 2, -1, 2**32, -2**32):
+    for n in (True, False, 0, 1, 2, -1, 2 ** 32, -2 ** 32):
         srec.write_number_of_records = n
         assert_equal(bool(n), srec.write_number_of_records)
         assert_equal(srec._write_number_of_records, srec.write_number_of_records)
@@ -307,27 +307,26 @@ def test__minaddresslength():
     for s in range(1, 32):
         n = 1 << s
         compare(n)
-        compare(n-1)
-        compare(n+1)
+        compare(n - 1)
+        compare(n + 1)
 
-    assert_raises(ValueError, SRecord._minaddresslength, 2**32)
+    assert_raises(ValueError, SRecord._minaddresslength, 2 ** 32)
 
 
 # noinspection PyProtectedMember
 def test__s123addr():
-
     # noinspection PyProtectedMember
     def compare(al, val):
         retdata = bytearray(iter(SRecord._s123addr(al, val)))
-        compdata = bytearray.fromhex((("00" * al) + hex(val)[2:].replace('L', ''))[-2*al:])
+        compdata = bytearray.fromhex((("00" * al) + hex(val)[2:].replace('L', ''))[-2 * al:])
         assert_sequence_equal(retdata, compdata)
 
     for adrlen in (2, 3, 4):
-        for s in range(1, 8*adrlen):
+        for s in range(1, 8 * adrlen):
             n = 1 << s
             compare(adrlen, n)
-            compare(adrlen, n-1)
-            compare(adrlen, n+1)
+            compare(adrlen, n - 1)
+            compare(adrlen, n + 1)
 
     assert_raises(ValueError, SRecord._s123addr, 0, 0)
     assert_raises(ValueError, SRecord._s123addr, 1, 0)
@@ -424,7 +423,6 @@ def test_loadsrecfile_interface():
 
 
 def test_encodesrecline_failure():
-
     # noinspection PyProtectedMember
     @raises(EncodeError)
     def do(recordtype):
@@ -515,6 +513,7 @@ def test_tosrecfh_write_number_of_records_too_large():
     assert_false(fh[-2].startswith('S3'))
     assert_equal(len(fh), 0x1000002)
 
+
 test_tosrecfh_write_number_of_records_too_large.slow = 1
 
 
@@ -553,7 +552,8 @@ def test_parsesrecline_failure6():
 def test_parsesrecline_ok():
     testaddress = 0xFF008CE0
     testdata = bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF")
-    yield assert_tuple_equal, SRecord._parsesrecline("S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C"), (3, testaddress, testdata, len(testdata), True)
+    yield (assert_tuple_equal, SRecord._parsesrecline("S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C"),
+           (3, testaddress, testdata, len(testdata), True))
 
 
 def test_loadsrecfh_1():
@@ -673,5 +673,3 @@ def test_loadsrecfh_invalid_recordtype():
     ))
     srec = SRecord(startaddress=0xDEADBEEF)
     srec.loadsrecfh(fh)
-
-

@@ -46,14 +46,6 @@ def test_random1_s37():
     assert srec2.usedsize() == RANDOM1_SIZE
 
 
-def test_random1_s37():
-    srec1 = SRecord.fromfile("tests/random1.s37")
-    srec2 = SRecord.fromsrecfile("tests/random1.s37")
-    assert srec1 == srec2
-    assert srec2.start() == RANDOM1_ADDR
-    assert srec2.usedsize() == RANDOM1_SIZE
-
-
 def test_random1_srec():
     srec37 = SRecord.fromsrecfile("tests/random1.s37")
     srec28 = SRecord.fromsrecfile("tests/random1.s28")

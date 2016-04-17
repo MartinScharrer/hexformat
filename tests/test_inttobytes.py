@@ -1,7 +1,6 @@
 from hexformat.fillpattern import int_to_bytes
 from nose.tools import assert_equal, raises
 import random
-from nose.plugins.skip import SkipTest
 
 
 def skipifnotpython3():

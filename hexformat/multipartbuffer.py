@@ -38,10 +38,11 @@ def ensurebuffer(buforint):
 
 
 class MultiPartBuffer(object):
+    # noinspection PyUnresolvedReferences
     """Class to handle disconnected binary data.
 
        Each segment (simply called "part") is identified by its starting address and its content (a Buffer instance).
-       
+
        Attributes:
          _STANDARD_FORMAT (str): The standard format used by :meth:`.fromfh` and :meth:`.fromfile` if no format
                                  was given.

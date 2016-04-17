@@ -341,6 +341,7 @@ class IntelHex(HexFormat):
             line = fh.readline()
         return self
 
+    # noinspection PyIncorrectDocstring
     def toihexfile(self, filename, **settings):
         """Writes content as Intel-Hex file to given file name.
 
@@ -360,6 +361,7 @@ class IntelHex(HexFormat):
         with open(filename, "w") as fh:
             return self.toihexfh(fh, **settings)
 
+    # noinspection PyIncorrectDocstring
     def toihexfh(self, fh, **settings):
         """Writes content as Intel-Hex file to given file handle.
 

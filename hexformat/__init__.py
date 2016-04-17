@@ -22,3 +22,5 @@ from hexformat.srecord import SRecord
 from hexformat.intelhex import IntelHex
 from hexformat.fillpattern import FillPattern, RandomContent
 from hexformat.base import DecodeError, EncodeError
+
+__all__ = [SRecord, IntelHex, FillPattern, RandomContent, DecodeError, EncodeError]

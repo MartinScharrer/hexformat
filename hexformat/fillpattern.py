@@ -20,11 +20,11 @@
 """
 
 import copy
-import math
-import sys
 import random
+import sys
 
 if sys.version_info < (3,):
+    # noinspection PyUnresolvedReferences
     integer_types = (int, long,)
 else:
     integer_types = (int,)
