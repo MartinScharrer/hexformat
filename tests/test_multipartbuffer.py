@@ -23,7 +23,7 @@ import sys
 from hexformat.intelhex import IntelHex
 from hexformat.fillpattern import RandomContent
 from nose.tools import assert_is, assert_equal, assert_list_equal, assert_sequence_equal, raises, assert_less_equal
-from hexformat.multipartbuffer import MultiPartBuffer, Buffer
+from hexformat.multipartbuffer import MultiPartBuffer
 import tempfile
 import os
 import random
@@ -66,11 +66,11 @@ def test1():
     m = MultiPartBuffer()
     assert_equal(m._parts, [])
     assert m.set(0, bytearray(10)) is m  # returns self
-    assert_equal(m._parts, [[0, Buffer(bytearray(10))]])
+    assert_equal(m._parts, [[0, bytearray(bytearray(10))]])
     assert m.fill(0x100, 0x8, [0xAA, 0xBB, 0xCC, 0xDD]) is m  # returns self
-    assert_equal(m.get(0x100, 0x8), Buffer([0xAA, 0xBB, 0xCC, 0xDD, 0xAA, 0xBB, 0xCC, 0xDD]))
+    assert_equal(m.get(0x100, 0x8), bytearray([0xAA, 0xBB, 0xCC, 0xDD, 0xAA, 0xBB, 0xCC, 0xDD]))
     assert m.fill(0x200, 0x8) is m  # returns self
-    assert_equal(m.get(0x200, 0x8), Buffer([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]))
+    assert_equal(m.get(0x200, 0x8), bytearray([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]))
     assert_equal(m.delete(0x100, 0x4), m)  # returns self
     assert_equal(len(m.parts()), 3)
     assert_equal(m._parts[1][0], 0x104)

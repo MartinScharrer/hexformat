@@ -22,7 +22,6 @@
 import binascii
 
 from hexformat.base import HexFormat, DecodeError
-from hexformat.multipartbuffer import Buffer
 
 TYPE_SYMBOL = 3
 TYPE_DATA = 6
@@ -131,7 +130,7 @@ class TektronixExtHex(HexFormat):
         for address, buffer in self._parts:
             self._encodetekline(fh, address, addresslength, buffer, 0, TYPE_DATA, bytesperline)
 
-        self._encodetekline(fh, startaddress, addresslength, Buffer(), recordtype=TYPE_TERMINATOR, bytesperline=0)
+        self._encodetekline(fh, startaddress, addresslength, bytearray(), recordtype=TYPE_TERMINATOR, bytesperline=0)
         return self
 
     @classmethod

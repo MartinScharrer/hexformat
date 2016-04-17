@@ -22,7 +22,6 @@
 import binascii
 
 from hexformat.base import DecodeError, EncodeError, HexFormat
-from hexformat.multipartbuffer import Buffer
 
 
 BYTESPERLINE_MAX = 253
@@ -69,7 +68,7 @@ class SRecord(HexFormat):
 
     _SRECORD_ADDRESSLENGTH = (2, 2, 3, 4, 2, 2, 3, 4, 3, 2)
     _STANDARD_FORMAT = 'srec'
-    _DEFAULT_HEADER = Buffer(b'')
+    _DEFAULT_HEADER = bytearray(b'')
     _DEFAULT_STARTADDRESS = 0
     _DEFAULT_ADDRESSLENGTH = None
     _DEFAULT_BYTESPERLINE = 32
@@ -144,7 +143,7 @@ class SRecord(HexFormat):
     @staticmethod
     def _parse_header(header):
         if header is not None:
-            header = Buffer(iter(header))[0:BYTESPERLINE_MAX]
+            header = bytearray(iter(header))[0:BYTESPERLINE_MAX]
         return header
 
     @property
@@ -206,11 +205,11 @@ class SRecord(HexFormat):
             numdatarecords += self._encodesrecline(fh, recordtype, address, buffer, bytesperline)
         if write_number_of_records:
             if numdatarecords <= 0xFFFF:
-                self._encodesrecline(fh, RECORD_TYPE.COUNT_16, numdatarecords, Buffer(), BYTESPERLINE_MAX)
+                self._encodesrecline(fh, RECORD_TYPE.COUNT_16, numdatarecords, bytearray(), BYTESPERLINE_MAX)
             elif numdatarecords <= 0xFFFFFF:
-                self._encodesrecline(fh, RECORD_TYPE.COUNT_24, numdatarecords, Buffer(), BYTESPERLINE_MAX)
+                self._encodesrecline(fh, RECORD_TYPE.COUNT_24, numdatarecords, bytearray(), BYTESPERLINE_MAX)
 
-        self._encodesrecline(fh, recordtype_end, startaddress, Buffer(), BYTESPERLINE_MAX)
+        self._encodesrecline(fh, recordtype_end, startaddress, bytearray(), BYTESPERLINE_MAX)
         return self
 
     @staticmethod

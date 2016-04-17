@@ -28,7 +28,6 @@
 """
 
 from hexformat.base import DecodeError, EncodeError, HexFormat
-from hexformat.multipartbuffer import Buffer
 
 # Intel-Hex Record Types
 RT_DATA = 0

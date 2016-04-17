@@ -23,7 +23,6 @@ import string
 
 from . import DecodeError
 from .base import HexFormat
-from .multipartbuffer import Buffer
 
 
 class HexDump(HexFormat):
@@ -90,9 +89,9 @@ class HexDump(HexFormat):
                 aidx = None
             address = int(line[0:cidx], 16)
             groups = line[cidx + 1:aidx].split()
-            data = Buffer()
+            data = bytearray()
             for group in groups:
-                groupdata = Buffer.fromhex(group)
+                groupdata = bytearray.fromhex(group)
                 if not bigendian:
                     groupdata = reversed(groupdata)
                 data.extend(groupdata)

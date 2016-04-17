@@ -28,11 +28,6 @@ MOD_NO_BUFFER_FOUND_NEXT_HIGHER_USED = 1
 MOD_BEYOND_END_LAST_BUFFER_USED = -1
 
 
-class Buffer(bytearray):
-    """Buffer class to abstract real buffer class."""
-    pass
-
-
 def ensurebuffer(buforint):
     if isinstance(buforint, bytearray):
         return buforint
@@ -80,7 +75,7 @@ class MultiPartBuffer(object):
              address (int): Address of first byte in data buffer.
              data (Buffer): Data to be stored.
         """
-        buffer = Buffer(data)
+        buffer = bytearray(data)
         if beforeindex is None:
             self._parts.append([address, buffer])
         else:
@@ -141,7 +136,7 @@ class MultiPartBuffer(object):
             data = newdata
         else:
             data = newdata[dataoffset:dataoffset + datasize]
-        self._parts[index][1] = Buffer(data) + self._parts[index][1]
+        self._parts[index][1] = bytearray(data) + self._parts[index][1]
         self._parts[index][0] -= datasize  # adjust address
 
     def _set(self, index, address, newdata, datasize, dataoffset):
@@ -373,7 +368,7 @@ class MultiPartBuffer(object):
         if fillpattern is None:
             fillpattern = self._padding
         fillpattern = FillPattern.frompattern(fillpattern)
-        return Buffer(fillpattern[0:size])
+        return bytearray(fillpattern[0:size])
 
     def _checkaddrnsize(self, address, size):
         """Helper method: Ensure proper address and size values.
@@ -408,7 +403,7 @@ class MultiPartBuffer(object):
             unfillpattern = self._padding
         if isinstance(unfillpattern, int):
             unfillpattern = [unfillpattern, ]
-        unfillpattern = Buffer(unfillpattern)
+        unfillpattern = bytearray(unfillpattern)
         ufvlen = len(unfillpattern)
         address, size = self._checkaddrnsize(address, size)
         (index, mod) = self._find(address, size, create=False)
@@ -461,7 +456,7 @@ class MultiPartBuffer(object):
         (index, mod) = self._find(address, size, create=False)
         endaddress = address + size
 
-        retbuffer = Buffer()
+        retbuffer = bytearray()
 
         if mod != 0:
             return self._filler(size, fillpattern)
