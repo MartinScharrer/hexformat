@@ -15,4 +15,6 @@ dist/*
 *.zip
 *.egg*
 .tox
-.cover
+.coverage
+cover
+*.orig
