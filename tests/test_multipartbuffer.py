@@ -836,6 +836,120 @@ def test_fromfh_failure():
         MultiPartBuffer.fromfh(fh, 'invalid')
 
 
+def test_loadfile_1():
+    testdata = randomdata(1024)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+
+    mp = MultiPartBuffer().loadfile(filename)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    mp = MultiPartBuffer().loadfile(filename, address=0x100)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    mp = MultiPartBuffer().loadfile(filename, address=0x1000, size=512)
+    yield assert_equal, mp.start(), 0x1000
+    yield assert_sequence_equal, mp.get(None, None), testdata[0:512]
+
+    mp = MultiPartBuffer().loadfile(filename, offset=100)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata[100:]
+
+
+def test_loadfile_2():
+    testdata = randomdata(1024)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+
+    mp = MultiPartBuffer().loadfile(filename, 'bin')
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    mp = MultiPartBuffer().loadfile(filename, 'bin', address=0x100)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    mp = MultiPartBuffer().loadfile(filename, 'bin', address=0x1000, size=512)
+    yield assert_equal, mp.start(), 0x1000
+    yield assert_sequence_equal, mp.get(None, None), testdata[0:512]
+
+    mp = MultiPartBuffer().loadfile(filename, 'bin', offset=100)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata[100:]
+
+
+@raises(ValueError)
+def test_loadfile_failure():
+    testdata = randomdata(1)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+    MultiPartBuffer().loadfile(filename, 'invalid')
+
+
+def test_loadfh_1():
+    testdata = randomdata(1024)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer().loadfh(fh)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer().loadfh(fh, address=0x100)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer().loadfh(fh, address=0x1000, size=512)
+    yield assert_equal, mp.start(), 0x1000
+    yield assert_sequence_equal, mp.get(None, None), testdata[0:512]
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer().loadfh(fh, offset=100)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata[100:]
+
+
+def test_loadfh_2():
+    testdata = randomdata(1024)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer().loadfh(fh, 'bin')
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer().loadfh(fh, 'bin', address=0x100)
+    yield assert_equal, mp.start(), 0x100
+    yield assert_sequence_equal, mp.get(None, None), testdata
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer().loadfh(fh, 'bin', address=0x1000, size=512)
+    yield assert_equal, mp.start(), 0x1000
+    yield assert_sequence_equal, mp.get(None, None), testdata[0:512]
+
+    with open(filename, "rb") as fh:
+        mp = MultiPartBuffer().loadfh(fh, 'bin', offset=100)
+    yield assert_equal, mp.start(), 0
+    yield assert_sequence_equal, mp.get(None, None), testdata[100:]
+
+
+@raises(ValueError)
+def test_loadfh_failure():
+    testdata = randomdata(1)
+    with open(filename, "wb") as fh:
+        fh.write(testdata)
+
+    with open(filename, "rb") as fh:
+        MultiPartBuffer().loadfh(fh, 'invalid')
+
+
 def test_add_mp():
     testdata1 = randomdata(0x100)
     testdata2 = randomdata(0x100)
