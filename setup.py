@@ -14,6 +14,7 @@ def read(fname):
 setup(
     name='hexformat',
     description='Library for popular HEX-formats like IntelHex and SRecord',
+    long_description_content_type='text/x-rst',
     long_description=read("README.rst"),
     author='Martin Scharrer',
     author_email='martin.scharrer@web.de',
