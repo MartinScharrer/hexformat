@@ -1,0 +1,14 @@
+*.pyc
+*.hex
+*.bin
+*.srec
+*.hexdump
+/docs/build
+/build
+/dist
+*.zip
+*.egg*
+.tox
+.coverage
+/cover
+*.orig
