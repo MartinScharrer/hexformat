@@ -8,7 +8,7 @@
 /dist
 *.zip
 *.egg*
-.tox
-.coverage
+/.tox
+/.coverage
 /cover
 *.orig

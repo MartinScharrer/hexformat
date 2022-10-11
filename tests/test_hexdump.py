@@ -1,5 +1,7 @@
 from hexformat.hexdump import HexDump
+import unittest
 
 
-def test():
-    return HexDump()
+class TestHexdump(unittest.TestCase):
+    def test(self):
+        return HexDump()

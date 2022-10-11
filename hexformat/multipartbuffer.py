@@ -2,7 +2,7 @@
 
   License::
 
-    Copyright (C) 2015-2016 by Martin Scharrer <martin@scharrer-online.de>
+    Copyright (C) 2015-2022  Martin Scharrer <martin.scharrer@web.de>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,12 +15,13 @@
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """
 
+import collections.abc as collections
 import copy
-import collections
+
 from hexformat.fillpattern import FillPattern, int_to_bytes
 
 MOD_USABLE_BUFFER_FOUND = 0
@@ -364,7 +365,7 @@ class MultiPartBuffer(object):
         """Generate buffer with given fillpattern and size."""
         size = int(size)
         if isinstance(fillpattern, BaseException) or (
-                        type(fillpattern) == type and issubclass(fillpattern, BaseException)):
+                type(fillpattern) == type and issubclass(fillpattern, BaseException)):
             raise fillpattern
         if fillpattern is None:
             fillpattern = self._padding

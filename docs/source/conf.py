@@ -160,8 +160,8 @@ html_static_path = ['_static']
 
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {
-   '**': ['globaltoc.html', 'searchbox.html'],
-   'using/windows': ['windowssidebar.html', 'searchbox.html'],
+    '**': ['globaltoc.html', 'searchbox.html'],
+    'using/windows': ['windowssidebar.html', 'searchbox.html'],
 }
 
 # Additional templates that should be rendered to pages, maps page names to
@@ -297,7 +297,7 @@ texinfo_documents = [
 intersphinx_mapping = {'https://docs.python.org/': None}
 
 autodoc_member_order = 'source'
-autodoc_default_flags = [ 'members', 'undoc-members', 'show-inheritance']
+autodoc_default_flags = ['members', 'undoc-members', 'show-inheritance']
 # [ 'members', 'undoc-members', 'private-members', 'special-members', 'inherited-members', 'show-inheritance']
 
 # Napoleon settings

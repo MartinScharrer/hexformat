@@ -1,17 +1,13 @@
-from hexformat.srecord import SRecord
 from hexformat.base import EncodeError, DecodeError
-from nose.tools import assert_sequence_equal, assert_equal, assert_is, assert_raises, assert_dict_equal, assert_true
-from nose.tools import raises, assert_is_instance, assert_list_equal, assert_false, assert_tuple_equal
-from mock import patch
-from .test_multipartbuffer import randomdata
+from hexformat.srecord import SRecord
+import unittest
+from unittest.mock import patch
+from tests.test_multipartbuffer import randomdata
 import random
 import tempfile
 import sys
 import os
 import shutil
-
-dirname = ""
-testfilename = ""
 
 
 class FakeFileHandle(list):
@@ -23,22 +19,6 @@ class FakeFileHandle(list):
             return self.pop(0)
         except IndexError:
             return ''
-
-
-def setup():
-    global dirname
-    global testfilename
-    dirname = tempfile.mkdtemp(prefix="test_srecord_")
-    sys.stderr.write("Tempdir: {:s}\n".format(dirname))
-    testfilename = os.path.join(dirname, "testdata.srec")
-
-
-def teardown():
-    # noinspection PyBroadException
-    try:
-        shutil.rmtree(dirname)
-    except:
-        pass
 
 
 def randomstr(length):
@@ -53,623 +33,592 @@ def randomdict(number=None):
     return {randomstr(random.randint(1, 16)): randomdata(random.randint(1, 16)) for n in range(0, number)}
 
 
-# noinspection PyProtectedMember
-def test_startaddress_getter():
-    srec = SRecord()
-    for n in (0, 1, 2 ** 16 - 1, 2 ** 16, 2 ** 16 + 1, 2 ** 24 - 1, 2 ** 24, 2 ** 24 + 1, 2 ** 32 - 2, 2 ** 32 - 1):
-        srec._startaddress = n
-        assert_equal(srec._startaddress, n)
-        assert_equal(srec._startaddress, srec.startaddress)
-        r = random.randint(0, 2 ** 32 - 1)
-        srec._startaddress = r
-        assert_equal(srec._startaddress, r)
-        assert_equal(srec._startaddress, srec.startaddress)
+class TestSRecord(unittest.TestCase):
 
+    def setUp(self):
+        self.dirname = tempfile.mkdtemp(prefix="test_srecord_")
+        # sys.stderr.write("Tempdir: {:s}\n".format(self.dirname))
+        self.testfilename = os.path.join(self.dirname, "testdata.srec")
 
-# noinspection PyProtectedMember
-def test_startaddress_setter():
-    srec = SRecord()
-    for n in (0, 1, 2 ** 16 - 1, 2 ** 16, 2 ** 16 + 1, 2 ** 24 - 1, 2 ** 24, 2 ** 24 + 1, 2 ** 32 - 2, 2 ** 32 - 1):
-        srec.startaddress = n
-        assert_equal(n, srec.startaddress)
-        assert_equal(srec._startaddress, srec.startaddress)
-        r = random.randint(0, 2 ** 32 - 1)
-        srec.startaddress = r
-        assert_equal(r, srec.startaddress)
-        assert_equal(srec._startaddress, srec.startaddress)
-
-
-# noinspection PyProtectedMember
-def test_startaddress_setter_none():
-    srec = SRecord()
-    srec.startaddress = None
-    assert_is(srec.startaddress, None)
-    assert_is(srec.startaddress, srec._startaddress)
-
-
-@raises(ValueError)
-def test_startaddress_setter_invalid():
-    srec = SRecord()
-    srec.startaddress = -1
-
-
-@raises(ValueError)
-def test_startaddress_setter_invalid_2():
-    srec = SRecord()
-    srec.startaddress = 2 ** 32
-
-
-@raises(ValueError, TypeError)
-def test_startaddress_setter_invalid_3():
-    srec = SRecord()
-    srec.startaddress = "invalid"
-
-
-@raises(TypeError)
-def test_startaddress_setter_invalid_4():
-    srec = SRecord()
-    srec.startaddress = dict()
-
-
-# noinspection PyProtectedMember
-def test_addresslength_getter():
-    srec = SRecord()
-    for n in (0, 1, 2 ** 16 - 1, 2 ** 16, 2 ** 16 + 1, 2 ** 24 - 1, 2 ** 24, 2 ** 24 + 1, 2 ** 32 - 2, 2 ** 32 - 1):
-        srec._addresslength = n
-        assert_equal(srec._addresslength, n)
-        assert_equal(srec._addresslength, srec.addresslength)
-        r = random.randint(0, 2 ** 32 - 1)
-        srec._addresslength = r
-        assert_equal(srec._addresslength, r)
-        assert_equal(srec._addresslength, srec.addresslength)
-
-
-# noinspection PyProtectedMember
-def test_addresslength_setter():
-    srec = SRecord()
-    for n in (2, 3, 4):
-        srec.addresslength = n
-        assert_equal(n, srec.addresslength)
-        assert_equal(srec._addresslength, srec.addresslength)
-
-
-# noinspection PyProtectedMember
-def test_addresslength_setter_none():
-    srec = SRecord()
-    srec.addresslength = None
-    assert_is(srec.addresslength, None)
-    assert_is(srec.addresslength, srec._addresslength)
-
-
-@raises(ValueError)
-def test_addresslength_setter_invalid():
-    srec = SRecord()
-    srec.addresslength = 1
-
-
-@raises(ValueError)
-def test_addresslength_setter_invalid_2():
-    srec = SRecord()
-    srec.addresslength = 5
-
-
-@raises(ValueError, TypeError)
-def test_addresslength_setter_invalid_3():
-    srec = SRecord()
-    srec.addresslength = "invalid"
-
-
-@raises(TypeError)
-def test_addresslength_setter_invalid_4():
-    srec = SRecord()
-    srec.addresslength = dict()
-
-
-# noinspection PyProtectedMember
-def test_bytesperline_getter():
-    srec = SRecord()
-    for n in range(1, 254):
-        srec._bytesperline = n
-        assert_equal(srec._bytesperline, n)
-        assert_equal(srec._bytesperline, srec.bytesperline)
-
-
-# noinspection PyProtectedMember
-def test_bytesperline_setter():
-    srec = SRecord()
-    for n in range(1, 254):
-        srec.bytesperline = n
-        assert_equal(srec.bytesperline, n)
-        assert_equal(srec._bytesperline, srec.bytesperline)
-
-
-# noinspection PyProtectedMember
-def test_bytesperline_setter_none():
-    srec = SRecord()
-    srec.bytesperline = None
-    assert_is(srec.bytesperline, None)
-    assert_is(srec.bytesperline, srec._bytesperline)
-
-
-@raises(ValueError)
-def test_bytesperline_setter_invalid():
-    srec = SRecord()
-    srec.bytesperline = 0
-
-
-@raises(ValueError)
-def test_bytesperline_setter_invalid_2():
-    srec = SRecord()
-    srec.bytesperline = 254
-
-
-@raises(ValueError, TypeError)
-def test_bytesperline_setter_invalid_3():
-    srec = SRecord()
-    srec.bytesperline = "invalid"
-
-
-@raises(TypeError)
-def test_bytesperline_setter_invalid_4():
-    srec = SRecord()
-    srec.bytesperline = dict()
-
-
-# noinspection PyProtectedMember
-def test_header_getter():
-    srec = SRecord()
-    # noinspection PyUnusedLocal
-    for n in (b"", b"Test", b"Long string " * 10, randomdata(253),
-              "Some string which will be encoded".encode(),
-              bytearray((random.randint(0, 255) for r in range(0, random.randint(0, 253))))):
-        srec._header = n
-        assert_equal(n, srec.header)
-        assert_equal(srec._header, srec.header)
-
-
-# noinspection PyProtectedMember
-def test_header_setter():
-    srec = SRecord()
-    # noinspection PyUnusedLocal
-    for n in (b"", b"Test", b"Long string " * 10, randomdata(253),
-              "Some string which will be encoded".encode(),
-              bytearray((random.randint(0, 255) for r in range(0, random.randint(0, 253))))):
-        srec.header = n
-        assert_equal(n, srec.header)
-        assert_equal(srec._header, srec.header)
-
-
-# noinspection PyProtectedMember
-def test_header_setter_none():
-    srec = SRecord()
-    srec.header = None
-    assert_is(srec.header, None)
-    assert_is(srec.header, srec._header)
-
-
-# noinspection PyProtectedMember
-def test_header_setter_large():
-    testdata = randomdata(254)
-    srec = SRecord()
-    srec.header = testdata
-    assert_equal(srec.header, testdata[0:253])
-    assert_equal(srec.header, srec._header)
-
-
-@raises(TypeError)
-def test_header_setter_invalid():
-    srec = SRecord()
-    srec.header = 0
-
-
-@raises(TypeError)
-def test_header_setter_invalid_4():
-    srec = SRecord()
-    srec.header = object()
-
-
-# noinspection PyProtectedMember
-def test_write_number_of_records_getter():
-    srec = SRecord()
-    for n in (True, False, 0, 1, 2, -1, 2 ** 32, -2 ** 32):
-        srec._write_number_of_records = bool(n)
-        assert_equal(bool(n), srec.write_number_of_records)
-        assert_equal(srec._write_number_of_records, srec.write_number_of_records)
-
-
-# noinspection PyProtectedMember
-def test_write_number_of_records_setter():
-    srec = SRecord()
-    for n in (True, False, 0, 1, 2, -1, 2 ** 32, -2 ** 32):
-        srec.write_number_of_records = n
-        assert_equal(bool(n), srec.write_number_of_records)
-        assert_equal(srec._write_number_of_records, srec.write_number_of_records)
-
-
-# noinspection PyProtectedMember
-def test_write_number_of_records_setter_none():
-    srec = SRecord()
-    srec.write_number_of_records = None
-    assert_is(srec.write_number_of_records, None)
-    assert_is(srec.write_number_of_records, srec._write_number_of_records)
-
-
-# noinspection PyProtectedMember
-def test__minaddresslength():
-    assert_equal(SRecord._minaddresslength(0), 2)
+    def tearDown(self):
+        # noinspection PyBroadException
+        try:
+            shutil.rmtree(self.dirname)
+        except OSError:
+            pass
 
     # noinspection PyProtectedMember
-    def compare(num):
-        minlen = SRecord._minaddresslength(num)
-        m = int(("0000" + hex(num)[2:].replace('L', ''))[-2 * minlen:], 16)
-        assert_equal(num, m)
+    def test_startaddress_getter(self):
+        srec = SRecord()
+        for n in (0, 1, 2 ** 16 - 1, 2 ** 16, 2 ** 16 + 1, 2 ** 24 - 1, 2 ** 24, 2 ** 24 + 1, 2 ** 32 - 2, 2 ** 32 - 1):
+            srec._startaddress = n
+            self.assertEqual(srec._startaddress, n)
+            self.assertEqual(srec._startaddress, srec.startaddress)
+            r = random.randint(0, 2 ** 32 - 1)
+            srec._startaddress = r
+            self.assertEqual(srec._startaddress, r)
+            self.assertEqual(srec._startaddress, srec.startaddress)
 
-    for s in range(1, 32):
-        n = 1 << s
-        compare(n)
-        compare(n - 1)
-        compare(n + 1)
-
-    assert_raises(ValueError, SRecord._minaddresslength, 2 ** 32)
-
-
-# noinspection PyProtectedMember
-def test__s123addr():
     # noinspection PyProtectedMember
-    def compare(al, val):
-        retdata = bytearray(iter(SRecord._s123addr(al, val)))
-        compdata = bytearray.fromhex((("00" * al) + hex(val)[2:].replace('L', ''))[-2 * al:])
-        assert_sequence_equal(retdata, compdata)
+    def test_startaddress_setter(self):
+        srec = SRecord()
+        for n in (0, 1, 2 ** 16 - 1, 2 ** 16, 2 ** 16 + 1, 2 ** 24 - 1, 2 ** 24, 2 ** 24 + 1, 2 ** 32 - 2, 2 ** 32 - 1):
+            srec.startaddress = n
+            self.assertEqual(n, srec.startaddress)
+            self.assertEqual(srec._startaddress, srec.startaddress)
+            r = random.randint(0, 2 ** 32 - 1)
+            srec.startaddress = r
+            self.assertEqual(r, srec.startaddress)
+            self.assertEqual(srec._startaddress, srec.startaddress)
 
-    for adrlen in (2, 3, 4):
-        for s in range(1, 8 * adrlen):
+    # noinspection PyProtectedMember
+    def test_startaddress_setter_none(self):
+        srec = SRecord()
+        srec.startaddress = None
+        self.assertIs(srec.startaddress, None)
+        self.assertIs(srec.startaddress, srec._startaddress)
+
+    def test_startaddress_setter_invalid(self):
+        srec = SRecord()
+        with self.assertRaises(ValueError):
+            srec.startaddress = -1
+
+    def test_startaddress_setter_invalid_2(self):
+        srec = SRecord()
+        with self.assertRaises(ValueError):
+            srec.startaddress = 2 ** 32
+
+    def test_startaddress_setter_invalid_3(self):
+        srec = SRecord()
+        with self.assertRaises((ValueError, TypeError)):
+            srec.startaddress = "invalid"
+
+    def test_startaddress_setter_invalid_4(self):
+        srec = SRecord()
+        with self.assertRaises(TypeError):
+            srec.startaddress = dict()
+
+    # noinspection PyProtectedMember
+    def test_addresslength_getter(self):
+        srec = SRecord()
+        for n in (0, 1, 2 ** 16 - 1, 2 ** 16, 2 ** 16 + 1, 2 ** 24 - 1, 2 ** 24, 2 ** 24 + 1, 2 ** 32 - 2, 2 ** 32 - 1):
+            with self.subTest(n):
+                srec._addresslength = n
+                self.assertEqual(srec._addresslength, n)
+                self.assertEqual(srec._addresslength, srec.addresslength)
+                r = random.randint(0, 2 ** 32 - 1)
+                srec._addresslength = r
+                self.assertEqual(srec._addresslength, r)
+                self.assertEqual(srec._addresslength, srec.addresslength)
+
+    # noinspection PyProtectedMember
+    def test_addresslength_setter(self):
+        srec = SRecord()
+        for n in (2, 3, 4):
+            with self.subTest(n):
+                srec.addresslength = n
+                self.assertEqual(n, srec.addresslength)
+                self.assertEqual(srec._addresslength, srec.addresslength)
+
+    # noinspection PyProtectedMember
+    def test_addresslength_setter_none(self):
+        srec = SRecord()
+        srec.addresslength = None
+        self.assertIs(srec.addresslength, None)
+        self.assertIs(srec.addresslength, srec._addresslength)
+
+    def test_addresslength_setter_invalid(self):
+        srec = SRecord()
+        with self.assertRaises(ValueError):
+            srec.addresslength = 1
+
+    def test_addresslength_setter_invalid_2(self):
+        srec = SRecord()
+        with self.assertRaises(ValueError):
+            srec.addresslength = 5
+
+    def test_addresslength_setter_invalid_3(self):
+        srec = SRecord()
+        with self.assertRaises((ValueError, TypeError)):
+            srec.addresslength = "invalid"
+
+    def test_addresslength_setter_invalid_4(self):
+        srec = SRecord()
+        with self.assertRaises(TypeError):
+            srec.addresslength = dict()
+
+    # noinspection PyProtectedMember
+    def test_bytesperline_getter(self):
+        srec = SRecord()
+        for n in range(1, 254):
+            with self.subTest(n):
+                srec._bytesperline = n
+                self.assertEqual(srec._bytesperline, n)
+                self.assertEqual(srec._bytesperline, srec.bytesperline)
+
+    # noinspection PyProtectedMember
+    def test_bytesperline_setter(self):
+        srec = SRecord()
+        for n in range(1, 254):
+            with self.subTest(n):
+                srec.bytesperline = n
+                self.assertEqual(srec.bytesperline, n)
+                self.assertEqual(srec._bytesperline, srec.bytesperline)
+
+    # noinspection PyProtectedMember
+    def test_bytesperline_setter_none(self):
+        srec = SRecord()
+        srec.bytesperline = None
+        self.assertIs(srec.bytesperline, None)
+        self.assertIs(srec.bytesperline, srec._bytesperline)
+
+    def test_bytesperline_setter_invalid(self):
+        srec = SRecord()
+        with self.assertRaises(ValueError):
+            srec.bytesperline = 0
+
+    def test_bytesperline_setter_invalid_2(self):
+        srec = SRecord()
+        with self.assertRaises(ValueError):
+            srec.bytesperline = 254
+
+    def test_bytesperline_setter_invalid_3(self):
+        srec = SRecord()
+        with self.assertRaises((ValueError, TypeError)):
+            srec.bytesperline = "invalid"
+
+    def test_bytesperline_setter_invalid_4(self):
+        srec = SRecord()
+        with self.assertRaises(TypeError):
+            srec.bytesperline = dict()
+
+    # noinspection PyProtectedMember
+    def test_header_getter(self):
+        srec = SRecord()
+        # noinspection PyUnusedLocal
+        for n in (b"", b"Test", b"Long string " * 10, randomdata(253),
+                  "Some string which will be encoded".encode(),
+                  bytearray((random.randint(0, 255) for r in range(0, random.randint(0, 253))))):
+            with self.subTest(n):
+                srec._header = n
+                self.assertEqual(n, srec.header)
+                self.assertEqual(srec._header, srec.header)
+
+    # noinspection PyProtectedMember
+    def test_header_setter(self):
+        srec = SRecord()
+        # noinspection PyUnusedLocal
+        for n in (b"", b"Test", b"Long string " * 10, randomdata(253),
+                  "Some string which will be encoded".encode(),
+                  bytearray((random.randint(0, 255) for r in range(0, random.randint(0, 253))))):
+            srec.header = n
+            self.assertEqual(n, srec.header)
+            self.assertEqual(srec._header, srec.header)
+
+    # noinspection PyProtectedMember
+    def test_header_setter_none(self):
+        srec = SRecord()
+        srec.header = None
+        self.assertIs(srec.header, None)
+        self.assertIs(srec.header, srec._header)
+
+    # noinspection PyProtectedMember
+    def test_header_setter_large(self):
+        testdata = randomdata(254)
+        srec = SRecord()
+        srec.header = testdata
+        self.assertEqual(srec.header, testdata[0:253])
+        self.assertEqual(srec.header, srec._header)
+
+    def test_header_setter_invalid(self):
+        srec = SRecord()
+        with self.assertRaises(TypeError):
+            srec.header = 0
+
+    def test_header_setter_invalid_4(self):
+        srec = SRecord()
+        with self.assertRaises(TypeError):
+            srec.header = object()
+
+    # noinspection PyProtectedMember
+    def test_write_number_of_records_getter(self):
+        srec = SRecord()
+        for n in (True, False, 0, 1, 2, -1, 2 ** 32, -2 ** 32):
+            with self.subTest(n):
+                srec._write_number_of_records = bool(n)
+                self.assertEqual(bool(n), srec.write_number_of_records)
+                self.assertEqual(srec._write_number_of_records, srec.write_number_of_records)
+
+    # noinspection PyProtectedMember
+    def test_write_number_of_records_setter(self):
+        srec = SRecord()
+        for n in (True, False, 0, 1, 2, -1, 2 ** 32, -2 ** 32):
+            with self.subTest(n):
+                srec.write_number_of_records = n
+                self.assertEqual(bool(n), srec.write_number_of_records)
+                self.assertEqual(srec._write_number_of_records, srec.write_number_of_records)
+
+    # noinspection PyProtectedMember
+    def test_write_number_of_records_setter_none(self):
+        srec = SRecord()
+        srec.write_number_of_records = None
+        self.assertIs(srec.write_number_of_records, None)
+        self.assertIs(srec.write_number_of_records, srec._write_number_of_records)
+
+    # noinspection PyProtectedMember
+    def test__minaddresslength(self):
+        self.assertEqual(SRecord._minaddresslength(0), 2)
+
+        # noinspection PyProtectedMember
+        def compare(num):
+            minlen = SRecord._minaddresslength(num)
+            m = int(("0000" + hex(num)[2:].replace('L', ''))[-2 * minlen:], 16)
+            self.assertEqual(num, m)
+
+        for s in range(1, 32):
             n = 1 << s
-            compare(adrlen, n)
-            compare(adrlen, n - 1)
-            compare(adrlen, n + 1)
+            compare(n)
+            compare(n - 1)
+            compare(n + 1)
 
-    assert_raises(ValueError, SRecord._s123addr, 0, 0)
-    assert_raises(ValueError, SRecord._s123addr, 1, 0)
-    assert_raises(ValueError, SRecord._s123addr, 5, 0)
+        with self.assertRaises(ValueError):
+            SRecord._minaddresslength(2 ** 32)
 
-
-def test_tosrecfile_interface():
-    testdict = randomdict()
-
-    def tosrecfh_replacement(self, fh, **settings):
-        assert_dict_equal(settings, testdict)
-        assert_equal(fh.name, testfilename)
-        if sys.version_info >= (3,):
-            assert_true(fh.writable())
-        assert_true(hasattr(fh, "write"))
-        assert_true(hasattr(fh, "encoding"))  # is text file
-        assert_equal(fh.tell(), 0)
-        return self
-
-    @patch('hexformat.srecord.SRecord.tosrecfh', tosrecfh_replacement)
-    def do():
-        srec = SRecord()
-        ret = srec.tosrecfile(testfilename, **testdict)
-        assert_is(ret, srec)
-
-    do()
-
-
-def test_fromsrecfile_interface():
-    test_raise_error_on_miscount = random.randint(0, 1024)
-
-    # noinspection PyDecorator
-    @classmethod
-    def fromsrecfh_replacement(cls, fh, raise_error_on_miscount=True):
-        assert_equal(raise_error_on_miscount, test_raise_error_on_miscount)
-        assert_equal(fh.name, testfilename)
-        if sys.version_info >= (3,):
-            assert_true(fh.readable())
-        assert_true(hasattr(fh, "read"))
-        assert_true(hasattr(fh, "encoding"))  # is text file
-        assert_equal(fh.tell(), 0)
-        return cls()
-
-    @patch('hexformat.srecord.SRecord.fromsrecfh', fromsrecfh_replacement)
-    def do():
-        srec = SRecord.fromsrecfile(testfilename, test_raise_error_on_miscount)
-        assert_is_instance(srec, SRecord)
-
-    do()
-
-
-def test_fromsrecfh_interface():
-    testfh = object()
-    test_raise_error_on_miscount = random.randint(0, 1024)
-
-    def loadsrecfh_replacement(self, fh, raise_error_on_miscount=True):
-        assert_equal(raise_error_on_miscount, test_raise_error_on_miscount)
-        assert_is(fh, testfh)
-        return self
-
-    @patch('hexformat.srecord.SRecord.loadsrecfh', loadsrecfh_replacement)
-    def do():
-        srec = SRecord.fromsrecfh(testfh, test_raise_error_on_miscount)
-        assert_is_instance(srec, SRecord)
-
-    do()
-
-
-def test_loadsrecfile_interface():
-    test_overwrite_metadata = random.randint(0, 1024)
-    test_overwrite_data = random.randint(0, 1024)
-    test_raise_error_on_miscount = random.randint(0, 1024)
-
-    def loadsrecfile_replacement(self, fh, overwrite_metadata=False, overwrite_data=True, raise_error_on_miscount=True):
-        assert_equal(overwrite_metadata, test_overwrite_metadata)
-        assert_equal(overwrite_data, test_overwrite_data)
-        assert_equal(raise_error_on_miscount, test_raise_error_on_miscount)
-        assert_equal(fh.name, testfilename)
-        if sys.version_info >= (3,):
-            assert_true(fh.readable())
-        assert_true(hasattr(fh, "read"))
-        assert_true(hasattr(fh, "encoding"))  # is text file
-        assert_equal(fh.tell(), 0)
-        return self
-
-    @patch('hexformat.srecord.SRecord.loadsrecfh', loadsrecfile_replacement)
-    def do():
-        srec = SRecord()
-        ret = srec.loadsrecfile(testfilename, test_overwrite_metadata,
-                                test_overwrite_data, test_raise_error_on_miscount)
-        assert_is(ret, srec)
-
-    do()
-
-
-def test_encodesrecline_failure():
     # noinspection PyProtectedMember
-    @raises(EncodeError)
-    def do(recordtype):
-        SRecord._encodesrecline(None, recordtype, 0, bytearray())
+    def test__s123addr(self):
+        # noinspection PyProtectedMember
+        def compare(al, val):
+            retdata = bytearray(iter(SRecord._s123addr(al, val)))
+            compdata = bytearray.fromhex((("00" * al) + hex(val)[2:].replace('L', ''))[-2 * al:])
+            self.assertSequenceEqual(retdata, compdata)
 
-    yield do, 10
-    yield do, 11
-    yield do, "invalid"
+        for adrlen in (2, 3, 4):
+            for s in range(1, 8 * adrlen):
+                n = 1 << s
+                compare(adrlen, n)
+                compare(adrlen, n - 1)
+                compare(adrlen, n + 1)
 
+        with self.assertRaises(ValueError):
+            SRecord._s123addr(0, 0)
+        with self.assertRaises(ValueError):
+            SRecord._s123addr(1, 0)
+        with self.assertRaises(ValueError):
+            SRecord._s123addr(5, 0)
 
-def test_tosrecfh_addresslength2():
-    srec = SRecord().set(0x8CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
-    expected = [
-        "S00700005465737458\n",
-        "S1138CE0FACEDEEDCAFEBEEF1234567890ABCDEF6D\n",
-        "S903FFFFFE\n",
-    ]
-    fh = FakeFileHandle()
-    srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFF, addresslength=2, write_number_of_records=False)
-    assert_list_equal(fh, expected)
-    fh = FakeFileHandle()
-    srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFF, write_number_of_records=False)
-    assert_list_equal(fh, expected)
+    def test_tosrecfile_interface(self):
+        testdict = randomdict()
 
+        def tosrecfh_replacement(instance, fh, **settings):
+            self.assertDictEqual(settings, testdict)
+            self.assertEqual(fh.name, self.testfilename)
+            if sys.version_info >= (3,):
+                self.assertTrue(fh.writable())
+            self.assertTrue(hasattr(fh, "write"))
+            self.assertTrue(hasattr(fh, "encoding"))  # is text file
+            self.assertEqual(fh.tell(), 0)
+            return instance
 
-def test_tosrecfh_addresslength3():
-    srec = SRecord().set(0xFF8CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
-    expected = [
-        "S00700005465737458\n",
-        "S214FF8CE0FACEDEEDCAFEBEEF1234567890ABCDEF6D\n",
-        "S804FFFFFFFE\n",
-    ]
-    fh = FakeFileHandle()
-    srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFFFF, addresslength=3, write_number_of_records=False)
-    yield assert_list_equal, fh, expected
-    fh = FakeFileHandle()
-    srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFFFF, write_number_of_records=False)
-    yield assert_list_equal, fh, expected
+        @patch('hexformat.srecord.SRecord.tosrecfh', tosrecfh_replacement)
+        def do():
+            srec = SRecord()
+            ret = srec.tosrecfile(self.testfilename, **testdict)
+            self.assertIs(ret, srec)
 
+        do()
 
-def test_tosrecfh_addresslength4():
-    srec = SRecord().set(0xFF008CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
-    expected = [
-        "S00700005465737458\n",
-        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
-        "S705FFFFFFFFFE\n",
-    ]
-    fh = FakeFileHandle()
-    srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFFFFFF, addresslength=4, write_number_of_records=False)
-    yield assert_list_equal, fh, expected
-    fh = FakeFileHandle()
-    srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFFFFFF, write_number_of_records=False)
-    yield assert_list_equal, fh, expected
+    def test_fromsrecfile_interface(self):
+        test_raise_error_on_miscount = random.randint(0, 1024)
 
+        # noinspection PyDecorator
+        @classmethod
+        def fromsrecfh_replacement(cls, fh, raise_error_on_miscount=True):
+            self.assertEqual(raise_error_on_miscount, test_raise_error_on_miscount)
+            self.assertEqual(fh.name, self.testfilename)
+            if sys.version_info >= (3,):
+                self.assertTrue(fh.readable())
+            self.assertTrue(hasattr(fh, "read"))
+            self.assertTrue(hasattr(fh, "encoding"))  # is text file
+            self.assertEqual(fh.tell(), 0)
+            return cls()
 
-def test_tosrecfh_write_number_of_records():
-    srec = SRecord().set(0xFF008CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
-    expected = [
-        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
-        "S5030001FB\n",
-        "S70500000000FA\n",
-    ]
-    fh = FakeFileHandle()
-    srec.tosrecfh(fh, write_number_of_records=True)
-    yield assert_list_equal, fh, expected
+        @patch('hexformat.srecord.SRecord.fromsrecfh', fromsrecfh_replacement)
+        def do():
+            srec = SRecord.fromsrecfile(self.testfilename, test_raise_error_on_miscount)
+            self.assertIsInstance(srec, SRecord)
+            
+        with open(self.testfilename, "w") as fh:
+            fh.write("")
 
+        do()
 
-def test_tosrecfh_write_number_of_records_s5():
-    srec = SRecord().fill(0x0, 0xFFFF)
-    fh = FakeFileHandle()
-    expected = "S503FFFFFE\n"
-    srec.tosrecfh(fh, bytesperline=1, write_number_of_records=True)
-    assert_equal(fh[-2], expected)
+    def test_fromsrecfh_interface(self):
+        testfh = object()
+        test_raise_error_on_miscount = random.randint(0, 1024)
 
+        def loadsrecfh_replacement(instance, fh, raise_error_on_miscount=True):
+            self.assertEqual(raise_error_on_miscount, test_raise_error_on_miscount)
+            self.assertIs(fh, testfh)
+            return instance
 
-def test_tosrecfh_write_number_of_records_s6():
-    srec = SRecord().fill(0x0, 0x10000)
-    fh = FakeFileHandle()
-    expected = "S604010000FA\n"
-    srec.tosrecfh(fh, bytesperline=1, write_number_of_records=True)
-    assert_equal(fh[-2], expected)
+        @patch('hexformat.srecord.SRecord.loadsrecfh', loadsrecfh_replacement)
+        def do():
+            srec = SRecord.fromsrecfh(testfh, test_raise_error_on_miscount)
+            self.assertIsInstance(srec, SRecord)
 
+        do()
 
-def test_tosrecfh_write_number_of_records_too_large():
-    srec = SRecord().fill(0x0, 0x1000000)
-    fh = FakeFileHandle()
-    srec.tosrecfh(fh, bytesperline=1, addresslength=3, write_number_of_records=True, header=b'Test')
-    assert_false(fh[-2].startswith('S3'))
-    assert_equal(len(fh), 0x1000002)
+    def test_loadsrecfile_interface(self):
+        test_overwrite_metadata = random.randint(0, 1024)
+        test_overwrite_data = random.randint(0, 1024)
+        test_raise_error_on_miscount = random.randint(0, 1024)
 
+        def loadsrecfile_replacement(instance, fh, overwrite_metadata=False, overwrite_data=True,
+                                     raise_error_on_miscount=True):
+            self.assertEqual(overwrite_metadata, test_overwrite_metadata)
+            self.assertEqual(overwrite_data, test_overwrite_data)
+            self.assertEqual(raise_error_on_miscount, test_raise_error_on_miscount)
+            self.assertEqual(fh.name, self.testfilename)
+            if sys.version_info >= (3,):
+                self.assertTrue(fh.readable())
+            self.assertTrue(hasattr(fh, "read"))
+            self.assertTrue(hasattr(fh, "encoding"))  # is text file
+            self.assertEqual(fh.tell(), 0)
+            return instance
 
-test_tosrecfh_write_number_of_records_too_large.slow = 1
+        @patch('hexformat.srecord.SRecord.loadsrecfh', loadsrecfile_replacement)
+        def do():
+            srec = SRecord()
+            ret = srec.loadsrecfile(self.testfilename, test_overwrite_metadata,
+                                    test_overwrite_data, test_raise_error_on_miscount)
+            self.assertIs(ret, srec)
 
+        with open(self.testfilename, "w") as fh:
+            fh.write("")
 
-# noinspection PyProtectedMember
-@raises(DecodeError)
-def test_parsesrecline_failure1():
-    return SRecord._parsesrecline(":0000000000000")
+        do()
 
+    def test_encodesrecline_failure(self):
+        # noinspection PyProtectedMember
+        for recordtype in (10, 11, "invalid"):
+            with self.subTest(recordtype):
+                with self.assertRaises(EncodeError):
+                    SRecord._encodesrecline(None, recordtype, 0, bytearray())
 
-# noinspection PyProtectedMember
-@raises(DecodeError)
-def test_parsesrecline_failure2():
-    return SRecord._parsesrecline("s000000000000")
+    def test_tosrecfh_addresslength2(self):
+        srec = SRecord().set(0x8CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
+        expected = [
+            "S00700005465737458\n",
+            "S1138CE0FACEDEEDCAFEBEEF1234567890ABCDEF6D\n",
+            "S903FFFFFE\n",
+        ]
+        fh = FakeFileHandle()
+        srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFF, addresslength=2, write_number_of_records=False)
+        self.assertListEqual(fh, expected)
+        fh = FakeFileHandle()
+        srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFF, write_number_of_records=False)
+        self.assertListEqual(fh, expected)
 
+    def test_tosrecfh_addresslength3(self):
+        srec = SRecord().set(0xFF8CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
+        expected = [
+            "S00700005465737458\n",
+            "S214FF8CE0FACEDEEDCAFEBEEF1234567890ABCDEF6D\n",
+            "S804FFFFFFFE\n",
+        ]
+        fh = FakeFileHandle()
+        srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFFFF, addresslength=3, write_number_of_records=False)
+        yield self.assertListEqual, fh, expected
+        fh = FakeFileHandle()
+        srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFFFF, write_number_of_records=False)
+        yield self.assertListEqual, fh, expected
 
-# noinspection PyProtectedMember
-@raises(DecodeError)
-def test_parsesrecline_failure4():
-    """ Missing hexdigit """
-    return SRecord._parsesrecline("S101000")
+    def test_tosrecfh_addresslength4(self):
+        srec = SRecord().set(0xFF008CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
+        expected = [
+            "S00700005465737458\n",
+            "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+            "S705FFFFFFFFFE\n",
+        ]
+        fh = FakeFileHandle()
+        srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFFFFFF, addresslength=4, write_number_of_records=False)
+        yield self.assertListEqual, fh, expected
+        fh = FakeFileHandle()
+        srec.tosrecfh(fh, header=b"Test", startaddress=0xFFFFFFFF, write_number_of_records=False)
+        yield self.assertListEqual, fh, expected
 
+    def test_tosrecfh_write_number_of_records(self):
+        srec = SRecord().set(0xFF008CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
+        expected = [
+            "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+            "S5030001FB\n",
+            "S70500000000FA\n",
+        ]
+        fh = FakeFileHandle()
+        srec.tosrecfh(fh, write_number_of_records=True)
+        yield self.assertListEqual, fh, expected
 
-# noinspection PyProtectedMember
-@raises(DecodeError)
-def test_parsesrecline_failure5():
-    return SRecord._parsesrecline("S10800")
+    def test_tosrecfh_write_number_of_records_s5(self):
+        srec = SRecord().fill(0x0, 0xFFFF)
+        fh = FakeFileHandle()
+        expected = "S503FFFFFE\n"
+        srec.tosrecfh(fh, bytesperline=1, write_number_of_records=True)
+        self.assertEqual(fh[-2], expected)
 
+    def test_tosrecfh_write_number_of_records_s6(self):
+        srec = SRecord().fill(0x0, 0x10000)
+        fh = FakeFileHandle()
+        expected = "S604010000FA\n"
+        srec.tosrecfh(fh, bytesperline=1, write_number_of_records=True)
+        self.assertEqual(fh[-2], expected)
 
-# noinspection PyProtectedMember
-@raises(DecodeError)
-def test_parsesrecline_failure6():
-    return SRecord._parsesrecline("SX0800")
+    def test_tosrecfh_write_number_of_records_too_large(self):
+        srec = SRecord().fill(0x0, 0x1000000)
+        fh = FakeFileHandle()
+        srec.tosrecfh(fh, bytesperline=1, addresslength=3, write_number_of_records=True, header=b'Test')
+        self.assertFalse(fh[-2].startswith('S3'))
+        self.assertEqual(len(fh), 0x1000002)
 
+    test_tosrecfh_write_number_of_records_too_large.slow = 1
 
-# noinspection PyProtectedMember
-def test_parsesrecline_ok():
-    testaddress = 0xFF008CE0
-    testdata = bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF")
-    yield (assert_tuple_equal, SRecord._parsesrecline("S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C"),
-           (3, testaddress, testdata, len(testdata), True))
+    # noinspection PyProtectedMember
+    def test_parsesrecline_failure1(self):
+        with self.assertRaises(DecodeError):
+            return SRecord._parsesrecline(":0000000000000")
 
+    # noinspection PyProtectedMember
+    def test_parsesrecline_failure2(self):
+        with self.assertRaises(DecodeError):
+            return SRecord._parsesrecline("s000000000000")
 
-def test_loadsrecfh_1():
-    expectedsrec = SRecord(bytesperline=32, addresslength=2, write_number_of_records=True, header=b"some").set(
-        0xFF008CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
-    fh = FakeFileHandle((
-        "S00700005465737458\n",
-        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
-        "S5030001FB\n",
-        "S70500000000FA\n",
-    ))
-    srec = SRecord(bytesperline=32, addresslength=2, write_number_of_records=True, header=b"some")
-    srec.loadsrecfh(fh, overwrite_metadata=False)
-    yield assert_equal, srec, expectedsrec
-    yield assert_equal, srec.bytesperline, expectedsrec.bytesperline
-    yield assert_equal, srec.write_number_of_records, expectedsrec.write_number_of_records
-    yield assert_equal, srec.header, expectedsrec.header
+    # noinspection PyProtectedMember
+    def test_parsesrecline_failure4(self):
+        """ Missing hexdigit """
+        with self.assertRaises(DecodeError):
+            return SRecord._parsesrecline("S101000")
 
+    # noinspection PyProtectedMember
+    def test_parsesrecline_failure5(self):
+        with self.assertRaises(DecodeError):
+            return SRecord._parsesrecline("S10800")
 
-def test_loadsrecfh_2():
-    expectedsrec = SRecord(bytesperline=32, addresslength=2, header=b"some").set(
-        0xFF008CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
-    fh = FakeFileHandle((
-        "S00700005465737458\n",
-        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
-        "S5030001FB\n",
-        "S70500000000FA\n",
-    ))
-    srec = SRecord(bytesperline=32, addresslength=2, header=b"some")
-    srec.loadsrecfh(fh, overwrite_metadata=False)
-    yield assert_equal, srec, expectedsrec
-    yield assert_equal, srec.bytesperline, expectedsrec.bytesperline
-    yield assert_true, srec.write_number_of_records
-    yield assert_equal, srec.header, expectedsrec.header
+    # noinspection PyProtectedMember
+    def test_parsesrecline_failure6(self):
+        with self.assertRaises(DecodeError):
+            return SRecord._parsesrecline("SX0800")
 
+    # noinspection PyProtectedMember
+    def test_parsesrecline_ok(self):
+        testaddress = 0xFF008CE0
+        testdata = bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF")
+        yield (self.assertTupleEqual, SRecord._parsesrecline("S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C"),
+               (3, testaddress, testdata, len(testdata), True))
 
-@raises(DecodeError)
-def test_loadsrecfh_countmissmatch_1():
-    fh = FakeFileHandle((
-        "S00700005465737458\n",
-        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
-        "S5030002FA\n",
-        "S70500000000FA\n",
-    ))
-    srec = SRecord()
-    srec.loadsrecfh(fh)
+    def test_loadsrecfh_1(self):
+        expectedsrec = SRecord(bytesperline=32, addresslength=2, write_number_of_records=True, header=b"some").set(
+            0xFF008CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
+        fh = FakeFileHandle((
+            "S00700005465737458\n",
+            "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+            "S5030001FB\n",
+            "S70500000000FA\n",
+        ))
+        srec = SRecord(bytesperline=32, addresslength=2, write_number_of_records=True, header=b"some")
+        srec.loadsrecfh(fh, overwrite_metadata=False)
+        yield self.assertEqual, srec, expectedsrec
+        yield self.assertEqual, srec.bytesperline, expectedsrec.bytesperline
+        yield self.assertEqual, srec.write_number_of_records, expectedsrec.write_number_of_records
+        yield self.assertEqual, srec.header, expectedsrec.header
 
+    def test_loadsrecfh_2(self):
+        expectedsrec = SRecord(bytesperline=32, addresslength=2, header=b"some").set(
+            0xFF008CE0, bytearray.fromhex("FACE DEED CAFE BEEF 1234 5678 90AB CDEF"))
+        fh = FakeFileHandle((
+            "S00700005465737458\n",
+            "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+            "S5030001FB\n",
+            "S70500000000FA\n",
+        ))
+        srec = SRecord(bytesperline=32, addresslength=2, header=b"some")
+        srec.loadsrecfh(fh, overwrite_metadata=False)
+        yield self.assertEqual, srec, expectedsrec
+        yield self.assertEqual, srec.bytesperline, expectedsrec.bytesperline
+        yield self.assertTrue, srec.write_number_of_records
+        yield self.assertEqual, srec.header, expectedsrec.header
 
-@raises(DecodeError)
-def test_loadsrecfh_countmissmatch_s5_true():
-    fh = FakeFileHandle((
-        "S00700005465737458\n",
-        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
-        "S5030002FA\n",
-        "S70500000000FA\n",
-    ))
-    srec = SRecord()
-    srec.loadsrecfh(fh, raise_error_on_miscount=True)
+    def test_loadsrecfh_countmissmatch_1(self):
+        fh = FakeFileHandle((
+            "S00700005465737458\n",
+            "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+            "S5030002FA\n",
+            "S70500000000FA\n",
+        ))
+        srec = SRecord()
+        with self.assertRaises(DecodeError):
+            srec.loadsrecfh(fh)
 
+    def test_loadsrecfh_countmissmatch_s5_true(self):
+        fh = FakeFileHandle((
+            "S00700005465737458\n",
+            "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+            "S5030002FA\n",
+            "S70500000000FA\n",
+        ))
+        srec = SRecord()
+        with self.assertRaises(DecodeError):
+            srec.loadsrecfh(fh, raise_error_on_miscount=True)
 
-def test_loadsrecfh_countmissmatch_s5_false():
-    fh = FakeFileHandle((
-        "S00700005465737458\n",
-        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
-        "S5030002FA\n",
-        "S70500000000FA\n",
-    ))
-    srec = SRecord()
-    srec.loadsrecfh(fh, raise_error_on_miscount=False)
+    def test_loadsrecfh_countmissmatch_s5_false(self):
+        fh = FakeFileHandle((
+            "S00700005465737458\n",
+            "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+            "S5030002FA\n",
+            "S70500000000FA\n",
+        ))
+        srec = SRecord()
+        srec.loadsrecfh(fh, raise_error_on_miscount=False)
 
+    def test_loadsrecfh_countmissmatch_s6_true(self):
+        fh = FakeFileHandle((
+            "S00700005465737458\n",
+            "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+            "S604000002F8\n",
+            "S70500000000FA\n",
+        ))
+        srec = SRecord()
+        with self.assertRaises(DecodeError):
+            srec.loadsrecfh(fh, raise_error_on_miscount=True)
 
-@raises(DecodeError)
-def test_loadsrecfh_countmissmatch_s6_true():
-    fh = FakeFileHandle((
-        "S00700005465737458\n",
-        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
-        "S604000002F8\n",
-        "S70500000000FA\n",
-    ))
-    srec = SRecord()
-    srec.loadsrecfh(fh, raise_error_on_miscount=True)
+    def test_loadsrecfh_countmissmatch_s6_false(self):
+        fh = FakeFileHandle((
+            "S00700005465737458\n",
+            "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
+            "S604000002F8\n",
+            "S70500000000FA\n",
+        ))
+        srec = SRecord()
+        srec.loadsrecfh(fh, raise_error_on_miscount=False)
 
+    def test_loadsrecfh_startaddress_1(self):
+        fh = FakeFileHandle((
+            "S705000001FFFA\n",
+        ))
+        srec = SRecord()
+        srec.loadsrecfh(fh)
+        yield self.assertEqual, srec.startaddress, 0x1FF
 
-def test_loadsrecfh_countmissmatch_s6_false():
-    fh = FakeFileHandle((
-        "S00700005465737458\n",
-        "S315FF008CE0FACEDEEDCAFEBEEF1234567890ABCDEF6C\n",
-        "S604000002F8\n",
-        "S70500000000FA\n",
-    ))
-    srec = SRecord()
-    srec.loadsrecfh(fh, raise_error_on_miscount=False)
+    def test_loadsrecfh_startaddress_2(self):
+        fh = FakeFileHandle((
+            "S705000001FFFA\n",
+        ))
+        srec = SRecord(startaddress=0xDEADBEEF)
+        srec.loadsrecfh(fh)
+        yield self.assertEqual, srec.startaddress, 0xDEADBEEF
 
-
-def test_loadsrecfh_startaddress_1():
-    fh = FakeFileHandle((
-        "S705000001FFFA\n",
-    ))
-    srec = SRecord()
-    srec.loadsrecfh(fh)
-    yield assert_equal, srec.startaddress, 0x1FF
-
-
-def test_loadsrecfh_startaddress_2():
-    fh = FakeFileHandle((
-        "S705000001FFFA\n",
-    ))
-    srec = SRecord(startaddress=0xDEADBEEF)
-    srec.loadsrecfh(fh)
-    yield assert_equal, srec.startaddress, 0xDEADBEEF
-
-
-@raises(DecodeError)
-def test_loadsrecfh_invalid_recordtype():
-    fh = FakeFileHandle((
-        "S405000301FFFA\n",
-    ))
-    srec = SRecord(startaddress=0xDEADBEEF)
-    srec.loadsrecfh(fh)
+    def test_loadsrecfh_invalid_recordtype(self):
+        fh = FakeFileHandle((
+            "S405000301FFFA\n",
+        ))
+        srec = SRecord(startaddress=0xDEADBEEF)
+        with self.assertRaises(DecodeError):
+            srec.loadsrecfh(fh)
