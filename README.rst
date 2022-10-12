@@ -1,7 +1,7 @@
 About
 *****
 The **hexformat** Python package allows the processing of several HEX data formats.
-Supported formats are the `Intel-Hex` format, the Motorola S-Record_ format as well as the `hex dump`_ and `Tektronix hex`_ format.
+Supported formats are the Intel-Hex_ format, the Motorola S-Record_ format as well as the `hex dump`_ and `Tektronix hex`_ format.
 The first two are often used for programming microcontrollers while the last is often used to display binary data in a user readable way.
 
 Files in the mentioned format can be created, modified (e.g. set, delete and fill data) and read from or written to files.
