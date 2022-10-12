@@ -27,7 +27,7 @@ License
 ~~~~~~~
 This work is free software under the GPL v3 or any later version:
 
-    Copyright (C) 2015-2016  Martin Scharrer <martin@scharrer-online.de>
+    Copyright (C) 2015-202  Martin Scharrer <martin.scharrer@web.de>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

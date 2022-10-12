@@ -2,7 +2,12 @@
 Changelog
 =========
 
-v0.2 - 02.04.2016
+v0.3.0 - 2022-10-11
+===================
+ * Changed unittests from nose to unittest.
+
+
+v0.2 - 2016-04-02
 =================
  * Ensured compatibility with Python 2.7 and Python 3 (tested with 3.3, 3.4 and 3.5).
  * SRecord encoding fixes: Last byte was dropped if it would be on a line on its own.
@@ -15,6 +20,6 @@ v0.2 - 02.04.2016
  * Added FillPattern support for negative indicies.
 
 
-v0.1 - 20.09.2015
+v0.1 - 2015-09-20
 =================
  * First version.

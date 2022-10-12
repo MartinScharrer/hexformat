@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0e94a52a-feb4-4c74-a539-6612c47a8392" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
-    </list>
+    <list default="true" id="0e94a52a-feb4-4c74-a539-6612c47a8392" name="Default Changelist" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -154,7 +152,7 @@
       <workItem from="1665480089703" duration="1787000" />
       <workItem from="1665481906675" duration="1787000" />
       <workItem from="1665483717284" duration="1791000" />
-      <workItem from="1665485529130" duration="1006000" />
+      <workItem from="1665485529130" duration="1310000" />
     </task>
     <task id="LOCAL-00001" summary="Changed unittest from nose to unittest module.&#10;Updated README and copyright statements.">
       <created>1665486283047</created>
