@@ -1,17 +1,15 @@
 import os
-import random
 import shutil
 import tempfile
 from time import time
-import unittest
+from tests import TestCase, randbytes, randint
 
 from hexformat.intelhex import IntelHex
 from hexformat.multipartbuffer import MultiPartBuffer
 from hexformat.srecord import SRecord
 
 
-
-class TestTemp(unittest.TestCase):
+class TestTemp(TestCase):
 
     def createrandom(self, randomsize, randomaddr, filebase):
         binfilename = filebase + '.bin'
@@ -20,7 +18,7 @@ class TestTemp(unittest.TestCase):
 
         # create random bin file
         # noinspection PyUnusedLocal
-        randomdata = bytearray((random.randint(0, 255) for n in range(0, randomsize)))
+        randomdata = randbytes(randomsize)
         self.assertEqual(len(randomdata), randomsize)
         with open(binfilename, "wb") as fh:
             fh.write(randomdata)
@@ -43,21 +41,20 @@ class TestTemp(unittest.TestCase):
         self.assertEqual(ihex[:], ihex2[:])
         self.assertEqual(ihex, ihex2)
         self.assertEqual(ihex2[:], srec2[:])
-        
+
     def test_createrandom(self):
         dirname = tempfile.mkdtemp(prefix="test_createrandom_")
         timelimit = time() + 20
         try:
             for n in range(0, 10):
-                randomsize = random.randint(0, (1 << 16) - 1)
-                randomaddr = random.randint(0, (1 << 21) - 1)
+                randomsize = randint(0, (1 << 16) - 1)
+                randomaddr = randint(0, (1 << 21) - 1)
                 filebase = os.path.join(dirname, "testrun" + str(n))
                 with self.subTest(n):
                     self.createrandom(randomsize, randomaddr, filebase)
                 if time() >= timelimit:
                     break
         finally:
-            # noinspection PyBroadException
             try:
                 shutil.rmtree(dirname)
             except OSError:

@@ -1,7 +1,7 @@
 from hexformat.tektronix import TektronixExtHex
-import unittest
+from tests import TestCase
 
 
-class TektronixExtHex(unittest.TestCase):
+class TektronixExtHex(TestCase):
     def test(self):
         return TektronixExtHex()

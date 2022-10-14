@@ -365,7 +365,7 @@ class MultiPartBuffer(object):
         """Generate buffer with given fillpattern and size."""
         size = int(size)
         if isinstance(fillpattern, BaseException) or (
-                type(fillpattern) == type and issubclass(fillpattern, BaseException)):
+            type(fillpattern) == type and issubclass(fillpattern, BaseException)):
             raise fillpattern
         if fillpattern is None:
             fillpattern = self._padding

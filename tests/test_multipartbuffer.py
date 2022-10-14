@@ -22,22 +22,11 @@ import sys
 from hexformat.fillpattern import RandomContent
 from hexformat.intelhex import IntelHex
 from hexformat.multipartbuffer import MultiPartBuffer
-import unittest
-import tempfile
-import os
-import random
-import shutil
+from tests import TestCaseWithTempfile, randbytes
 
 sys.path.append('..')
 
 callcount = 0
-dirname = ""
-filename = ""
-
-
-def randomdata(length):
-    # noinspection PyUnusedLocal
-    return bytearray((random.randint(0, 255) for n in range(0, length)))
 
 
 def filldata(length, data=0xFF):
@@ -48,21 +37,7 @@ class MyExept(ValueError):
     pass
 
 
-class TestMultiPartBuffer(unittest.TestCase):
-
-    def setUp(self):
-        global dirname
-        global filename
-        dirname = tempfile.mkdtemp(prefix="test_multipartbuffer_")
-        # sys.stderr.write("Tempdir: {:s}\n".format(dirname))
-        filename = os.path.join(dirname, "testdata.bin")
-
-    def tearDown(self):
-        # noinspection PyBroadException
-        try:
-            shutil.rmtree(dirname)
-        except OSError:
-            pass
+class TestMultiPartBuffer(TestCaseWithTempfile):
 
     # noinspection PyProtectedMember
     def test1(self):
@@ -136,9 +111,9 @@ class TestMultiPartBuffer(unittest.TestCase):
     # noinspection PyProtectedMember
     def test_insert_borders(self):
         data = [
-            randomdata(100),
-            randomdata(100),
-            randomdata(100),
+            randbytes(100),
+            randbytes(100),
+            randbytes(100),
         ]
         mp = MultiPartBuffer()
         mp.set(1000, data[0])
@@ -151,9 +126,9 @@ class TestMultiPartBuffer(unittest.TestCase):
     # noinspection PyProtectedMember
     def test_insert_overlap(self):
         data = [
-            randomdata(100),
-            randomdata(100),
-            randomdata(100),
+            randbytes(100),
+            randbytes(100),
+            randbytes(100),
         ]
         mp = MultiPartBuffer()
         mp.set(1000, data[0])
@@ -176,24 +151,24 @@ class TestMultiPartBuffer(unittest.TestCase):
 
     def test_get_overlapstart(self):
         mp = MultiPartBuffer()
-        testdata = randomdata(10)
+        testdata = randbytes(10)
         mp.set(1000, testdata)
         self.assertSequenceEqual(mp.get(990, 15, 0xFF), bytearray(b"\xFF" * 10) + testdata[0:5])
 
     def test_get_overlapend(self):
         mp = MultiPartBuffer()
-        testdata = randomdata(10)
+        testdata = randbytes(10)
         mp.set(1000, testdata)
         self.assertSequenceEqual(mp.get(1005, 15, 0xFF), testdata[5:] + bytearray(b"\xFF" * 10))
 
     def test_get_overlapboth(self):
         mp = MultiPartBuffer()
-        testdata = randomdata(10)
+        testdata = randbytes(10)
         mp.set(1000, testdata)
         self.assertSequenceEqual(mp.get(990, 30, 0xFF), bytearray(b"\xFF" * 10) + testdata + bytearray(b"\xFF" * 10))
 
     def test_get_3(self):
-        testdata = randomdata(100)
+        testdata = randbytes(100)
         mp = MultiPartBuffer()
         mp.set(1000, testdata)
         self.assertSequenceEqual(mp.get(None, 80), testdata[0:80])
@@ -202,7 +177,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         adr = 1000
         length = 100
         end = adr + length
-        testdata = randomdata(length)
+        testdata = randbytes(length)
         mp = MultiPartBuffer()
         mp.set(adr, testdata)
         self.assertSequenceEqual(mp.get(None, 0), bytearray())
@@ -223,7 +198,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertSequenceEqual(mp.get(None, None), bytearray.fromhex("DEADBEEF"))
 
     def test_crop(self):
-        testdata = randomdata(100)
+        testdata = randbytes(100)
         mp = MultiPartBuffer()
         mp.set(1000, testdata)
         mp.crop(1010, 80)
@@ -234,7 +209,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertSequenceEqual(mp.get(None, None), testdata[20:-10])
 
     def test_extract(self):
-        testdata = randomdata(100)
+        testdata = randbytes(100)
         mp = MultiPartBuffer()
         mp.set(1000, testdata)
         mp2 = mp.extract(1010, 80)
@@ -264,7 +239,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(True, mp.includesgaps(0, 1))
 
     def test_offset(self):
-        testdata = randomdata(100)
+        testdata = randbytes(100)
         mp = MultiPartBuffer()
         mp.set(1000, testdata)
         mp.offset(10)
@@ -278,14 +253,14 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertListEqual(mp.parts(), [(0, 100), ])
 
     def test_offset_error(self):
-        testdata = randomdata(100)
+        testdata = randbytes(100)
         mp = MultiPartBuffer()
         mp.set(100, testdata)
         with self.assertRaises(ValueError):
             mp.offset(-200)
 
     def test_getitem(self):
-        testdata = randomdata(0x100)
+        testdata = randbytes(0x100)
         mp = MultiPartBuffer()
         mp.set(0x1000, testdata)
         yield self.assertEqual, mp[0x1000], testdata[0]
@@ -295,7 +270,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         yield self.assertSequenceEqual, mp[0x1000:0x1100], testdata
 
     def test_getitem_step(self):
-        testdata = randomdata(0x100)
+        testdata = randbytes(0x100)
         mp = MultiPartBuffer()
         mp.set(0x1000, testdata)
         with self.assertRaises(IndexError):
@@ -320,7 +295,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         yield self.assertEqual, adr + size, mp.end()
 
     def test_relocate_1(self):
-        testdata = randomdata(0x100)
+        testdata = randbytes(0x100)
         mp = MultiPartBuffer()
         mp.set(0x200, testdata)
         mp.relocate(0x100)
@@ -329,7 +304,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         yield self.assertSequenceEqual, mp.get(0x100, 0x100), testdata
 
     def test_relocate_2(self):
-        testdata = randomdata(0x100)
+        testdata = randbytes(0x100)
         mp = MultiPartBuffer()
         mp.set(0x200, testdata)
         mp.relocate(0x100, 0x200, 0x100)
@@ -338,7 +313,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         yield self.assertSequenceEqual, mp.get(0x100, 0x100), testdata
 
     def test_relocate_3(self):
-        testdata = randomdata(0x100)
+        testdata = randbytes(0x100)
         mp = MultiPartBuffer()
         mp.set(0x200, testdata)
         mp.relocate(0x100, 0x220, 0x10)
@@ -350,7 +325,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         yield self.assertSequenceEqual, mp.get(0x230, None), testdata[0x30:]
 
     def test_relocate_4(self):
-        testdata = randomdata(0x100)
+        testdata = randbytes(0x100)
         mp = MultiPartBuffer()
         mp.set(0x100, testdata)
         mp.relocate(0x100, 0x1F0, 0x10, False)
@@ -361,7 +336,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         yield self.assertSequenceEqual, mp.get(None, None), testdata[:0xF0]
 
     def test_delete(self):
-        testdata = randomdata(0x100)
+        testdata = randbytes(0x100)
         mp = MultiPartBuffer()
         mp.set(0x100, testdata)
         mp.delete(0xF0, 0x20)
@@ -380,8 +355,8 @@ class TestMultiPartBuffer(unittest.TestCase):
 
     # noinspection PyProtectedMember
     def test_delete_2(self):
-        testdata1 = randomdata(100)
-        testdata2 = randomdata(100)
+        testdata1 = randbytes(100)
+        testdata2 = randbytes(100)
         mp = MultiPartBuffer()
         mp.set(200, testdata1)
         mp.set(400, testdata2)
@@ -389,7 +364,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         yield self.assertListEqual, mp._parts, [[450, testdata2[50:]], ]
 
     def test_delete_overlap(self):
-        testdata = randomdata(0x100)
+        testdata = randbytes(0x100)
         mp = MultiPartBuffer()
         mp.set(0x100, testdata)
         mp.delete(0xF0, 0x20)
@@ -418,7 +393,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         for n in range(0, random.randint(1, 10)):
             adr = random.randint(0, 2 ** 16 - 1)
             size = random.randint(0, 2 ** 16 - 1)
-            mp.set(adr, randomdata(size))
+            mp.set(adr, randbytes(size))
         mp2 = mp.copy()
         yield self.assertEqual, mp._parts, mp2._parts
         yield self.assertEqual, mp.__dict__, mp2.__dict__
@@ -434,37 +409,37 @@ class TestMultiPartBuffer(unittest.TestCase):
         yield self.assertSequenceEqual, mp._parts, [[0, bytearray((0x11, 0x22))],
                                                     [100, bytearray.fromhex('DEADBEEF')],
                                                     [200, bytearray((0x00,))]]
-        testdata = randomdata(210)
+        testdata = randbytes(210)
         mp.loaddict({n: b for n, b in enumerate(testdata)})
         yield self.assertListEqual, mp._parts, [[0, testdata], ]
 
     def test_ior(self):
-        testdata1 = randomdata(100)
-        testdata2 = randomdata(100)
+        testdata1 = randbytes(100)
+        testdata2 = randbytes(100)
         mp1 = MultiPartBuffer().set(100, testdata1)
         mp2 = MultiPartBuffer().set(180, testdata2)
         mp1 |= mp2
         self.assertSequenceEqual(mp1[:], testdata1 + testdata2[20:])
 
     def test_or(self):
-        testdata1 = randomdata(100)
-        testdata2 = randomdata(100)
+        testdata1 = randbytes(100)
+        testdata2 = randbytes(100)
         mp1 = MultiPartBuffer().set(100, testdata1)
         mp2 = MultiPartBuffer().set(150, testdata2)
         mp = mp1 | mp2
         self.assertSequenceEqual(mp[:], testdata1 + testdata2[50:])
 
     def test_iand(self):
-        testdata1 = randomdata(100)
-        testdata2 = randomdata(100)
+        testdata1 = randbytes(100)
+        testdata2 = randbytes(100)
         mp1 = MultiPartBuffer().set(100, testdata1)
         mp2 = MultiPartBuffer().set(180, testdata2)
         mp1 += mp2
         self.assertSequenceEqual(mp1[:], testdata1[:-20] + testdata2)
 
     def test_and(self):
-        testdata1 = randomdata(100)
-        testdata2 = randomdata(100)
+        testdata1 = randbytes(100)
+        testdata2 = randbytes(100)
         mp1 = MultiPartBuffer().set(100, testdata1)
         mp2 = MultiPartBuffer().set(150, testdata2)
         mp = mp1 + mp2
@@ -480,7 +455,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         mp = MultiPartBuffer()
         mp.set(100, bytearray(100))
         mp.set(210, bytearray(100))
-        fillpattern = randomdata(1)
+        fillpattern = randbytes(1)
         mp.fill(fillpattern=fillpattern)
         mp2 = mp.copy()
         mp.unfill(unfillpattern=fillpattern, mingapsize=16)
@@ -488,7 +463,7 @@ class TestMultiPartBuffer(unittest.TestCase):
 
     def test_unfill_multiple(self):
         mp = MultiPartBuffer()
-        fillbyte = randomdata(1)[0]
+        fillbyte = randbytes(1)[0]
         mp.set(1000, bytearray(1000))
         mp.set(1100, filldata(100, fillbyte))
         mp.set(1500, filldata(100, fillbyte))
@@ -498,7 +473,7 @@ class TestMultiPartBuffer(unittest.TestCase):
 
     def test_unfill_end(self):
         mp = MultiPartBuffer()
-        fillpattern = randomdata(1)
+        fillpattern = randbytes(1)
         mp.set(100, bytearray(100))
         mp2 = mp.copy()
         mp.set(200, fillpattern * 100)
@@ -507,7 +482,7 @@ class TestMultiPartBuffer(unittest.TestCase):
 
     def test_unfill_start(self):
         mp = MultiPartBuffer()
-        fillpattern = randomdata(1)
+        fillpattern = randbytes(1)
         mp.set(200, bytearray(100))
         mp2 = mp.copy()
         mp.set(100, fillpattern * 100)
@@ -519,7 +494,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         mp.set(100, bytearray(100))
         mp.set(300, bytearray(100))
         mp2 = mp.copy()
-        fillpattern = randomdata(10)
+        fillpattern = randbytes(10)
         mp.fill(fillpattern=fillpattern)
         mp.unfill(unfillpattern=fillpattern)
         self.assertEqual(mp, mp2)
@@ -554,8 +529,8 @@ class TestMultiPartBuffer(unittest.TestCase):
     def test_unfill_3(self):
         mp = MultiPartBuffer()
         fillpattern = bytearray.fromhex("A1") * 10
-        testdata1 = randomdata(50)
-        testdata2 = randomdata(50)
+        testdata1 = randbytes(50)
+        testdata2 = randbytes(50)
         mp.set(100, testdata1)
         mp.set(550, testdata2)
         mp2 = mp.copy()
@@ -566,324 +541,324 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp, mp2)
 
     def test_loadbinfile(self):
-        testdata = randomdata(1024)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1024)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
 
         mp = MultiPartBuffer()
-        mp.loadbinfile(filename)
+        mp.loadbinfile(self.testfilename)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
         mp = MultiPartBuffer()
-        mp.loadbinfile(filename, address=0x100)
+        mp.loadbinfile(self.testfilename, address=0x100)
         yield self.assertEqual, mp.start(), 0x100
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
         mp = MultiPartBuffer()
-        mp.loadbinfile(filename, address=0x1000, size=512)
+        mp.loadbinfile(self.testfilename, address=0x1000, size=512)
         yield self.assertEqual, mp.start(), 0x1000
         yield self.assertSequenceEqual, mp.get(None, None), testdata[0:512]
 
         mp = MultiPartBuffer()
-        mp.loadbinfile(filename, offset=100)
+        mp.loadbinfile(self.testfilename, offset=100)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata[100:]
 
     def test_loadbinfh(self):
-        testdata = randomdata(1024)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1024)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
 
         mp = MultiPartBuffer()
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp.loadbinfh(fh)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
         mp = MultiPartBuffer()
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp.loadbinfh(fh, address=0x100)
         yield self.assertEqual, mp.start(), 0x100
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
         mp = MultiPartBuffer()
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp.loadbinfh(fh, address=0x1000, size=512)
         yield self.assertEqual, mp.start(), 0x1000
         yield self.assertSequenceEqual, mp.get(None, None), testdata[0:512]
 
         mp = MultiPartBuffer()
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp.loadbinfh(fh, offset=100)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata[100:]
 
     def test_frombinfile(self):
-        testdata = randomdata(1024)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1024)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
 
-        mp = MultiPartBuffer.frombinfile(filename)
+        mp = MultiPartBuffer.frombinfile(self.testfilename)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        mp = MultiPartBuffer.frombinfile(filename, address=0x100)
+        mp = MultiPartBuffer.frombinfile(self.testfilename, address=0x100)
         yield self.assertEqual, mp.start(), 0x100
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        mp = MultiPartBuffer.frombinfile(filename, address=0x1000, size=512)
+        mp = MultiPartBuffer.frombinfile(self.testfilename, address=0x1000, size=512)
         yield self.assertEqual, mp.start(), 0x1000
         yield self.assertSequenceEqual, mp.get(None, None), testdata[0:512]
 
-        mp = MultiPartBuffer.frombinfile(filename, offset=100)
+        mp = MultiPartBuffer.frombinfile(self.testfilename, offset=100)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata[100:]
 
     def test_frombinfh(self):
-        testdata = randomdata(1024)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1024)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer.frombinfh(fh)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer.frombinfh(fh, address=0x100)
         yield self.assertEqual, mp.start(), 0x100
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer.frombinfh(fh, address=0x1000, size=512)
         yield self.assertEqual, mp.start(), 0x1000
         yield self.assertSequenceEqual, mp.get(None, None), testdata[0:512]
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer.frombinfh(fh, offset=100)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata[100:]
 
     def test_fromfile_1(self):
-        testdata = randomdata(1024)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1024)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
 
-        mp = MultiPartBuffer.fromfile(filename)
+        mp = MultiPartBuffer.fromfile(self.testfilename)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        mp = MultiPartBuffer.fromfile(filename, address=0x100)
+        mp = MultiPartBuffer.fromfile(self.testfilename, address=0x100)
         yield self.assertEqual, mp.start(), 0x100
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        mp = MultiPartBuffer.fromfile(filename, address=0x1000, size=512)
+        mp = MultiPartBuffer.fromfile(self.testfilename, address=0x1000, size=512)
         yield self.assertEqual, mp.start(), 0x1000
         yield self.assertSequenceEqual, mp.get(None, None), testdata[0:512]
 
-        mp = MultiPartBuffer.fromfile(filename, offset=100)
+        mp = MultiPartBuffer.fromfile(self.testfilename, offset=100)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata[100:]
 
     def test_fromfile_2(self):
-        testdata = randomdata(1024)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1024)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
 
-        mp = MultiPartBuffer.fromfile(filename, 'bin')
+        mp = MultiPartBuffer.fromfile(self.testfilename, 'bin')
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        mp = MultiPartBuffer.fromfile(filename, 'bin', address=0x100)
+        mp = MultiPartBuffer.fromfile(self.testfilename, 'bin', address=0x100)
         yield self.assertEqual, mp.start(), 0x100
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        mp = MultiPartBuffer.fromfile(filename, 'bin', address=0x1000, size=512)
+        mp = MultiPartBuffer.fromfile(self.testfilename, 'bin', address=0x1000, size=512)
         yield self.assertEqual, mp.start(), 0x1000
         yield self.assertSequenceEqual, mp.get(None, None), testdata[0:512]
 
-        mp = MultiPartBuffer.fromfile(filename, 'bin', offset=100)
+        mp = MultiPartBuffer.fromfile(self.testfilename, 'bin', offset=100)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata[100:]
 
     def test_fromfile_failure(self):
-        testdata = randomdata(1)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
         with self.assertRaises(ValueError):
-            MultiPartBuffer.fromfile(filename, 'invalid')
+            MultiPartBuffer.fromfile(self.testfilename, 'invalid')
 
     def test_fromfh_1(self):
-        testdata = randomdata(1024)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1024)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer.fromfh(fh)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer.fromfh(fh, address=0x100)
         yield self.assertEqual, mp.start(), 0x100
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer.fromfh(fh, address=0x1000, size=512)
         yield self.assertEqual, mp.start(), 0x1000
         yield self.assertSequenceEqual, mp.get(None, None), testdata[0:512]
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer.fromfh(fh, offset=100)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata[100:]
 
     def test_fromfh_2(self):
-        testdata = randomdata(1024)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1024)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer.fromfh(fh, 'bin')
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer.fromfh(fh, 'bin', address=0x100)
         yield self.assertEqual, mp.start(), 0x100
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer.fromfh(fh, 'bin', address=0x1000, size=512)
         yield self.assertEqual, mp.start(), 0x1000
         yield self.assertSequenceEqual, mp.get(None, None), testdata[0:512]
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer.fromfh(fh, 'bin', offset=100)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata[100:]
 
     def test_fromfh_failure(self):
-        testdata = randomdata(1)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             with self.assertRaises(ValueError):
                 MultiPartBuffer.fromfh(fh, 'invalid')
 
     def test_loadfile_1(self):
-        testdata = randomdata(1024)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1024)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
 
-        mp = MultiPartBuffer().loadfile(filename)
+        mp = MultiPartBuffer().loadfile(self.testfilename)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        mp = MultiPartBuffer().loadfile(filename, address=0x100)
+        mp = MultiPartBuffer().loadfile(self.testfilename, address=0x100)
         yield self.assertEqual, mp.start(), 0x100
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        mp = MultiPartBuffer().loadfile(filename, address=0x1000, size=512)
+        mp = MultiPartBuffer().loadfile(self.testfilename, address=0x1000, size=512)
         yield self.assertEqual, mp.start(), 0x1000
         yield self.assertSequenceEqual, mp.get(None, None), testdata[0:512]
 
-        mp = MultiPartBuffer().loadfile(filename, offset=100)
+        mp = MultiPartBuffer().loadfile(self.testfilename, offset=100)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata[100:]
 
     def test_loadfile_2(self):
-        testdata = randomdata(1024)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1024)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
 
-        mp = MultiPartBuffer().loadfile(filename, 'bin')
+        mp = MultiPartBuffer().loadfile(self.testfilename, 'bin')
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        mp = MultiPartBuffer().loadfile(filename, 'bin', address=0x100)
+        mp = MultiPartBuffer().loadfile(self.testfilename, 'bin', address=0x100)
         yield self.assertEqual, mp.start(), 0x100
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        mp = MultiPartBuffer().loadfile(filename, 'bin', address=0x1000, size=512)
+        mp = MultiPartBuffer().loadfile(self.testfilename, 'bin', address=0x1000, size=512)
         yield self.assertEqual, mp.start(), 0x1000
         yield self.assertSequenceEqual, mp.get(None, None), testdata[0:512]
 
-        mp = MultiPartBuffer().loadfile(filename, 'bin', offset=100)
+        mp = MultiPartBuffer().loadfile(self.testfilename, 'bin', offset=100)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata[100:]
 
     def test_loadfile_failure(self):
-        testdata = randomdata(1)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
         with self.assertRaises(ValueError):
-            MultiPartBuffer().loadfile(filename, 'invalid')
+            MultiPartBuffer().loadfile(self.testfilename, 'invalid')
 
     def test_loadfh_1(self):
-        testdata = randomdata(1024)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1024)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer().loadfh(fh)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer().loadfh(fh, address=0x100)
         yield self.assertEqual, mp.start(), 0x100
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer().loadfh(fh, address=0x1000, size=512)
         yield self.assertEqual, mp.start(), 0x1000
         yield self.assertSequenceEqual, mp.get(None, None), testdata[0:512]
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer().loadfh(fh, offset=100)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata[100:]
 
     def test_loadfh_2(self):
-        testdata = randomdata(1024)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1024)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer().loadfh(fh, 'bin')
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer().loadfh(fh, 'bin', address=0x100)
         yield self.assertEqual, mp.start(), 0x100
         yield self.assertSequenceEqual, mp.get(None, None), testdata
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer().loadfh(fh, 'bin', address=0x1000, size=512)
         yield self.assertEqual, mp.start(), 0x1000
         yield self.assertSequenceEqual, mp.get(None, None), testdata[0:512]
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             mp = MultiPartBuffer().loadfh(fh, 'bin', offset=100)
         yield self.assertEqual, mp.start(), 0
         yield self.assertSequenceEqual, mp.get(None, None), testdata[100:]
 
     def test_loadfh_failure(self):
-        testdata = randomdata(1)
-        with open(filename, "wb") as fh:
+        testdata = randbytes(1)
+        with open(self.testfilename, "wb") as fh:
             fh.write(testdata)
 
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             with self.assertRaises(ValueError):
                 MultiPartBuffer().loadfh(fh, 'invalid')
 
     def test_add_mp(self):
-        testdata1 = randomdata(0x100)
-        testdata2 = randomdata(0x100)
+        testdata1 = randbytes(0x100)
+        testdata2 = randbytes(0x100)
         mp1 = MultiPartBuffer().set(0x0000, testdata1)
         mp2 = MultiPartBuffer().set(0x1000, testdata2)
         mpb = MultiPartBuffer().set(0x0000, testdata1).set(0x1000, testdata2)
@@ -891,8 +866,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp1, mpb)
 
     def test_add_mp_nooverwrite(self):
-        testdata1 = randomdata(0x100)
-        testdata2 = randomdata(0x100)
+        testdata1 = randbytes(0x100)
+        testdata2 = randbytes(0x100)
         mp1 = MultiPartBuffer().set(0x00, testdata1)
         mp2 = MultiPartBuffer().set(0x80, testdata2)
         mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=False)
@@ -900,8 +875,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp1, mpb)
 
     def test_add_mp_overwrite(self):
-        testdata1 = randomdata(0x100)
-        testdata2 = randomdata(0x100)
+        testdata1 = randbytes(0x100)
+        testdata2 = randbytes(0x100)
         mp1 = MultiPartBuffer().set(0x00, testdata1)
         mp2 = MultiPartBuffer().set(0x80, testdata2)
         mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=True)
@@ -909,8 +884,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp1, mpb)
 
     def test_add_dict_byte(self):
-        testdata1 = randomdata(0x100)
-        testdata2 = randomdata(0x100)
+        testdata1 = randbytes(0x100)
+        testdata2 = randbytes(0x100)
         testdict = {n: byte for n, byte in enumerate(testdata2, start=0x1000)}
         mp1 = MultiPartBuffer().set(0x0000, testdata1)
         mpb = MultiPartBuffer().set(0x0000, testdata1).set(0x1000, testdata2)
@@ -918,8 +893,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp1, mpb)
 
     def test_add_dict_byte_overwrite(self):
-        testdata1 = randomdata(0x100)
-        testdata2 = randomdata(0x100)
+        testdata1 = randbytes(0x100)
+        testdata2 = randbytes(0x100)
         testdict = {n: byte for n, byte in enumerate(testdata2, start=0x80)}
         mp1 = MultiPartBuffer().set(0x00, testdata1)
         mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=True)
@@ -927,8 +902,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp1, mpb)
 
     def test_add_dict_byte_nooverwrite(self):
-        testdata1 = randomdata(0x100)
-        testdata2 = randomdata(0x100)
+        testdata1 = randbytes(0x100)
+        testdata2 = randbytes(0x100)
         testdict = {n: byte for n, byte in enumerate(testdata2, start=0x80)}
         mp1 = MultiPartBuffer().set(0x00, testdata1)
         mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=False)
@@ -936,8 +911,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp1, mpb)
 
     def test_add_dict_buffer(self):
-        testdata1 = randomdata(0x100)
-        testdata2 = randomdata(0x100)
+        testdata1 = randbytes(0x100)
+        testdata2 = randbytes(0x100)
         testdict = {(0x1000 + n): testdata2[n:n + 0x10] for n in range(0, 0x100, 0x10)}
         mp1 = MultiPartBuffer().set(0x0000, testdata1)
         mpb = MultiPartBuffer().set(0x0000, testdata1).set(0x1000, testdata2)
@@ -945,8 +920,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp1, mpb)
 
     def test_add_dict_buffer_overwrite(self):
-        testdata1 = randomdata(0x100)
-        testdata2 = randomdata(0x100)
+        testdata1 = randbytes(0x100)
+        testdata2 = randbytes(0x100)
         testdict = {(0x80 + n): testdata2[n:n + 0x10] for n in range(0, 0x100, 0x10)}
         mp1 = MultiPartBuffer().set(0x00, testdata1)
         mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=True)
@@ -954,8 +929,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp1, mpb)
 
     def test_add_dict_buffer_nooverwrite(self):
-        testdata1 = randomdata(0x100)
-        testdata2 = randomdata(0x100)
+        testdata1 = randbytes(0x100)
+        testdata2 = randbytes(0x100)
         testdict = {(0x80 + n): [b for b in testdata2[n:n + 0x10]] for n in range(0, 0x100, 0x10)}
         mp1 = MultiPartBuffer().set(0x00, testdata1)
         mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=False)
@@ -963,8 +938,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp1, mpb)
 
     def test_add_list_byte(self):
-        testdata1 = randomdata(0x100)
-        testdata2 = randomdata(0x100)
+        testdata1 = randbytes(0x100)
+        testdata2 = randbytes(0x100)
         testlist = [(n, byte) for n, byte in enumerate(testdata2, start=0x1000)]
         mp1 = MultiPartBuffer().set(0x0000, testdata1)
         mpb = MultiPartBuffer().set(0x0000, testdata1).set(0x1000, testdata2)
@@ -972,8 +947,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp1, mpb)
 
     def test_add_list_byte_overwrite(self):
-        testdata1 = randomdata(0x100)
-        testdata2 = randomdata(0x100)
+        testdata1 = randbytes(0x100)
+        testdata2 = randbytes(0x100)
         testlist = [(n, byte) for n, byte in enumerate(testdata2, start=0x80)]
         mp1 = MultiPartBuffer().set(0x00, testdata1)
         mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=True)
@@ -981,8 +956,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp1, mpb)
 
     def test_add_list_byte_nooverwrite(self):
-        testdata1 = randomdata(0x100)
-        testdata2 = randomdata(0x100)
+        testdata1 = randbytes(0x100)
+        testdata2 = randbytes(0x100)
         testlist = [(n, byte) for n, byte in enumerate(testdata2, start=0x80)]
         mp1 = MultiPartBuffer().set(0x00, testdata1)
         mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=False)
@@ -990,8 +965,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp1, mpb)
 
     def test_add_list_buffer(self):
-        testdata1 = randomdata(0x100)
-        testdata2 = randomdata(0x100)
+        testdata1 = randbytes(0x100)
+        testdata2 = randbytes(0x100)
         testlist = [((0x1000 + n), testdata2[n:n + 0x10]) for n in range(0, 0x100, 0x10)]
         mp1 = MultiPartBuffer().set(0x0000, testdata1)
         mpb = MultiPartBuffer().set(0x0000, testdata1).set(0x1000, testdata2)
@@ -999,8 +974,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp1, mpb)
 
     def test_add_list_buffer_overwrite(self):
-        testdata1 = randomdata(0x100)
-        testdata2 = randomdata(0x100)
+        testdata1 = randbytes(0x100)
+        testdata2 = randbytes(0x100)
         testlist = [((0x80 + n), testdata2[n:n + 0x10]) for n in range(0, 0x100, 0x10)]
         mp1 = MultiPartBuffer().set(0x00, testdata1)
         mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=True)
@@ -1008,8 +983,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp1, mpb)
 
     def test_add_list_buffer_nooverwrite(self):
-        testdata1 = randomdata(0x100)
-        testdata2 = randomdata(0x100)
+        testdata1 = randbytes(0x100)
+        testdata2 = randbytes(0x100)
         testlist = [((0x80 + n), [b for b in testdata2[n:n + 0x10]]) for n in range(0, 0x100, 0x10)]
         mp1 = MultiPartBuffer().set(0x00, testdata1)
         mpb = MultiPartBuffer().set(0x00, testdata1).set(0x80, testdata2, overwrite=False)
@@ -1022,7 +997,7 @@ class TestMultiPartBuffer(unittest.TestCase):
             mp.add(set(range(0, 10)))
 
     def test_fillfront_0(self):
-        testdata = randomdata(0x100)
+        testdata = randbytes(0x100)
         mp = MultiPartBuffer().set(0x20, testdata)
         ret = mp.fillfront()
         self.assertIs(mp, ret)
@@ -1030,7 +1005,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertSequenceEqual(mp.get(None, None), (bytearray.fromhex("FF" * 0x20)) + testdata)
 
     def test_fillfront_1(self):
-        testdata = randomdata(0x100)
+        testdata = randbytes(0x100)
         mp = MultiPartBuffer().set(0x20, testdata)
         ret = mp.fillfront(fillpattern=0xA1)
         self.assertIs(mp, ret)
@@ -1038,7 +1013,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertSequenceEqual(mp.get(None, None), (bytearray.fromhex("A1" * 0x20)) + testdata)
 
     def test_fillfront_2(self):
-        testdata = randomdata(0x100)
+        testdata = randbytes(0x100)
         mp = MultiPartBuffer().set(0x20, testdata)
         ret = mp.fillfront(0x20, 0xAA)
         self.assertIs(mp, ret)
@@ -1046,7 +1021,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertSequenceEqual(mp.get(None, None), testdata)
 
     def test_fillfront_3(self):
-        testdata = randomdata(0x100)
+        testdata = randbytes(0x100)
         mp = MultiPartBuffer().set(0x20, testdata)
         ret = mp.fillfront(0x30, 0xAA)
         self.assertIs(mp, ret)
@@ -1061,7 +1036,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertEqual(mp.end(), 0)
 
     def test_fillend_1(self):
-        testdata = randomdata(0x100)
+        testdata = randbytes(0x100)
         mp = MultiPartBuffer().set(0x20, testdata)
         ret = mp.fillend(0x200)
         self.assertIs(mp, ret)
@@ -1069,7 +1044,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertSequenceEqual(mp.get(None, None), testdata + (bytearray.fromhex("FF" * (0x100 - 0x20))))
 
     def test_fillend_2(self):
-        testdata = randomdata(0x100)
+        testdata = randbytes(0x100)
         mp = MultiPartBuffer().set(0x20, testdata)
         ret = mp.fillend(0x200, 0x5A)
         self.assertIs(mp, ret)
@@ -1077,7 +1052,7 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertSequenceEqual(mp.get(None, None), testdata + (bytearray.fromhex("5A" * (0x100 - 0x20))))
 
     def test_fillend_3(self):
-        testdata = randomdata(0x100)
+        testdata = randbytes(0x100)
         mp = MultiPartBuffer().set(0x20, testdata)
         ret = mp.fillend(0x30, 0xAA)
         self.assertIs(mp, ret)
@@ -1093,123 +1068,123 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertSequenceEqual(mp.get(None, None), (bytearray.fromhex("2E" * 0x100)))
 
     def test_todict(self):
-        testdata = randomdata(100)
+        testdata = randbytes(100)
         mp = MultiPartBuffer().set(1000, testdata)
         d1 = {n: b for n, b in enumerate(testdata, 1000)}
         d2 = mp.todict()
         self.assertEqual(d1, d2)
 
     def test_tobinfile_1(self):
-        testdata = randomdata(1024)
+        testdata = randbytes(1024)
         mp = MultiPartBuffer().set(100, testdata)
-        ret = mp.tobinfile(filename)
+        ret = mp.tobinfile(self.testfilename)
         self.assertIs(ret, mp)
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(testdata, readdata)
 
     def test_tobinfile_2(self):
-        testdata = randomdata(1024)
+        testdata = randbytes(1024)
         mp = MultiPartBuffer().set(1000, testdata)
-        ret = mp.tobinfile(filename, address=1000)
+        ret = mp.tobinfile(self.testfilename, address=1000)
         self.assertIs(ret, mp)
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(testdata, readdata)
 
     def test_tobinfile_3(self):
-        testdata = randomdata(1024)
+        testdata = randbytes(1024)
         mp = MultiPartBuffer().set(1000, testdata)
-        ret = mp.tobinfile(filename, size=1024)
+        ret = mp.tobinfile(self.testfilename, size=1024)
         self.assertIs(ret, mp)
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(testdata, readdata)
 
     def test_tobinfile_4(self):
-        testdata = randomdata(1024)
+        testdata = randbytes(1024)
         mp = MultiPartBuffer().set(1000, testdata)
-        ret = mp.tobinfile(filename, address=1000, size=1024)
+        ret = mp.tobinfile(self.testfilename, address=1000, size=1024)
         self.assertIs(ret, mp)
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(testdata, readdata)
 
     def test_tobinfile_5(self):
-        testdata = randomdata(1024)
+        testdata = randbytes(1024)
         mp = MultiPartBuffer().set(0, testdata)
-        ret = mp.tobinfile(filename, address=-1, size=1024)
+        ret = mp.tobinfile(self.testfilename, address=-1, size=1024)
         self.assertIs(ret, mp)
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(testdata, readdata)
 
     def test_tobinfile_6(self):
-        testdata = randomdata(1024)
+        testdata = randbytes(1024)
         mp = MultiPartBuffer().set(0, testdata)
-        ret = mp.tobinfile(filename, address=12000)
+        ret = mp.tobinfile(self.testfilename, address=12000)
         self.assertIs(ret, mp)
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(bytearray(), readdata)
 
     def test_tobinfh_1(self):
-        testdata = randomdata(1024)
+        testdata = randbytes(1024)
         mp = MultiPartBuffer().set(100, testdata)
-        with open(filename, "wb") as fh:
+        with open(self.testfilename, "wb") as fh:
             ret = mp.tobinfh(fh)
         self.assertIs(ret, mp)
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(testdata, readdata)
 
     def test_tobinfh_2(self):
-        testdata = randomdata(1024)
+        testdata = randbytes(1024)
         mp = MultiPartBuffer().set(1000, testdata)
-        with open(filename, "wb") as fh:
+        with open(self.testfilename, "wb") as fh:
             ret = mp.tobinfh(fh, address=1000)
         self.assertIs(ret, mp)
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(testdata, readdata)
 
     def test_tobinfh_3(self):
-        testdata = randomdata(1024)
+        testdata = randbytes(1024)
         mp = MultiPartBuffer().set(1000, testdata)
-        with open(filename, "wb") as fh:
+        with open(self.testfilename, "wb") as fh:
             ret = mp.tobinfh(fh, size=1024)
         self.assertIs(ret, mp)
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(testdata, readdata)
 
     def test_tobinfh_4(self):
-        testdata = randomdata(1024)
+        testdata = randbytes(1024)
         mp = MultiPartBuffer().set(1000, testdata)
-        with open(filename, "wb") as fh:
+        with open(self.testfilename, "wb") as fh:
             ret = mp.tobinfh(fh, address=1000, size=1024)
         self.assertIs(ret, mp)
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(testdata, readdata)
 
     def test_tobinfh_5(self):
-        testdata = randomdata(1024)
+        testdata = randbytes(1024)
         mp = MultiPartBuffer().set(0, testdata)
-        with open(filename, "wb") as fh:
+        with open(self.testfilename, "wb") as fh:
             ret = mp.tobinfh(fh, address=-1, size=1024)
         self.assertIs(ret, mp)
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(testdata, readdata)
 
     def test_tobinfh_6(self):
-        testdata = randomdata(1024)
+        testdata = randbytes(1024)
         mp = MultiPartBuffer().set(0, testdata)
-        with open(filename, "wb") as fh:
+        with open(self.testfilename, "wb") as fh:
             ret = mp.tobinfh(fh, address=12000)
         self.assertIs(ret, mp)
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(bytearray(), readdata)
 
@@ -1234,8 +1209,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertIs(mp, mp.filter(nevercalled, address=900, size=10))
 
     def test_filter_fill_1(self):
-        testdata1 = randomdata(100)
-        testdata2 = randomdata(100)
+        testdata1 = randbytes(100)
+        testdata2 = randbytes(100)
         mp = MultiPartBuffer().set(100, testdata1).set(300, testdata2)
         filler = bytearray((0xFF,))
         global callcount
@@ -1253,8 +1228,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertIs(mp, mp.filter(filterfunc, fillpattern=filler))
 
     def test_filter_fill_2(self):
-        testdata1 = randomdata(100)
-        testdata2 = randomdata(100)
+        testdata1 = randbytes(100)
+        testdata2 = randbytes(100)
         mp = MultiPartBuffer().set(100, testdata1).set(300, testdata2)
         filler = bytearray((0xFF,))
         global callcount
@@ -1274,8 +1249,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertIs(mp, mp.filter(filterfunc, address=150, size=200, fillpattern=filler))
 
     def test_filter_overlap_1(self):
-        testdata1 = randomdata(100)
-        testdata2 = randomdata(100)
+        testdata1 = randbytes(100)
+        testdata2 = randbytes(100)
         mp = MultiPartBuffer().set(100, testdata1).set(300, testdata2)
         global callcount
         callcount = 0
@@ -1293,8 +1268,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertIs(mp, mp.filter(filterfunc, address=150, size=100))
 
     def test_filter_overlap_2(self):
-        testdata1 = randomdata(100)
-        testdata2 = randomdata(100)
+        testdata1 = randbytes(100)
+        testdata2 = randbytes(100)
         mp = MultiPartBuffer().set(100, testdata1).set(300, testdata2)
         global callcount
         callcount = 0
@@ -1319,8 +1294,8 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertIs(mp, mp.filter(filterfunc, address=150, size=200))
 
     def test_filter_overlap_3(self):
-        testdata1 = randomdata(100)
-        testdata2 = randomdata(100)
+        testdata1 = randbytes(100)
+        testdata2 = randbytes(100)
         mp = MultiPartBuffer().set(100, testdata1).set(300, testdata2).set(500, bytearray(100))
         global callcount
         callcount = 0
@@ -1345,48 +1320,48 @@ class TestMultiPartBuffer(unittest.TestCase):
         self.assertIs(mp, mp.filter(filterfunc, address=150, size=300))
 
     def test_tofile_failure(self):
-        testdata = randomdata(1)
+        testdata = randbytes(1)
         mp = MultiPartBuffer().set(0, testdata)
         with self.assertRaises(ValueError):
-            mp.tofile(filename, 'invalid')
+            mp.tofile(self.testfilename, 'invalid')
 
     def test_tofh_failure(self):
-        testdata = randomdata(1)
+        testdata = randbytes(1)
         mp = MultiPartBuffer().set(0, testdata)
-        with open(filename, "wb") as fh:
+        with open(self.testfilename, "wb") as fh:
             with self.assertRaises(ValueError):
                 mp.tofh(fh, 'invalid')
 
     def test_tofh(self):
-        testdata = randomdata(100)
+        testdata = randbytes(100)
         mp = MultiPartBuffer().set(0, testdata)
-        with open(filename, "wb") as fh:
+        with open(self.testfilename, "wb") as fh:
             mp.tofh(fh)
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(readdata, testdata)
 
     def test_tofh_bin(self):
-        testdata = randomdata(100)
+        testdata = randbytes(100)
         mp = MultiPartBuffer().set(0, testdata)
-        with open(filename, "wb") as fh:
+        with open(self.testfilename, "wb") as fh:
             mp.tofh(fh, 'bin')
-        with open(filename, "rb") as fh:
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(readdata, testdata)
 
     def test_tofile(self):
-        testdata = randomdata(100)
+        testdata = randbytes(100)
         mp = MultiPartBuffer().set(0, testdata)
-        mp.tofile(filename)
-        with open(filename, "rb") as fh:
+        mp.tofile(self.testfilename)
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(readdata, testdata)
 
     def test_tofile_bin(self):
-        testdata = randomdata(100)
+        testdata = randbytes(100)
         mp = MultiPartBuffer().set(0, testdata)
-        mp.tofile(filename, 'bin')
-        with open(filename, "rb") as fh:
+        mp.tofile(self.testfilename, 'bin')
+        with open(self.testfilename, "rb") as fh:
             readdata = fh.read()
         self.assertSequenceEqual(readdata, testdata)

@@ -1,13 +1,7 @@
+from tests import TestCaseWithTempfile, randbytes, randint, randdict, patch, skipunlessslow
 from hexformat.base import EncodeError, DecodeError
 from hexformat.srecord import SRecord
-import unittest
-from unittest.mock import patch
-from tests.test_multipartbuffer import randomdata
-import random
-import tempfile
 import sys
-import os
-import shutil
 
 
 class FakeFileHandle(list):
@@ -21,31 +15,7 @@ class FakeFileHandle(list):
             return ''
 
 
-def randomstr(length):
-    # noinspection PyUnusedLocal
-    return bytearray((random.randint(ord('a'), ord('z')) for n in range(0, length))).decode()
-
-
-def randomdict(number=None):
-    if number is None:
-        number = random.randint(1, 16)
-    # noinspection PyUnusedLocal
-    return {randomstr(random.randint(1, 16)): randomdata(random.randint(1, 16)) for n in range(0, number)}
-
-
-class TestSRecord(unittest.TestCase):
-
-    def setUp(self):
-        self.dirname = tempfile.mkdtemp(prefix="test_srecord_")
-        # sys.stderr.write("Tempdir: {:s}\n".format(self.dirname))
-        self.testfilename = os.path.join(self.dirname, "testdata.srec")
-
-    def tearDown(self):
-        # noinspection PyBroadException
-        try:
-            shutil.rmtree(self.dirname)
-        except OSError:
-            pass
+class TestSRecord(TestCaseWithTempfile):
 
     # noinspection PyProtectedMember
     def test_startaddress_getter(self):
@@ -54,7 +24,7 @@ class TestSRecord(unittest.TestCase):
             srec._startaddress = n
             self.assertEqual(srec._startaddress, n)
             self.assertEqual(srec._startaddress, srec.startaddress)
-            r = random.randint(0, 2 ** 32 - 1)
+            r = randint(0, 2 ** 32 - 1)
             srec._startaddress = r
             self.assertEqual(srec._startaddress, r)
             self.assertEqual(srec._startaddress, srec.startaddress)
@@ -66,7 +36,7 @@ class TestSRecord(unittest.TestCase):
             srec.startaddress = n
             self.assertEqual(n, srec.startaddress)
             self.assertEqual(srec._startaddress, srec.startaddress)
-            r = random.randint(0, 2 ** 32 - 1)
+            r = randint(0, 2 ** 32 - 1)
             srec.startaddress = r
             self.assertEqual(r, srec.startaddress)
             self.assertEqual(srec._startaddress, srec.startaddress)
@@ -106,7 +76,7 @@ class TestSRecord(unittest.TestCase):
                 srec._addresslength = n
                 self.assertEqual(srec._addresslength, n)
                 self.assertEqual(srec._addresslength, srec.addresslength)
-                r = random.randint(0, 2 ** 32 - 1)
+                r = randint(0, 2 ** 32 - 1)
                 srec._addresslength = r
                 self.assertEqual(srec._addresslength, r)
                 self.assertEqual(srec._addresslength, srec.addresslength)
@@ -196,9 +166,9 @@ class TestSRecord(unittest.TestCase):
     def test_header_getter(self):
         srec = SRecord()
         # noinspection PyUnusedLocal
-        for n in (b"", b"Test", b"Long string " * 10, randomdata(253),
+        for n in (b"", b"Test", b"Long string " * 10, randbytes(253),
                   "Some string which will be encoded".encode(),
-                  bytearray((random.randint(0, 255) for r in range(0, random.randint(0, 253))))):
+                  bytearray((randint(0, 255) for r in range(0, randint(0, 253))))):
             with self.subTest(n):
                 srec._header = n
                 self.assertEqual(n, srec.header)
@@ -208,9 +178,9 @@ class TestSRecord(unittest.TestCase):
     def test_header_setter(self):
         srec = SRecord()
         # noinspection PyUnusedLocal
-        for n in (b"", b"Test", b"Long string " * 10, randomdata(253),
+        for n in (b"", b"Test", b"Long string " * 10, randbytes(253),
                   "Some string which will be encoded".encode(),
-                  bytearray((random.randint(0, 255) for r in range(0, random.randint(0, 253))))):
+                  bytearray((randint(0, 255) for r in range(0, randint(0, 253))))):
             srec.header = n
             self.assertEqual(n, srec.header)
             self.assertEqual(srec._header, srec.header)
@@ -224,7 +194,7 @@ class TestSRecord(unittest.TestCase):
 
     # noinspection PyProtectedMember
     def test_header_setter_large(self):
-        testdata = randomdata(254)
+        testdata = randbytes(254)
         srec = SRecord()
         srec.header = testdata
         self.assertEqual(srec.header, testdata[0:253])
@@ -307,7 +277,7 @@ class TestSRecord(unittest.TestCase):
             SRecord._s123addr(5, 0)
 
     def test_tosrecfile_interface(self):
-        testdict = randomdict()
+        testdict = randdict()
 
         def tosrecfh_replacement(instance, fh, **settings):
             self.assertDictEqual(settings, testdict)
@@ -328,7 +298,7 @@ class TestSRecord(unittest.TestCase):
         do()
 
     def test_fromsrecfile_interface(self):
-        test_raise_error_on_miscount = random.randint(0, 1024)
+        test_raise_error_on_miscount = randint(0, 1024)
 
         # noinspection PyDecorator
         @classmethod
@@ -346,7 +316,7 @@ class TestSRecord(unittest.TestCase):
         def do():
             srec = SRecord.fromsrecfile(self.testfilename, test_raise_error_on_miscount)
             self.assertIsInstance(srec, SRecord)
-            
+
         with open(self.testfilename, "w") as fh:
             fh.write("")
 
@@ -354,7 +324,7 @@ class TestSRecord(unittest.TestCase):
 
     def test_fromsrecfh_interface(self):
         testfh = object()
-        test_raise_error_on_miscount = random.randint(0, 1024)
+        test_raise_error_on_miscount = randint(0, 1024)
 
         def loadsrecfh_replacement(instance, fh, raise_error_on_miscount=True):
             self.assertEqual(raise_error_on_miscount, test_raise_error_on_miscount)
@@ -369,9 +339,9 @@ class TestSRecord(unittest.TestCase):
         do()
 
     def test_loadsrecfile_interface(self):
-        test_overwrite_metadata = random.randint(0, 1024)
-        test_overwrite_data = random.randint(0, 1024)
-        test_raise_error_on_miscount = random.randint(0, 1024)
+        test_overwrite_metadata = randint(0, 1024)
+        test_overwrite_data = randint(0, 1024)
+        test_raise_error_on_miscount = randint(0, 1024)
 
         def loadsrecfile_replacement(instance, fh, overwrite_metadata=False, overwrite_data=True,
                                      raise_error_on_miscount=True):
@@ -472,6 +442,7 @@ class TestSRecord(unittest.TestCase):
         srec.tosrecfh(fh, bytesperline=1, write_number_of_records=True)
         self.assertEqual(fh[-2], expected)
 
+    @skipunlessslow
     def test_tosrecfh_write_number_of_records_too_large(self):
         srec = SRecord().fill(0x0, 0x1000000)
         fh = FakeFileHandle()

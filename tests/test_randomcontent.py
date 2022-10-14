@@ -1,20 +1,16 @@
-import random
 from hexformat.fillpattern import RandomContent
-import unittest
-from unittest.mock import patch
+from tests import TestCase, patch, randint
 
 
-class TestRandomContent(unittest.TestCase):
+class TestRandomContent(TestCase):
 
     def test_init_noargs(self):
         fp = RandomContent()
         self.assertEqual(len(fp), 1)
 
-
     def test_init_length(self):
-        for l in (1, 2, 100, 1024, 0xFFFFFFFF, 0xFFFFFFFFFF, random.randint(0, 0xFFFFFFFFFF)):
-            self.assertEqual(len(RandomContent(length=l)), l)
-
+        for length in (1, 2, 100, 1024, 0xFFFFFFFF, 0xFFFFFFFFFF, randint(0, 0xFFFFFFFFFF)):
+            self.assertEqual(len(RandomContent(length=length)), length)
 
     def test_mul(self):
         fp = RandomContent()
@@ -22,11 +18,9 @@ class TestRandomContent(unittest.TestCase):
             fp2 = fp * n
             self.assertEqual(len(fp2), n)
 
-
     def test_iter(self):
         fp = RandomContent(100)
         self.assertEqual(len(bytearray((b for b in fp))), 100)
-
 
     def test_index(self):
         with patch('random.randint') as randint_function:
@@ -37,7 +31,6 @@ class TestRandomContent(unittest.TestCase):
             self.assertEqual(fp[len(fp) * 5 + 1], 0x8a)
             randint_function.return_value = 0xc4
             self.assertEqual(fp[-1], 0xc4)
-
 
     def test_slice(self):
         with patch('random.randint') as randint_function:
@@ -54,12 +47,10 @@ class TestRandomContent(unittest.TestCase):
             randint_function.side_effect = bytearray(testdata)
             self.assertEqual(bytearray(fp[1:3]), testdata[:-4])
 
-
     def test_imul_error_1(self):
         fp = RandomContent()
         with self.assertRaises(ValueError):
             fp * -2
-
 
     def test_imul_error_2(self):
         fp = RandomContent()

@@ -1,6 +1,5 @@
 from hexformat.srecord import SRecord
-import random
-import unittest
+from tests import TestCase, randbytes
 
 
 class FakeFileHandle(list):
@@ -8,7 +7,7 @@ class FakeFileHandle(list):
         self.append(line)
 
 
-class TestSRecEncode(unittest.TestCase):
+class TestSRecEncode(TestCase):
 
     # noinspection PyProtectedMember
     def test_encode_bytesperline(self):
@@ -140,8 +139,7 @@ class TestSRecEncode(unittest.TestCase):
         # noinspection PyProtectedMember
         def do(recordtype, bytesperline):
             addresslen = recordtype + 1
-            # noinspection PyUnusedLocal
-            testdata = bytearray((random.randint(0, 0xFF) for m in range(0, bytesperline)))
+            testdata = randbytes(bytesperline)
             fh = FakeFileHandle()
             SRecord._encodesrecline(fh, recordtype, 0, testdata, bytesperline)
             self.assertEqual(len(fh), 1)

@@ -65,7 +65,7 @@ class HexDump(HexFormat):
         if ascii:
             asciistr = " |{{:{:d}s}}|".format(bytesperline).format(
                 "".join([char in string.printable and char or "." for char in str(data)]))
-        numgroups = bytesperline / groupsize
+        numgroups = int(bytesperline / groupsize)
         hwidth = bytesperline * 2 + numgroups - 1
         return "{{:08X}}: {{:{:d}s}}{{:s}}\n".format(hwidth).format(address, datastr, asciistr)
 

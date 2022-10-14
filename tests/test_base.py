@@ -9,7 +9,7 @@ class FakeFileHandle(list):
         self.append(line)
 
 
-class TestBase(unittest.TestCase):
+class TestBase(TestCase):
 
     def test_settings_1(self):
         srec = SRecord(
@@ -37,7 +37,7 @@ class TestBase(unittest.TestCase):
         self.assertEqual(srec.startaddress, 0x2345)
         self.assertEqual(srec.addresslength, 2)
         self.assertEqual(srec.bytesperline, 16)
-        self.assertEqual(srec.header, b"Test it")
+        self.assertSequenceEqual(srec.header, b"Test it")
         self.assertEqual(srec.write_number_of_records, False)
 
     def test_settings_3(self):

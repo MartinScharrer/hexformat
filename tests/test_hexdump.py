@@ -1,7 +1,9 @@
 from hexformat.hexdump import HexDump
-import unittest
+from tests import TestCase
 
 
-class TestHexdump(unittest.TestCase):
+class TestHexdump(TestCase):
+
     def test(self):
+        """Dummy test ficture"""
         return HexDump()

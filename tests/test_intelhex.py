@@ -1,13 +1,7 @@
 from hexformat.intelhex import IntelHex
-import random
-import tempfile
-import os
 import sys
-import shutil
-import unittest
-from unittest.mock import patch
-from tests.test_multipartbuffer import randomdata
-from tests.test_srecord import randomdict
+from tests import TestCaseWithTempfile, patch, randbytes, randint, randdict
+
 from hexformat.base import DecodeError, EncodeError
 
 
@@ -22,19 +16,7 @@ class FakeFileHandle(list):
             return ''
 
 
-class TestIntelHex(unittest.TestCase):
-
-    def setUp(self):
-        self.dirname = tempfile.mkdtemp(prefix="test_intelhex_")
-        # sys.stderr.write("Tempdir: {:s}\n".format(self.dirname))
-        self.testfilename = os.path.join(self.dirname, "testdata.hex")
-
-    def tearDown(self):
-        # noinspection PyBroadException
-        try:
-            shutil.rmtree(self.dirname)
-        except OSError:
-            pass
+class TestIntelHex(TestCaseWithTempfile):
 
     # noinspection PyProtectedMember
     def test_bytesperline_getter(self):
@@ -232,7 +214,7 @@ class TestIntelHex(unittest.TestCase):
             ih.eip = set()
 
     def test_toihexfile_interface(self):
-        testdict = randomdict()
+        testdict = randdict()
 
         def toihexfh_replacement(instance, fh, **settings):
             self.assertDictEqual(settings, testdict)
@@ -253,7 +235,7 @@ class TestIntelHex(unittest.TestCase):
         do()
 
     def test_fromihexfile_interface(self):
-        test_ignore_checksum_errors = random.randint(0, 1024)
+        test_ignore_checksum_errors = randint(0, 1024)
 
         # noinspection PyDecorator
         @classmethod
@@ -279,7 +261,7 @@ class TestIntelHex(unittest.TestCase):
 
     def test_fromihexfh_interface(self):
         testfh = object()
-        test_ignore_checksum_errors = random.randint(0, 1024)
+        test_ignore_checksum_errors = randint(0, 1024)
 
         @classmethod
         def loadihexfh_replacement(cls, fh, ignore_checksum_errors=False):
@@ -295,7 +277,7 @@ class TestIntelHex(unittest.TestCase):
         do()
 
     def test_loadihexfile_interface(self):
-        test_ignore_checksum_errors = random.randint(0, 1024)
+        test_ignore_checksum_errors = randint(0, 1024)
 
         def loadihexfile_replacement(instance, fh, ignore_checksum_errors=False):
             self.assertEqual(ignore_checksum_errors, test_ignore_checksum_errors)
@@ -319,14 +301,14 @@ class TestIntelHex(unittest.TestCase):
         do()
 
     def test_eq(self):
-        testdata1 = randomdata(random.randint(10, 2 ** 16))
-        testaddr1 = random.randint(0, 2 ** 32 - 1)
-        testdata2 = randomdata(random.randint(10, 2 ** 16))
-        testaddr2 = random.randint(0, 2 ** 32 - 1)
-        testdata3 = randomdata(random.randint(10, 2 ** 16))
-        testaddr3 = random.randint(0, 2 ** 32 - 1)
-        testeid = random.randint(0, 2 ** 32 - 1)
-        testcsip = random.randint(0, 2 ** 32 - 1)
+        testdata1 = randbytes(randint(10, 2 ** 16))
+        testaddr1 = randint(0, 2 ** 32 - 1)
+        testdata2 = randbytes(randint(10, 2 ** 16))
+        testaddr2 = randint(0, 2 ** 32 - 1)
+        testdata3 = randbytes(randint(10, 2 ** 16))
+        testaddr3 = randint(0, 2 ** 32 - 1)
+        testeid = randint(0, 2 ** 32 - 1)
+        testcsip = randint(0, 2 ** 32 - 1)
 
         ih1 = IntelHex()
         ih1.set(testaddr1, testdata1)
@@ -429,10 +411,10 @@ class TestIntelHex(unittest.TestCase):
         # noinspection PyProtectedMember
         def test_parseihexline_r0_random(self):
             for r in range(0, 10):
-                testbytecount = random.randint(1, 255)
-                testaddress = random.randint(0, 0xFFFF)
+                testbytecount = randint(1, 255)
+                testaddress = randint(0, 0xFFFF)
                 testrecordtype = 0x00
-                testdata = randomdata(testbytecount)
+                testdata = randbytes(testbytecount)
                 allbytes = bytearray((testbytecount, (testaddress >> 8) & 0xFF, testaddress & 0xFF, testrecordtype))
                 allbytes += testdata
                 allbytes += bytearray(1)
@@ -459,7 +441,7 @@ class TestIntelHex(unittest.TestCase):
     def test_encodeihexline_recordtype_valid(self):
         for rt, l in self.RECORDTYPE_LENGTH.items():
             if l is None:
-                l = random.randint(0, 200)
+                l = randint(0, 200)
             ih = IntelHex()
             ih._encodeihexline(rt, 0, bytearray(l))
 

@@ -24,6 +24,10 @@ exclude_lines =
     pbr
     six
 
+omit =
+    tests/__init__.py
+    tests/*
+
 ignore_errors = True
 
 [html]

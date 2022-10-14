@@ -4,13 +4,14 @@ import unittest
 from hexformat.fillpattern import FillPattern
 
 
-class TestFillpattern(unittest.TestCase):
+class TestFillpattern(TestCase):
+
     def test_init_noargs(self):
         fp = FillPattern()
         self.assertEqual(len(fp), 1)
 
     def test_init_length(self):
-        for length in (1, 2, 100, 1024, 0xFFFFFFFF, 0xFFFFFFFFFF, random.randint(0, 0xFFFFFFFFFF)):
+        for length in (1, 2, 100, 1024, 0xFFFFFFFF, 0xFFFFFFFFFF, randint(0, 0xFFFFFFFFFF)):
             self.assertEqual(len(FillPattern(length=length)), length)
 
     def test_init_pattern(self):
@@ -105,8 +106,7 @@ class TestFillpattern(unittest.TestCase):
             self.assertEqual(len(fp), n)
 
     def test_iter(self):
-        # noinspection PyUnusedLocal
-        testdata = bytearray((random.randint(0, 255) for n in range(0, 100)))
+        testdata = randbytes(100)
         fp = FillPattern(testdata)
         self.assertEqual(bytearray((b for b in fp)), testdata)
         self.assertEqual(bytearray((b for b in fp[:])), testdata)

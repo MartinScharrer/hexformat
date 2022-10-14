@@ -1,6 +1,5 @@
 from hexformat.fillpattern import int_to_bytes
-import unittest
-import random
+from tests import TestCase, randint
 
 
 testit = True
@@ -13,7 +12,7 @@ except AttributeError:
     pass
 
 
-class TestIntToBytes(unittest.TestCase):
+class TestIntToBytes(TestCase):
 
     def do(self, value, length, byteorder, signed, expected):
         self.assertEqual(int_to_bytes(value, length, byteorder, signed=signed), bytearray.fromhex(expected))
@@ -102,5 +101,5 @@ class TestIntToBytes(unittest.TestCase):
                     self.do2(limit - 1, n, bo, True)
                     self.do2(limit - 2, n, bo, True)
                     for i in range(0, 100):
-                        self.do2(random.randint(0, maxvalue), n, bo, False)
-                        self.do2(random.randint(-limit, limit - 1), n, bo, True)
+                        self.do2(randint(0, maxvalue), n, bo, False)
+                        self.do2(randint(-limit, limit - 1), n, bo, True)
