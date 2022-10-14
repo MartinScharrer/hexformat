@@ -2,6 +2,13 @@
 Changelog
 =========
 
+v0.4.0 - 2022-10-14
+===================
+ * Updated unit tests to use common code.
+ * Some code quality adjustments.
+ * Switched license from GPLv3 to MIT.
+
+
 v0.3.0 - 2022-10-11
 ===================
  * Changed unittests from nose to unittest.

@@ -1,16 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0e94a52a-feb4-4c74-a539-6612c47a8392" name="Default Changelist" comment="Changed unittest from nose to unittest module.&#10;Updated README and copyright statements.">
+    <list default="true" id="0e94a52a-feb4-4c74-a539-6612c47a8392" name="Default Changelist" comment="Updated unittest structure.&#10;Some code quality improvements.">
       <change afterPath="$PROJECT_DIR$/Makefile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.coveragerc" beforeDir="false" afterPath="$PROJECT_DIR$/.coveragerc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/LICENSE.txt" beforeDir="false" afterPath="$PROJECT_DIR$/LICENSE.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/README.rst" beforeDir="false" afterPath="$PROJECT_DIR$/README.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/about.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/about.rst" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/source/changelog.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/changelog.rst" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/docs/source/conf.py" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/conf.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/source/hexformat.rst" beforeDir="false" afterPath="$PROJECT_DIR$/docs/source/hexformat.rst" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hexformat/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/hexformat/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hexformat/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/hexformat/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hexformat/fillpattern.py" beforeDir="false" afterPath="$PROJECT_DIR$/hexformat/fillpattern.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hexformat/hexdump.py" beforeDir="false" afterPath="$PROJECT_DIR$/hexformat/hexdump.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hexformat/intelhex.py" beforeDir="false" afterPath="$PROJECT_DIR$/hexformat/intelhex.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/hexformat/multipartbuffer.py" beforeDir="false" afterPath="$PROJECT_DIR$/hexformat/multipartbuffer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hexformat/srecord.py" beforeDir="false" afterPath="$PROJECT_DIR$/hexformat/srecord.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/hexformat/tektronix.py" beforeDir="false" afterPath="$PROJECT_DIR$/hexformat/tektronix.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/setup.py" beforeDir="false" afterPath="$PROJECT_DIR$/setup.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/tests/test_base.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/test_base.py" afterDir="false" />
@@ -46,13 +53,13 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "last_opened_file_path": "D:/Users/Martin/Dropbox/Docs/Programmieren/Python/hexformat",
-    "run.code.analysis.last.selected.profile": "pProject Default",
-    "settings.editor.selected.configurable": "inlay.hints"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;last_opened_file_path&quot;: &quot;D:/Users/Martin/Dropbox/Docs/Programmieren/Python/hexformat&quot;,
+    &quot;run.code.analysis.last.selected.profile&quot;: &quot;pProject Default&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settingsdialog.IDE.editor.colors&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="D:\Users\Martin\Dropbox\Docs\Programmieren\Python\hexformat" />
@@ -187,7 +194,14 @@
       <option name="project" value="LOCAL" />
       <updated>1665486283047</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Updated unittest structure.&#10;Some code quality improvements.">
+      <created>1665749351918</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1665749351918</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -206,6 +220,7 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Changed unittest from nose to unittest module.&#10;Updated README and copyright statements." />
-    <option name="LAST_COMMIT_MESSAGE" value="Changed unittest from nose to unittest module.&#10;Updated README and copyright statements." />
+    <MESSAGE value="Updated unittest structure.&#10;Some code quality improvements." />
+    <option name="LAST_COMMIT_MESSAGE" value="Updated unittest structure.&#10;Some code quality improvements." />
   </component>
 </project>
