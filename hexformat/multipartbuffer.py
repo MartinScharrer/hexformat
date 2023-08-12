@@ -401,7 +401,7 @@ class MultiPartBuffer(object):
         self.set(address, self._filler(size, fillpattern), size, 0, overwrite)
         return self
 
-    def unfill(self, address=None, size=None, unfillpattern=None, mingapsize=16):
+    def unfill(self, address=None, size=None, unfillpattern=None, mingapsize=16, unfillboundaries=True):
         """Removes <unfillpattern> and leaves a gap, as long a resulting new gap would be least <mingapsize> large."""
         if len(self._parts) == 0:
             return self
@@ -433,7 +433,7 @@ class MultiPartBuffer(object):
                         pos += ufvlen
                     ufsize = pos - delstartpos
                     # always delete at part boundaries
-                    if ufsize >= mingapsize or pos == buffersize or delstartpos == startpos:
+                    if ufsize >= mingapsize or (unfillboundaries and (pos == buffersize or delstartpos == startpos)):
                         uflist.append((bufferstart + delstartpos, ufsize))
             except ValueError:
                 pass
@@ -549,6 +549,51 @@ class MultiPartBuffer(object):
             gap = nextaddress - endaddress
             gaplist.append([endaddress, gap])
         return gaplist
+
+    def hasdata(self, address=None, size=None):
+        """Returns True if there is data in area (address, size)."""
+        address, size = self._checkaddrnsize(address, size)
+        index, mod = self._find(address, size, create=False)
+        # Check if there is a suitable buffer
+        if mod != MOD_USABLE_BUFFER_FOUND:
+            # No data if not
+            return False
+        # Otherwise the given address might be just at the end of the buffer.
+        # It hasdata only if the address is really inside the buffer span, not at the very end.
+        adr, data = self._parts[index]
+        return address < adr + len(data)
+
+    def blockfilter(self, blocksize, filterfunc, address=None, size=None, skipempty=False):
+        """Execute op(address, blocksize) for each block of <blocksize>."""
+        address, size = self._checkaddrnsize(address, size)
+        try:
+            blocksize = int(blocksize)
+            assert blocksize > 0
+        except AssertionError:
+            raise ValueError
+        endaddress = address + size
+        # Align startaddress to blocksize
+        startaddress = int(address / blocksize) * blocksize
+
+        for addr in range(startaddress, endaddress, blocksize):
+            if not skipempty or self.hasdata(addr, blocksize):
+                filterfunc(addr, blocksize)
+
+    def blockfill(self, blocksize, address=None, size=None, fillpattern=None, overwrite=False):
+        """Fill with <fillpattern> blockwise with given <blocksize>. Skipping empty blocks."""
+        def doblockfill(_address, _size):
+            self.fill(_address, _size, fillpattern, overwrite)
+        self.blockfilter(blocksize, doblockfill, address, size, skipempty=True)
+        return self
+
+    def blockunfill(self, blocksize, address=None, size=None, unfillpattern=None, mingapsize=None, unfillboundaries=False):
+        """Unfill with <unfillpattern> blockwise with given <blocksize>."""
+        if mingapsize is None:
+            mingapsize = blocksize
+        def doblockunfill(_address, _size):
+            self.unfill(_address, _size, unfillpattern, mingapsize, unfillboundaries)
+        self.blockfilter(blocksize, doblockunfill, address, size, skipempty=True)
+        return self
 
     def fillgaps(self, fillpattern=None):
         """Fill all gaps with given fillpattern."""
