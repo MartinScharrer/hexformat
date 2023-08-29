@@ -577,14 +577,14 @@ class MultiPartBuffer(object):
 
         for addr in range(startaddress, endaddress, blocksize):
             if not skipempty or self.hasdata(addr, blocksize):
-                filterfunc(addr, blocksize)
+                filterfunc(self, addr, blocksize)
 
         return self
 
     def blockfill(self, blocksize, address=None, size=None, fillpattern=None, overwrite=False):
         """Fill with <fillpattern> blockwise with given <blocksize>. Skipping empty blocks."""
-        def doblockfill(_address, _size):
-            self.fill(_address, _size, fillpattern, overwrite)
+        def doblockfill(inst, _address, _size):
+            inst.fill(_address, _size, fillpattern, overwrite)
         return self.blockfilter(blocksize, doblockfill, address, size, skipempty=True)
 
     def blockunfill(self, blocksize, address=None, size=None, unfillpattern=None, mingapsize=None, unfillboundaries=False):
@@ -592,8 +592,8 @@ class MultiPartBuffer(object):
         if mingapsize is None:
             mingapsize = blocksize
 
-        def doblockunfill(_address, _size):
-            self.unfill(_address, _size, unfillpattern, mingapsize, unfillboundaries)
+        def doblockunfill(inst, _address, _size):
+            inst.unfill(_address, _size, unfillpattern, mingapsize, unfillboundaries)
         return self.blockfilter(blocksize, doblockunfill, address, size, skipempty=True)
 
     def fillgaps(self, fillpattern=None):
