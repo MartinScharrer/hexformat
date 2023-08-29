@@ -22,7 +22,7 @@ setup(
     license_files=['LICENSE.txt'],
     packages=['hexformat'],
     test_suite='tests',
-    version='0.4.0',
+    version='0.5.0',
     url='https://github.com/MartinScharrer/hexformat',
     install_requires=[],
     classifiers=[
