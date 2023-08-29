@@ -423,7 +423,7 @@ class MultiPartBuffer(object):
             if startpos < 0:
                 size += startpos
                 startpos = 0
-            maxpos = min(buffersize, size)
+            maxpos = min(startpos + size, buffersize)
             pos = startpos
             try:
                 while pos < maxpos:
